@@ -2,18 +2,14 @@ import torch.nn as nn
 import torch
 from pathlib import Path
 import numpy as np
-from itertools import islice
-import torchvision.transforms as transforms
-import cv2
-import sys
 import torchvision.transforms as T
 from collections import OrderedDict, namedtuple
 import gdown
 from os.path import exists as file_exists
 
-from yolov5.utils.general import LOGGER, check_version, check_requirements
+# from yolov5.utils.general import LOGGER
 from trackers.strong_sort.deep.reid_model_factory import (show_downloadeable_models, get_model_url, get_model_name,
-                                                          download_url, load_pretrained_weights)
+                                                          load_pretrained_weights)
 from trackers.strong_sort.deep.models import build_model
 
 
@@ -80,20 +76,20 @@ class ReIDDetectMultiBackend(nn.Module):
             self.model.to(device).eval()
             self.model.half() if self.fp16 else  self.model.float()
         elif self.jit:
-            LOGGER.info(f'Loading {w} for TorchScript inference...')
+            # LOGGER.info(f'Loading {w} for TorchScript inference...')
             self.model = torch.jit.load(w)
             self.model.half() if self.fp16 else self.model.float()
         elif self.onnx:  # ONNX Runtime
-            LOGGER.info(f'Loading {w} for ONNX Runtime inference...')
+            # LOGGER.info(f'Loading {w} for ONNX Runtime inference...')
             cuda = torch.cuda.is_available() and device.type != 'cpu'
             #check_requirements(('onnx', 'onnxruntime-gpu' if cuda else 'onnxruntime'))
             import onnxruntime
             providers = ['CUDAExecutionProvider', 'CPUExecutionProvider'] if cuda else ['CPUExecutionProvider']
             self.session = onnxruntime.InferenceSession(str(w), providers=providers)
         elif self.engine:  # TensorRT
-            LOGGER.info(f'Loading {w} for TensorRT inference...')
+            # LOGGER.info(f'Loading {w} for TensorRT inference...')
             import tensorrt as trt  # https://developer.nvidia.com/nvidia-tensorrt-download
-            check_version(trt.__version__, '7.0.0', hard=True)  # require tensorrt>=7.0.0
+            # check_version(trt.__version__, '7.0.0', hard=True)  # require tensorrt>=7.0.0
             if device.type == 'cpu':
                 device = torch.device('cuda:0')
             Binding = namedtuple('Binding', ('name', 'dtype', 'shape', 'data', 'ptr'))
@@ -119,8 +115,8 @@ class ReIDDetectMultiBackend(nn.Module):
             self.binding_addrs = OrderedDict((n, d.ptr) for n, d in self.bindings.items())
             batch_size = self.bindings['images'].shape[0]  # if dynamic, this is instead max batch size
         elif self.xml:  # OpenVINO
-            LOGGER.info(f'Loading {w} for OpenVINO inference...')
-            check_requirements(('openvino',))  # requires openvino-dev: https://pypi.org/project/openvino-dev/
+            # LOGGER.info(f'Loading {w} for OpenVINO inference...')
+            # check_requirements(('openvino',))  # requires openvino-dev: https://pypi.org/project/openvino-dev/
             from openvino.runtime import Core, Layout, get_batch
             ie = Core()
             if not Path(w).is_file():  # if not *.xml
@@ -135,7 +131,7 @@ class ReIDDetectMultiBackend(nn.Module):
             self.output_layer = next(iter(self.executable_network.outputs))
         
         elif self.tflite:
-            LOGGER.info(f'Loading {w} for TensorFlow Lite inference...')
+            # LOGGER.info(f'Loading {w} for TensorFlow Lite inference...')
             try:  # https://coral.ai/docs/edgetpu/tflite-python/#update-existing-tf-lite-code-for-the-edge-tpu
                 from tflite_runtime.interpreter import Interpreter, load_delegate
             except ImportError:
