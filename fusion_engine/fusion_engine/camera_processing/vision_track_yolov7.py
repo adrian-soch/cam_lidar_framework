@@ -65,19 +65,19 @@ class VisionTracker():
         @return An instance of the VisionTracker class with the specified name
         """
 
-        yolo_weights=WEIGHTS / 'yolov7.pt'  # model.pt path(s)
+        yolo_weights=WEIGHTS / 'yolov7-tiny.pt'  # model.pt path(s)
         reid_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt'  # model.pt path
 
         self.flip = True # Flip image about x-axis (about the horizon)
-        self.imgsz=(640, 640)  # inference size (height, width)
+        self.imgsz=640  # inference size (height, width)
         self.tracking_method='ocsort' # ocsort or strongsort
-        self.conf_thres=0.25  # confidence threshold
+        self.conf_thres=0.4  # confidence threshold
         self.iou_thres=0.45  # NMS IOU threshold
         self.max_det=255  # maximum detections per image
-        self.device='0'  # cuda device, i.e. 0 or 0,1,2,3 or cpu
-        self.show_vid=False  # show results
+        self.device='cpu'  # cuda device, i.e. 0 or 0,1,2,3 or cpu
+        self.show_vid=True  # show results
         self.classes=[0, 1, 2, 3, 5, 7]  # filter by class: --class 0, or --class 0 2 3
-        self.half=True  # use FP16 half-precision inference (GPU ONLY)
+        self.half=False  # use FP16 half-precision inference (GPU ONLY)
         cudnn.benchmark = True  # set True to speed up constant image size inference
 
         # Initialize
@@ -88,7 +88,7 @@ class VisionTracker():
         # Load model
         self.model = attempt_load(yolo_weights, map_location=self.device)  # load FP32 model
         self.stride = int(self.model.stride.max())  # model stride
-        self.imgsz = check_img_size(self.imgsz[0], s=self.stride)  # check img_size
+        self.imgsz = check_img_size(self.imgsz, s=self.stride)  # check img_size
 
         if half:
             self.model.half()  # to FP16
@@ -110,7 +110,6 @@ class VisionTracker():
         # Init variables for tracking loop
         self.curr_frame, self.prev_frame = [None], [None]
     
-    @torch.no_grad()
     def update(self, im, return_image=False):
         """
         Runs the detection and tracking, must be called for each image.
@@ -128,7 +127,7 @@ class VisionTracker():
             im = cv2.flip(im, -1)
 
         im0 = im.copy()
-        im = letterbox(im, new_shape=self.imgsz, stride=32, auto=True)[0]
+        im = letterbox(im, stride=32, auto=True)[0]
 
         im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         im = np.ascontiguousarray(im)
@@ -140,10 +139,11 @@ class VisionTracker():
             im = im.unsqueeze(0)
 
         # Inference
-        pred = self.model(im, augment=False)[0]
+        with torch.no_grad():
+            pred = self.model(im, augment=False)[0]
 
         # Apply NMS
-        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, None, agnostic=False)
+        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, classes=self.classes, agnostic=False)
         # pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, self.classes, agnostic=False, max_det=self.max_det)
         # self.dt[2] += time_synchronized() - t3
         t4 = time_synchronized()
