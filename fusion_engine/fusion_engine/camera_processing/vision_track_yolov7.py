@@ -58,7 +58,6 @@ class VisionTracker():
 
     Source (input) is an image
     """
-
     def __init__(self):
         """
         The VisionTracker initializer. Chage detection/tracking params here.
@@ -131,10 +130,8 @@ class VisionTracker():
         im0 = im.copy()
         im = letterbox(im, new_shape=self.imgsz, stride=32, auto=True)[0]
 
-
         im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         im = np.ascontiguousarray(im)
-
 
         im = torch.from_numpy(im).to(self.device)
         im = im.half() if self.half else im.float()  # uint8 to fp16/32
