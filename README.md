@@ -5,7 +5,7 @@
 
 > `cam2image`: Camera driver
 
-> `ros2_numpy`: Fork of repo wit tools for converting msgs to numpy
+> `ros2_numpy`: Fork of repo with tools for converting msgs to numpy
 
 ## Install
 
