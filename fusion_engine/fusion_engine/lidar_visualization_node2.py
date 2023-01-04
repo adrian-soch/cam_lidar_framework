@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 """
-@file lidar_processing_node2.py
+@file lidar_visualization_node2.py
 
 @brief This node subsribes to point clouds and images.
     The syncronized callback requires images and pointclopuds to have
@@ -26,6 +26,7 @@ import ros2_numpy
 from matplotlib import pyplot as plt
 from lidar_processing.utils.projection_utils import *
 
+import cv2
 import time
 from matplotlib import pyplot as plt
 from numpy.lib.recfunctions import structured_to_unstructured, unstructured_to_structured
@@ -43,7 +44,7 @@ class LidarNode(Node):
     Create a LidarNode class, which is a subclass of the Node class.
     """
     def __init__(self):
-        super().__init__('lidar_processor')
+        super().__init__('lidar_visualizer')
 
         self.camera_mat = get_calib_from_file(CAM_CAL_PATH, 'camera_matrix', intrinsic=True)
         transforms = ['lidar2cam_extrinsic', 'lidarData2lidarSensor_extrinsic']
@@ -163,17 +164,17 @@ class LidarNode(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    lidar_processor = LidarNode()
+    lidar_visualizer = LidarNode()
 
     if MULTI_THREAD_EXEC:
         executor = MultiThreadedExecutor(num_threads=2)
-        executor.add_node(lidar_processor)
+        executor.add_node(lidar_visualizer)
         executor.spin()
     else:
-        rclpy.spin(lidar_processor)
+        rclpy.spin(lidar_visualizer)
 
     # Destroy the node explicitly
-    lidar_processor.destroy_node()
+    lidar_visualizer.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
