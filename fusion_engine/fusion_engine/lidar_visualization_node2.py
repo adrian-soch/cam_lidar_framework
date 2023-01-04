@@ -23,7 +23,6 @@ import message_filters as mf
 from cv_bridge import CvBridge
 
 import ros2_numpy
-from matplotlib import pyplot as plt
 from lidar_processing.utils.projection_utils import *
 
 import cv2
