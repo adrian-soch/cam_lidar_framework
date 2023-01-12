@@ -19,11 +19,11 @@ def generate_launch_description():
                 {"y_filter_max": 10.0},     # mm
                 {"z_filter_min": -10.0},    # mm
                 {"z_filter_max": 10.0},     # mm
-                {"plane_max_iterations": 200},
-                {"plane_distance_threshold": 0.8},
-                {"cluster_tolerance": 1.2},
+                {"plane_max_iterations": 100},
+                {"plane_distance_threshold": 0.4},
+                {"cluster_tolerance": 1.5},
                 {"cluster_min_size": 3},
-                {"cluster_max_size": 1000}
+                {"cluster_max_size": 2000}
             ]
         )
      ])
