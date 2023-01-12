@@ -34,16 +34,16 @@
 tree -d -L 3 -I __pycache__
 --->
 
-## Description
+# Description
 > `fusion_engine`: Camera + LiDAR object detection and tracking module
 
 > `cam2image`: Camera driver
 
 > `ros2_numpy`: Fork of repo with tools for converting msgs to numpy
 
-## Install
+# Install
 
-### Install Python requirements
+## Install Python requirements
 ```
 # PyTorch CPU Version
 pip install torch torchvision
@@ -70,12 +70,12 @@ scipy>=1.4.1
 
 If I missed any requirements that cause an error at runtime, just install any packages that are missing.
 
-### C++ requirements
+## C++ requirements
 
 ```
 sudo apt install libtins-dev
 ```
-### Clone and build repo
+## Clone and build repo
 
 ```
 cd <ROS2_WS>/src
@@ -85,7 +85,14 @@ colcon build
 ```
 After building always source the ROS2 install and the local ros2 wroksapce via `source /opt/ros/galactic/setup.bash` and `. install/setup.bash` respectively.
 
-#### Optional
-To clean the ros2 workspace run `rm -rf log/ install/ build/`. Warning `rm -rf` means deleting a folder without the ability to recover it.
+## Troubleshooting and Comments
 
-> Use git and commit often.
+### Known issues
+
+- cmake warning for PCL lib. Just re-build with the same command you used and the warning will be gone
+
+### Comments
+
+- Use git and commit often.
+- To clean the ros2 workspace run `rm -rf log/ install/ build/`. Warning `rm -rf` means deleting a folder without the ability to recover it.
+
