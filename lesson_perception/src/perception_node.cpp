@@ -1,13 +1,27 @@
+/**
+ * @file perception_node.cpp
+ * @brief Process LiDAR pointcloud data
+ * @version 0.1
+ * @date 2023-01-12
+ * 
+ * @todo 
+ *      - Use arrays that keep intensity (and other info)
+ *      - Publish array of segmented clusters?
+ *          - Add diff colour clusters into 1 cloud
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "rclcpp/rclcpp.hpp"
+#include <rclcpp/qos.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <tf2/transform_datatypes.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <rclcpp/qos.hpp>
 
-// PCL specific includes
-#include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/transforms.hpp>
+#include <pcl_conversions/pcl_conversions.h>
 
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/passthrough.h>
@@ -18,37 +32,31 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/segmentation/extract_polygonal_prism_data.h>
+
 #include <tf2/convert.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2/LinearMath/Quaternion.h>
-#include <pcl/segmentation/extract_polygonal_prism_data.h>
 
 class PerceptionNode : public rclcpp::Node
 {
     public:
         PerceptionNode()
         : Node("perception_node", rclcpp::NodeOptions()
-                                          .allow_undeclared_parameters(true)
-                                          .automatically_declare_parameters_from_overrides(true))
+                .allow_undeclared_parameters(true)
+                .automatically_declare_parameters_from_overrides(true))
         {
             /*
              * SET UP PUBLISHERS
              */
             RCLCPP_INFO(this->get_logger(), "Setting up publishers");
 
-            voxel_grid_publisher_ =
-                this->create_publisher<sensor_msgs::msg::PointCloud2>("voxel_cluster", 1);
-            passthrough_publisher_ =
-                this->create_publisher<sensor_msgs::msg::PointCloud2>("passthrough_cluster", 1);
-            plane_publisher_ =
-                this->create_publisher<sensor_msgs::msg::PointCloud2>("plane_cluster", 1);
-            euclidean_publisher_ =
-                this->create_publisher<sensor_msgs::msg::PointCloud2>("euclidean_cluster", 1);
-            stat_publisher_ =
-                this->create_publisher<sensor_msgs::msg::PointCloud2>("stat_cluster", 1);
-            polygon_publisher_ =
-                this->create_publisher<sensor_msgs::msg::PointCloud2>("polygon_cluster", 1);
-
+            voxel_grid_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("voxel_cluster", 1);
+            passthrough_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("passthrough_cluster", 1);
+            plane_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("plane_cluster", 1);
+            euclidean_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("euclidean_cluster", 1);
+            stat_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("stat_cluster", 1);
+            polygon_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("polygon_cluster", 1);
 
             /*
              * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -101,9 +109,9 @@ class PerceptionNode : public rclcpp::Node
                 this->create_subscription<sensor_msgs::msg::PointCloud2>(
                     cloud_topic, 1, std::bind(&PerceptionNode::cloud_callback, this, std::placeholders::_1));
 
-            // /*
-            //  * SET UP TF
-            //  */
+            /*
+             * SET UP TF
+             */
             tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
             tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
             br = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -111,26 +119,20 @@ class PerceptionNode : public rclcpp::Node
 
     private:
 
-        /*
-         * LISTEN FOR PointCloud2
-         */
         void cloud_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr recent_cloud)
         {
             RCLCPP_INFO(this->get_logger(), "Cloud service called; getting a PointCloud2 on topic");
+            auto start = std::chrono::high_resolution_clock::now();
 
             /*
              * TRANSFORM PointCloud2 FROM CAMERA FRAME TO WORLD FRAME
              */
             geometry_msgs::msg::TransformStamped stransform;
-
-            try
-            {
+            try {
                 stransform = tf_buffer_->lookupTransform(world_frame, recent_cloud->header.frame_id,
-                                                         tf2::TimePointZero, tf2::durationFromSec(3));
-
+                    tf2::TimePointZero, tf2::durationFromSec(3));
             }
-            catch (const tf2::TransformException & ex)
-            {
+            catch (const tf2::TransformException & ex) {
                 RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
             }
 
@@ -142,6 +144,9 @@ class PerceptionNode : public rclcpp::Node
              */
             pcl::PointCloud<pcl::PointXYZ> cloud;
             pcl::fromROSMsg(transformed_cloud, cloud);
+
+            pcl::PointCloud<pcl::PointXYZI> cloudi;
+            pcl::fromROSMsg(transformed_cloud, cloudi);
 
             /* ========================================
              * VOXEL GRID
@@ -178,7 +183,7 @@ class PerceptionNode : public rclcpp::Node
             // pass_z.filter(zf_cloud);
 
             /* ========================================
-             * CROPBOX (Optional)
+             * CROPBOX
              * ========================================*/
             pcl::PointCloud<pcl::PointXYZ> xyz_filtered_cloud;
             pcl::CropBox<pcl::PointXYZ> crop;
@@ -190,9 +195,19 @@ class PerceptionNode : public rclcpp::Node
             crop.filter(xyz_filtered_cloud);
 
             /* ========================================
-             * PLANE SEGEMENTATION
+             * STATISTICAL OUTLIER REMOVAL
              * ========================================*/
-            pcl::PointCloud<pcl::PointXYZ>::Ptr cropped_cloud(new pcl::PointCloud<pcl::PointXYZ>(xyz_filtered_cloud));
+            pcl::PointCloud<pcl::PointXYZ>::Ptr sor_input_cloud (new pcl::PointCloud<pcl::PointXYZ>(xyz_filtered_cloud));
+            pcl::PointCloud<pcl::PointXYZ>::Ptr sor_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+            sor.setInputCloud (sor_input_cloud);
+            sor.setMeanK (50);
+            sor.setStddevMulThresh (1.0);
+            sor.filter (*sor_cloud_filtered);
+
+            /* ========================================
+             * PLANE SEGEMENTATION
+             * ========================================*/;
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ> ());
@@ -206,23 +221,22 @@ class PerceptionNode : public rclcpp::Node
             seg.setMaxIterations (plane_max_iter);
             seg.setDistanceThreshold (plane_dist_thresh);
             // Segment the largest planar component from the cropped cloud
-            seg.setInputCloud (cropped_cloud);
+            seg.setInputCloud (sor_cloud_filtered);
             seg.segment (*inliers, *coefficients);
-            if (inliers->indices.size () == 0)
-            {
+            if(inliers->indices.size () == 0) {
                 RCLCPP_WARN(this->get_logger(), "Could not estimate a planar model for the given dataset.") ;
             }
 
             // Extract the planar inliers from the input cloud
             pcl::ExtractIndices<pcl::PointXYZ> extract;
-            extract.setInputCloud (cropped_cloud);
+            extract.setInputCloud (sor_cloud_filtered);
             extract.setIndices(inliers);
             extract.setNegative (false);
 
             // Get the points associated with the planar surface
             extract.filter (*cloud_plane);
             RCLCPP_INFO(this->get_logger(),
-                        "PointCloud2 representing the planar component: '%lu' data points.", cloud_plane->points.size());
+                "PointCloud2 representing the planar component: '%lu' data points.", cloud_plane->points.size());
 
             // Remove the planar inliers, extract the rest
             extract.setNegative (true);
@@ -246,49 +260,29 @@ class PerceptionNode : public rclcpp::Node
             ec.setInputCloud (cloud_filtered);
             ec.extract (cluster_indices);
 
-            std::vector<sensor_msgs::msg::PointCloud2::SharedPtr> pc2_clusters;
-            std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > clusters;
+            // std::vector<sensor_msgs::msg::PointCloud2::SharedPtr> pc2_clusters;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr clusters;
 
             int j = 0;
-            for (const auto& cluster : cluster_indices)
-            {
+            for (const auto& cluster : cluster_indices) {
                 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
 
                 for (const auto& idx : cluster.indices) {
                     cloud_cluster->points.push_back((*cloud_filtered)[idx]);
                 }
-
-                cloud_cluster->width = cloud_cluster->points.size ();
+                cloud_cluster->width = cloud_cluster->points.size();
                 cloud_cluster->height = 1;
                 cloud_cluster->is_dense = true;
-                RCLCPP_INFO(this->get_logger(), "Cluster has '%lu' points", cloud_cluster->points.size());
-                clusters.push_back(cloud_cluster);
-                sensor_msgs::msg::PointCloud2::SharedPtr tempROSMsg(new sensor_msgs::msg::PointCloud2);
-                pcl::toROSMsg(*cloud_cluster, *tempROSMsg);
-                pc2_clusters.push_back(tempROSMsg);
+                // RCLCPP_INFO(this->get_logger(), "Cluster has '%lu' points", cloud_cluster->points.size());
+                clusters = cloud_cluster;
 
                 j++;
-
             }
-
-
-            /* ========================================
-             * STATISTICAL OUTLIER REMOVAL
-             * ========================================*/
-            // pcl::PointCloud<pcl::PointXYZ>::Ptr cluster_cloud_ptr= clusters.at(0);
-            // pcl::PointCloud<pcl::PointXYZ>::Ptr sor_cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-            // pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-            // sor.setInputCloud (cluster_cloud_ptr);
-            // sor.setMeanK (50);
-            // sor.setStddevMulThresh (1.0);
-            // sor.filter (*sor_cloud_filtered);
-
 
             /* ========================================
              * BROADCAST TRANSFORM
              * ========================================*/
             // std::unique_ptr<tf2_ros::TransformBroadcaster> br = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-
             // geometry_msgs::msg::TransformStamped part_transform;
 
             // tf2::Quaternion q;
@@ -311,73 +305,72 @@ class PerceptionNode : public rclcpp::Node
             /* ========================================
              * POLYGONAL SEGMENTATION
              * ========================================*/
-            // pcl::PointCloud<pcl::PointXYZ>::Ptr sensor_cloud_ptr (new pcl::PointCloud<pcl::PointXYZ>(cloud));
-            // pcl::PointCloud<pcl::PointXYZ>::Ptr prism_filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-            // pcl::PointCloud<pcl::PointXYZ>::Ptr pick_surface_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
-            // pcl::ExtractPolygonalPrismData<pcl::PointXYZ> prism;
-            // pcl::ExtractIndices<pcl::PointXYZ> extract_ind;
-            // prism.setInputCloud(sensor_cloud_ptr);
-            // pcl::PointIndices::Ptr pt_inliers (new pcl::PointIndices());
+            pcl::PointCloud<pcl::PointXYZ>::Ptr sensor_cloud_ptr (new pcl::PointCloud<pcl::PointXYZ>(cloud));
+            pcl::PointCloud<pcl::PointXYZ>::Ptr prism_filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ>::Ptr pick_surface_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::ExtractPolygonalPrismData<pcl::PointXYZ> prism;
+            pcl::ExtractIndices<pcl::PointXYZ> extract_ind;
+            prism.setInputCloud(sensor_cloud_ptr);
+            pcl::PointIndices::Ptr pt_inliers (new pcl::PointIndices());
 
-            // // create prism surface
-            // double box_length=0.25;
-            // double box_width=0.25;
-            // pick_surface_cloud_ptr->width = 5;
-            // pick_surface_cloud_ptr->height = 1;
-            // pick_surface_cloud_ptr->points.resize(5);
+            // create prism surface
+            double box_length=0.25;
+            double box_width=0.25;
+            pick_surface_cloud_ptr->width = 5;
+            pick_surface_cloud_ptr->height = 1;
+            pick_surface_cloud_ptr->points.resize(5);
 
-            // pick_surface_cloud_ptr->points[0].x = 0.5f*box_length;
-            // pick_surface_cloud_ptr->points[0].y = 0.5f*box_width;
-            // pick_surface_cloud_ptr->points[0].z = 0;
+            pick_surface_cloud_ptr->points[0].x = 0.5f*box_length;
+            pick_surface_cloud_ptr->points[0].y = 0.5f*box_width;
+            pick_surface_cloud_ptr->points[0].z = 0;
 
-            // pick_surface_cloud_ptr->points[1].x = -0.5f*box_length;
-            // pick_surface_cloud_ptr->points[1].y = 0.5f*box_width;
-            // pick_surface_cloud_ptr->points[1].z = 0;
+            pick_surface_cloud_ptr->points[1].x = -0.5f*box_length;
+            pick_surface_cloud_ptr->points[1].y = 0.5f*box_width;
+            pick_surface_cloud_ptr->points[1].z = 0;
 
-            // pick_surface_cloud_ptr->points[2].x = -0.5f*box_length;
-            // pick_surface_cloud_ptr->points[2].y = -0.5f*box_width;
-            // pick_surface_cloud_ptr->points[2].z = 0;
+            pick_surface_cloud_ptr->points[2].x = -0.5f*box_length;
+            pick_surface_cloud_ptr->points[2].y = -0.5f*box_width;
+            pick_surface_cloud_ptr->points[2].z = 0;
 
-            // pick_surface_cloud_ptr->points[3].x = 0.5f*box_length;
-            // pick_surface_cloud_ptr->points[3].y = -0.5f*box_width;
-            // pick_surface_cloud_ptr->points[3].z = 0;
+            pick_surface_cloud_ptr->points[3].x = 0.5f*box_length;
+            pick_surface_cloud_ptr->points[3].y = -0.5f*box_width;
+            pick_surface_cloud_ptr->points[3].z = 0;
 
-            // pick_surface_cloud_ptr->points[4].x = 0.5f*box_length;
-            // pick_surface_cloud_ptr->points[4].y = 0.5f*box_width;
-            // pick_surface_cloud_ptr->points[4].z = 0;
+            pick_surface_cloud_ptr->points[4].x = 0.5f*box_length;
+            pick_surface_cloud_ptr->points[4].y = 0.5f*box_width;
+            pick_surface_cloud_ptr->points[4].z = 0;
 
-            // // Eigen::Affine3d eigen3d = tf2::transformToEigen(part_transform);
-            // // pcl::transformPointCloud(*pick_surface_cloud_ptr,*pick_surface_cloud_ptr,Eigen::Affine3f(eigen3d));
+            // Eigen::Affine3d eigen3d = tf2::transformToEigen(part_transform);
+            // pcl::transformPointCloud(*pick_surface_cloud_ptr,*pick_surface_cloud_ptr,Eigen::Affine3f(eigen3d));
 
-            // prism.setInputPlanarHull( pick_surface_cloud_ptr);
-            // prism.setHeightLimits(-10,10);
+            prism.setInputPlanarHull( pick_surface_cloud_ptr);
+            prism.setHeightLimits(-10,10);
 
-            // prism.segment(*pt_inliers);
+            prism.segment(*pt_inliers);
 
-            // extract_ind.setInputCloud(sensor_cloud_ptr);
-            // extract_ind.setIndices(pt_inliers);
+            extract_ind.setInputCloud(sensor_cloud_ptr);
+            extract_ind.setIndices(pt_inliers);
 
-            // extract_ind.setNegative(true);
-            // extract_ind.filter(*prism_filtered_cloud);
+            extract_ind.setNegative(true);
+            extract_ind.filter(*prism_filtered_cloud);
 
             /* ========================================
-             * CONVERT PointCloud2 PCL->ROS
-             * PUBLISH CLOUD
+             * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
              * ========================================*/
+            this->publishPointCloud(voxel_grid_pub_, *cloud_voxel_filtered);
+            this->publishPointCloudi(passthrough_pub_, cloudi);
+            this->publishPointCloud(plane_pub_, *cloud_f);
+            this->publishPointCloud(euclidean_pub_, *clusters);
+            this->publishPointCloud(stat_pub_, *sor_cloud_filtered);
+            this->publishPointCloud(polygon_pub_, *prism_filtered_cloud);
 
-            this->publishPointCloud(voxel_grid_publisher_, *cloud_voxel_filtered);
-            // this->publishPointCloud(passthrough_publisher_, zf_cloud); 
-            this->publishPointCloud(passthrough_publisher_, xyz_filtered_cloud);
-            this->publishPointCloud(plane_publisher_, *cloud_f);
-            this->publishPointCloud(euclidean_publisher_, *clusters);
-            // this->publishPointCloud(stat_publisher_, *sor_cloud_filtered);
-            // this->publishPointCloud(polygon_publisher_, *prism_filtered_cloud);
-
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+            RCLCPP_INFO(get_logger(), "Time (msec): %ld", t_ms.count());
         }
 
         void publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
-                               pcl::PointCloud<pcl::PointXYZ> point_cloud)
-        {
+            pcl::PointCloud<pcl::PointXYZ> point_cloud) {
 
             sensor_msgs::msg::PointCloud2::SharedPtr pc2_cloud(new sensor_msgs::msg::PointCloud2);
             pcl::toROSMsg(point_cloud, *pc2_cloud);
@@ -386,17 +379,27 @@ class PerceptionNode : public rclcpp::Node
             publisher->publish(*pc2_cloud);
         }
 
-        rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_subscriber_;
+        void publishPointCloudi(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
+            pcl::PointCloud<pcl::PointXYZI> point_cloud) {
+
+            sensor_msgs::msg::PointCloud2::SharedPtr pc2_cloud(new sensor_msgs::msg::PointCloud2);
+            pcl::toROSMsg(point_cloud, *pc2_cloud);
+            pc2_cloud->header.frame_id = world_frame;
+            pc2_cloud->header.stamp = this->get_clock()->now();
+            publisher->publish(*pc2_cloud);
+        }
 
         /*
-         * Publishers
-         */
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr voxel_grid_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr passthrough_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr plane_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr euclidean_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr stat_publisher_;
-        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr polygon_publisher_;
+        * Sub and Pub
+        */
+        rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_subscriber_;
+
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr voxel_grid_pub_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr passthrough_pub_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr plane_pub_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr euclidean_pub_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr stat_pub_;
+        rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr polygon_pub_;
 
         /*
          * Parameters
@@ -425,12 +428,7 @@ class PerceptionNode : public rclcpp::Node
         std::unique_ptr<tf2_ros::TransformBroadcaster> br;
 };
 
-
-int main(int argc, char *argv[])
-{
-    /*
-     * INITIALIZE ROS NODE
-     */
+int main(int argc, char *argv[]) {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<PerceptionNode>();
     rclcpp::spin(node);

@@ -13,12 +13,12 @@ def generate_launch_description():
                 {"world_frame": "laser_data_frame"},
                 {"camera_frame": "laser_data_frame"},
                 {"voxel_leaf_size": 0.25}, # mm
-                {"x_filter_min": 1.0},    # mm
-                {"x_filter_max": 100.0},     # mm
+                {"x_filter_min": 2.0},    # mm
+                {"x_filter_max": 120.0},     # mm
                 {"y_filter_min": -20.0},    # mm
                 {"y_filter_max": 10.0},     # mm
-                {"z_filter_min": -10.0},    # mm
-                {"z_filter_max": 10.0},     # mm
+                {"z_filter_min": -12.0},    # mm
+                {"z_filter_max": 12.0},     # mm
                 {"plane_max_iterations": 100},
                 {"plane_distance_threshold": 0.4},
                 {"cluster_tolerance": 1.5},
