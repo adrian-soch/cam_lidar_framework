@@ -9,17 +9,26 @@ def generate_launch_description():
 
             #params from visual inspection
             # To make the road paralell with the XY plane/rviz2 grid
-            arguments = ['0', '0', '0', '3.14', '0.2', '0', 'map', 'laser_data_frame']
+            arguments = ['0', '0', '0', '3.1416', '0.2', '0', 'map', 'laser_data_frame']
+        )
+
+    s_transform2 = Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+
+            #params from visual inspection
+            # To make the road paralell with the XY plane/rviz2 grid
+            arguments = ['0', '0', '0', '3.1416', '0', '0', 'map', 'laser_sensor_frame']
         )
 
     perception_node = Node(
-        package='lesson_perception',
+        package='lidar_pipeline',
         executable='perception_node',
         name='perception_node',
         output='screen',
         parameters=[
             {"cloud_topic": "/points"},
-            {"world_frame": "laser_data_frame"},
+            {"world_frame": "map"},
             {"camera_frame": "laser_data_frame"},
             {"voxel_leaf_size": 0.25}, # mm
             {"x_filter_min": 1.0},    # mm
@@ -39,5 +48,6 @@ def generate_launch_description():
     # Items above will only be launched if they are present in this list
     return LaunchDescription([
         s_transform,
+        s_transform2,
         perception_node
    ])

@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>lesson_perception</name>
+  <name>lidar_pipeline</name>
   <version>0.0.1</version>
   <description>
-     The lesson_perception package
+     The lidar_pipeline package
   </description>
   <author email="cgomez@swri.org">cgomez</author>
   <author email="tiffany.cappellari@swri.org">tcappellari</author>

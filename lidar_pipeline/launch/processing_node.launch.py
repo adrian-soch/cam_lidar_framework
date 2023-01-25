@@ -4,7 +4,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package='lesson_perception',
+            package='lidar_pipeline',
             executable='perception_node',
             name='perception_node',
             output='screen',
