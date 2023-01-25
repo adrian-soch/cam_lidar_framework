@@ -20,6 +20,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(pcl_ros REQUIRED)
@@ -28,7 +30,7 @@ find_package(tf2_eigen REQUIRED)
 find_package(PCL REQUIRED)
 
 add_executable(perception_node src/perception_node.cpp)
-ament_target_dependencies(perception_node rclcpp tf2_ros tf2 tf2_eigen sensor_msgs pcl_ros)
+ament_target_dependencies(perception_node rclcpp tf2_ros tf2 tf2_eigen sensor_msgs visualization_msgs geometry_msgs pcl_ros)
 
 install(TARGETS
     perception_node

@@ -9,7 +9,7 @@ def generate_launch_description():
 
             #params from visual inspection
             # To make the road paralell with the XY plane/rviz2 grid
-            arguments = ['0', '0', '0', '3.1416', '0.2', '0', 'map', 'laser_data_frame']
+            arguments = ['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
         )
 
     s_transform2 = Node(
@@ -20,6 +20,15 @@ def generate_launch_description():
             # To make the road paralell with the XY plane/rviz2 grid
             arguments = ['0', '0', '0', '3.1416', '0', '0', 'map', 'laser_sensor_frame']
         )
+
+    # s_transform2 = Node(
+    #         package='tf2_ros',
+    #         executable='static_transform_publisher',
+
+    #         #params from visual inspection
+    #         # To make the road paralell with the XY plane/rviz2 grid
+    #         arguments = ['0', '0', '0', '3.1416', '0', '0', 'laser_sensor_frame', 'laser_data_frame']
+    #     )
 
     perception_node = Node(
         package='lidar_pipeline',
