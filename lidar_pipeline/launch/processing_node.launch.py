@@ -8,6 +8,7 @@ def generate_launch_description():
             executable='perception_node',
             name='perception_node',
             output='screen',
+            # prefix='valgrind --leak-check=yes ',
             parameters=[
                 {"cloud_topic": "/points"},
                 {"world_frame": "map"},
@@ -19,10 +20,10 @@ def generate_launch_description():
                 {"y_filter_max": 10.0},     # mm
                 {"z_filter_min": -12.0},    # mm
                 {"z_filter_max": 12.0},     # mm
-                {"plane_max_iterations": 100},
+                {"plane_max_iterations": 120},
                 {"plane_distance_threshold": 0.4},
-                {"cluster_tolerance": 1.5},
-                {"cluster_min_size": 3},
+                {"cluster_tolerance": 0.6},
+                {"cluster_min_size": 4},
                 {"cluster_max_size": 2000}
             ]
         )
