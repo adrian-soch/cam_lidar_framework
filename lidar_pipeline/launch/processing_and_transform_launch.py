@@ -39,24 +39,25 @@ def generate_launch_description():
             {"cloud_topic": "/points"},
             {"world_frame": "map"},
             {"camera_frame": "laser_data_frame"},
-            {"voxel_leaf_size": 0.25}, # mm
-            {"x_filter_min": 1.0},    # mm
-            {"x_filter_max": 120.0},     # mm
-            {"y_filter_min": -25.0},    # mm
-            {"y_filter_max": 10.0},     # mm
-            {"z_filter_min": -15.0},    # mm
-            {"z_filter_max": 15.0},     # mm
+            {"voxel_leaf_size": 0.25}, # All in meters
+            {"x_filter_min": 1.0},
+            {"x_filter_max": 120.0},
+            {"y_filter_min": -25.0},
+            {"y_filter_max": 10.0},
+            {"z_filter_min": -15.0},
+            {"z_filter_max": 15.0},
             {"plane_max_iterations": 100},
             {"plane_distance_threshold": 0.4},
             {"cluster_tolerance": 1.5},
             {"cluster_min_size": 3},
-            {"cluster_max_size": 2000}
+            {"cluster_max_size": 2000},
+            {"median_filter_size": 3}
         ]
     )
     
     # Items above will only be launched if they are present in this list
     return LaunchDescription([
-        s_transform,
         s_transform2,
-        perception_node
+        perception_node,
+        s_transform
    ])

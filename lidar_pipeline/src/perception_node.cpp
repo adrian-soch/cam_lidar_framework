@@ -30,6 +30,7 @@
 #include <pcl/common/common.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/median_filter.h>
+#include <pcl/filters/bilateral.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -141,7 +142,7 @@ private:
 
     void cloud_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr recent_cloud)
     {
-        RCLCPP_INFO(this->get_logger(), "Cloud service called; getting a PointCloud2 on topic");
+        // RCLCPP_INFO(this->get_logger(), "Cloud service called; getting a PointCloud2 on topic");
         auto start = std::chrono::high_resolution_clock::now();
 
         /*
@@ -196,24 +197,34 @@ private:
         /* ========================================
          * Median Filter
          * ========================================*/
-        pcl::PointCloud<pcl::PointXYZI>::Ptr median_input_cloud(new pcl::PointCloud<pcl::PointXYZI>(xyz_filtered_cloud));
-        pcl::PointCloud<pcl::PointXYZI>::Ptr median_filtered(new pcl::PointCloud<pcl::PointXYZI>);
-        pcl::MedianFilter<pcl::PointXYZI> median_filter;
-        median_filter.setInputCloud(median_input_cloud);
-        median_filter.setWindowSize(median_filter_size);
-        median_filter.filter(*median_filtered);
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr median_input_cloud(new pcl::PointCloud<pcl::PointXYZI>(xyz_filtered_cloud));
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr median_filtered(new pcl::PointCloud<pcl::PointXYZI>);
+        // pcl::MedianFilter<pcl::PointXYZI> median_filter;
+        // median_filter.setInputCloud(median_input_cloud);
+        // median_filter.setWindowSize(median_filter_size);
+        // median_filter.filter(*median_filtered);
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        RCLCPP_INFO(get_logger(), "Filt time (msec): %ld", t_ms.count());
+        /* ========================================
+         * Bilateral Filter
+         * ========================================*/
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr bilateral_input_cloud(new pcl::PointCloud<pcl::PointXYZI>(xyz_filtered_cloud));
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr bilateral_filtered(new pcl::PointCloud<pcl::PointXYZI>);
+        // pcl::BilateralFilter<pcl::PointXYZI> bilateral_filter;
+        // bilateral_filter.setInputCloud(bilateral_input_cloud);
+        // bilateral_filter.setHalfSize(5.0);
+        // bilateral_filter.filter(*bilateral_filtered);
+
+        auto stop1 = std::chrono::high_resolution_clock::now();
+        auto t_ms1 = std::chrono::duration_cast<std::chrono::milliseconds>(stop1 - start);
+        // RCLCPP_INFO(get_logger(), "Filt time (msec): %ld", t_ms1.count());
 
         /* ========================================
          * STATISTICAL OUTLIER REMOVAL
          * ========================================*/
-        // pcl::PointCloud<pcl::PointXYZI>::Ptr sor_input_cloud(new pcl::PointCloud<pcl::PointXYZI>(xyz_filtered_cloud));
+        pcl::PointCloud<pcl::PointXYZI>::Ptr sor_input_cloud(new pcl::PointCloud<pcl::PointXYZI>(xyz_filtered_cloud));
         pcl::PointCloud<pcl::PointXYZI>::Ptr sor_cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::StatisticalOutlierRemoval<pcl::PointXYZI> sor;
-        sor.setInputCloud(median_filtered);
+        sor.setInputCloud(sor_input_cloud);
         sor.setMeanK(50);
         sor.setStddevMulThresh(1.0);
         // sor.setKeepOrganized(true);
