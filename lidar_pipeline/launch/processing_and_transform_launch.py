@@ -34,6 +34,7 @@ def generate_launch_description():
         package='lidar_pipeline',
         executable='perception_node',
         name='perception_node',
+        # prefix='valgrind --leak-check=yes ',
         output='screen',
         parameters=[
             {"cloud_topic": "/points"},
