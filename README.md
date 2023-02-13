@@ -41,6 +41,8 @@ tree -d -L 3 -I __pycache__
 
 > `ros2_numpy`: Fork of repo with tools for converting msgs to numpy
 
+> `lidar_pipeline`: LiDAR Object Detection and Tracking Module 
+
 # Install
 
 ## Install Python requirements
@@ -48,7 +50,8 @@ tree -d -L 3 -I __pycache__
 # PyTorch CPU Version
 pip install torch torchvision
 
-# GPU Version go here: https://pytorch.org/get-started/locally/
+# GPU Version
+See: https://pytorch.org/get-started/locally/
 
 pip install numpy
 
@@ -75,6 +78,13 @@ If I missed any requirements that cause an error at runtime, just install any pa
 ```
 sudo apt install libtins-dev
 ```
+## ROS2 requirements
+Install via `apt`:
+```
+ros-galactic-pcl-ros
+ros-galactic-ament-cmake-nose
+```
+
 ## Clone and build repo
 
 ```
@@ -83,9 +93,12 @@ git clone --recurse-submodules https://github.com/adrian-soch/cam_lidar_tools.gi
 cd ..
 colcon build
 ```
-After building always source the ROS2 install and the local ros2 wroksapce via `source /opt/ros/galactic/setup.bash` and `. install/setup.bash` respectively.
+> Always source the ROS2 install and the local ros2 wroksapce via `source /opt/ros/galactic/setup.bash` and `. install/setup.bash` respectively.
 
 ## Troubleshooting and Comments
+
+### Colcon build fails?
+- Check that the libraries you import are in your `CMakeLists.txt` (C++) or `setup.py` (Python) files.
 
 ### Known issues
 

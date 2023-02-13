@@ -24,12 +24,12 @@ tree -d -L 3 -I __pycache__
 
 # Setup
 
-To get started
+<!-- To get started
 ```
 git clone --recurse-submodules https://github.com/adrian-soch/fusion_engine.git
-```
+``` -->
 
-### ROS2 Packages
+<!-- ### ROS2 Packages
 
 #### ros2_numpy
 ```
@@ -38,7 +38,7 @@ git clone https://github.com/Box-Robotics/ros2_numpy.git
 cd <ROS2_WS>
 colcon build
 . install/setup.bash
-```
+``` -->
 
 ### Install Python requirements
 ```
@@ -67,7 +67,7 @@ scipy>=1.4.1
 
 If I missed any requirements that cause an error at runtime, just install any packages that are missing.
 
-## OPTIONAL
+<!-- ## OPTIONAL
 ```
 cd <ROS2_WORKSPACE>/src
 git clone --recurse-submodules https://github.com/adrian-soch/fusion_engine.git
@@ -81,12 +81,12 @@ After updating files you must
 cd <ROS2 WORSKAPCE>
 colcon build
 . install/setup.bash
-```
+``` -->
 
-#### Optional
+<!-- #### Optional
 To clean the ros2 workspace run `rm -rf log/ install/ build/`. Warning `rm -rf` means deleting a folder without the ability to recover it.
 
-> Use git and commit often.
+> Use git and commit often. -->
 
 # Visualizing Data
 
