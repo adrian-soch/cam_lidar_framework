@@ -6,9 +6,7 @@
  * @date 2023-01-12
  *
  * @todo
- *      - if structured cloud is maintained can we allocate all memory at compile time?
- *      - paralellize the median computation
- *      - downsampling that maintains structuredness (voxel does not)
+ *      - Convert axis-aligned BB to OBB
  *      - create functions and clean up callback
  *      - create .hpp and .cpp to make easier reading
  *      - Use IPC by running this node in a container with the Ouster Node
@@ -49,21 +47,6 @@
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2/LinearMath/Quaternion.h>
 
-float compute_median(std::vector<float> &vec)
-{
-    auto size = vec.size();
-
-    if (size <= 0) {return nanf("");}
-
-    std::sort(vec.begin(), vec.end());
-    if (size % 2 == 0) {
-      return (vec[size / 2-1] + vec[size / 2]) / 2;
-    }
-    else {
-      return vec[size / 2];
-    }
-}
-
 class PerceptionNode : public rclcpp::Node
 {
 public:
@@ -91,7 +74,7 @@ public:
         rclcpp::Parameter cloud_topic_param, world_frame_param, camera_frame_param, voxel_leaf_size_param,
             x_filter_min_param, x_filter_max_param, y_filter_min_param, y_filter_max_param, z_filter_min_param,
             z_filter_max_param, plane_max_iter_param, plane_dist_thresh_param, cluster_tol_param,
-            cluster_min_size_param, cluster_max_size_param, median_filter_len_param;
+            cluster_min_size_param, cluster_max_size_param;
 
         RCLCPP_INFO(this->get_logger(), "Getting parameters");
 
@@ -103,14 +86,13 @@ public:
         this->get_parameter_or("x_filter_max", x_filter_max_param, rclcpp::Parameter("", 120.0));
         this->get_parameter_or("y_filter_min", y_filter_min_param, rclcpp::Parameter("", -25.0));
         this->get_parameter_or("y_filter_max", y_filter_max_param, rclcpp::Parameter("", 10.0));
-        this->get_parameter_or("z_filter_min", z_filter_min_param, rclcpp::Parameter("", -15.0));
-        this->get_parameter_or("z_filter_max", z_filter_max_param, rclcpp::Parameter("", 15.0));
+        this->get_parameter_or("z_filter_min", z_filter_min_param, rclcpp::Parameter("", -1.0));
+        this->get_parameter_or("z_filter_max", z_filter_max_param, rclcpp::Parameter("", 8.0));
         this->get_parameter_or("plane_max_iterations", plane_max_iter_param, rclcpp::Parameter("", 100));
         this->get_parameter_or("plane_distance_threshold", plane_dist_thresh_param, rclcpp::Parameter("", 0.4));
         this->get_parameter_or("cluster_tolerance", cluster_tol_param, rclcpp::Parameter("", 1.5));
         this->get_parameter_or("cluster_min_size", cluster_min_size_param, rclcpp::Parameter("", 3));
         this->get_parameter_or("cluster_max_size", cluster_max_size_param, rclcpp::Parameter("", 1500));
-        this->get_parameter_or("median_filter_len", median_filter_len_param, rclcpp::Parameter("", 31));
 
         cloud_topic = cloud_topic_param.as_string();
         world_frame = world_frame_param.as_string();
@@ -127,7 +109,6 @@ public:
         cluster_tol = cluster_tol_param.as_double();
         cluster_min_size = cluster_min_size_param.as_int();
         cluster_max_size = cluster_max_size_param.as_int();
-        median_filter_len = median_filter_len_param.as_int();
 
         /*
          * SET UP SUBSCRIBER
@@ -191,101 +172,45 @@ private:
          * VOXEL GRID
          * ========================================*/
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(cloud));
-        // pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_voxel_filtered(new pcl::PointCloud<pcl::PointXYZI>());
-        // pcl::VoxelGrid<pcl::PointXYZI> voxel_filter;
-        // voxel_filter.setInputCloud(cloud_ptr);
-        // voxel_filter.setLeafSize(voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
-        // voxel_filter.filter(*cloud_voxel_filtered);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_voxel_filtered(new pcl::PointCloud<pcl::PointXYZI>());
+        pcl::VoxelGrid<pcl::PointXYZI> voxel_filter;
+        voxel_filter.setInputCloud(cloud_ptr);
+        voxel_filter.setLeafSize(voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
+        voxel_filter.filter(*cloud_voxel_filtered);
 
         /* ========================================
          * CROPBOX
          * ========================================*/
-        pcl::PointCloud<pcl::PointXYZI>::Ptr xyz_filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
-        // pcl::PointCloud<pcl::PointXYZI> xyz_filtered_cloud;
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr xyz_filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI> xyz_filtered_cloud;
         pcl::CropBox<pcl::PointXYZI> crop;
-        crop.setInputCloud(cloud_ptr);
+        crop.setInputCloud(cloud_voxel_filtered);
         Eigen::Vector4f min_point = Eigen::Vector4f(x_filter_min, y_filter_min, z_filter_min, 0);
         Eigen::Vector4f max_point = Eigen::Vector4f(x_filter_max, y_filter_max, z_filter_max, 0);
         crop.setMin(min_point);
         crop.setMax(max_point);
-        crop.setKeepOrganized(true);
-        crop.filter(*xyz_filtered_cloud_ptr);
+        // crop.setKeepOrganized(true);
+        crop.filter(xyz_filtered_cloud);
 
-        /* ========================================
-         * Temporal Median Filter (compute the static background)
-         * ========================================*/
-        // pcl::PointCloud<pcl::PointXYZI>::Ptr med_input_cloud(new pcl::PointCloud<pcl::PointXYZI>(xyz_filtered_cloud));
-        static pcl::PointCloud<pcl::PointXYZI>::Ptr med_res(new pcl::PointCloud<pcl::PointXYZI>);
-        static std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> buffer;
-        if (buffer.size() >= median_filter_len) {
-            buffer.erase(buffer.begin());
-        }
-        buffer.push_back(xyz_filtered_cloud_ptr);
-
-        std::cout << "Buffer size: " << buffer.size() << std::endl;
-
-        pcl::copyPointCloud(*xyz_filtered_cloud_ptr, *med_res);
-
-        // std::cout << "Med w: " << med_res->width << " Med h: " << med_res->height << std::endl;
-        // std::cout << "xyz w: " << xyz_filtered_cloud_ptr->width << " xyz h: " << xyz_filtered_cloud_ptr->height << std::endl;
-
-        if (buffer.size() >= median_filter_len) {
-            // Compute median value of z for each x,y position
-            //      for each cloud in the buffer
-            // CANDIDATE FOR MULTITHREADING?
-            for(size_t x=0; x <  xyz_filtered_cloud_ptr->height; ++x) {
-                for(size_t y=0; y < xyz_filtered_cloud_ptr->width; ++y) {
-
-                    std::vector<float> z_vec;
-                    for(auto cloud:buffer) {
-
-                        auto value = cloud->at(y,x).z;
-
-                        if(std::isnan(value)) {continue;}
-                        z_vec.push_back(value);
-                    }
-                    auto med = compute_median(z_vec);
-                    med_res->at(y,x).z = med;
-
-                    // std::cout << "x: " << x << " y: " << y << std::endl;
-                    // std::cout << "\nMed: " << med << std::endl;
-                }
-            }
-        }
+       
 
         /* ========================================
          * STATISTICAL OUTLIER REMOVAL
          * ========================================*/
-        // pcl::PointCloud<pcl::PointXYZI>::Ptr sor_cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
-        pcl::PointCloud<pcl::PointXYZI> sor_cloud_filtered;
-        // pcl::StatisticalOutlierRemoval<pcl::PointXYZI> sor;
-        // sor.setInputCloud(med_res);
-        // sor.setMeanK(50);
-        // sor.setStddevMulThresh(1.0);
-        // sor.setKeepOrganized(false);
-        // sor.filter(sor_cloud_filtered);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr sor_input_cloud(new pcl::PointCloud<pcl::PointXYZI>(xyz_filtered_cloud));
+        pcl::PointCloud<pcl::PointXYZI>::Ptr sor_cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::StatisticalOutlierRemoval<pcl::PointXYZI> sor;
+        sor.setInputCloud(sor_input_cloud);
+        sor.setMeanK(50);
+        sor.setStddevMulThresh(1.0);
+        sor.filter(*sor_cloud_filtered);
         
         // std::cout << "Post stat outlier height: " << sor_cloud_filtered.height << std::endl;
         // std::cout << "Post stat outlier size: " << sor_cloud_filtered.size() << std::endl;
 
-        auto stop1 = std::chrono::high_resolution_clock::now();
-        auto t_ms1 = std::chrono::duration_cast<std::chrono::milliseconds>(stop1 - start);
-        RCLCPP_INFO(get_logger(), "Filt time (msec): %ld", t_ms1.count());
-
-
-
-
-        this->publishPointCloud(stat_pub_, *med_res);
-
-
-
-        return;
-
-
         /* ========================================
          * PLANE SEGEMENTATION
          * ========================================*/
-        pcl::PointCloud<pcl::PointXYZI>::Ptr sor_cloud_filtered_ptr(new pcl::PointCloud<pcl::PointXYZI>(sor_cloud_filtered));
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_f(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_plane(new pcl::PointCloud<pcl::PointXYZI>());
@@ -299,7 +224,7 @@ private:
         seg.setMaxIterations(plane_max_iter);
         seg.setDistanceThreshold(plane_dist_thresh);
         // Segment the largest planar component from the cropped cloud
-        seg.setInputCloud(sor_cloud_filtered_ptr);
+        seg.setInputCloud(sor_cloud_filtered);
         seg.segment(*inliers, *coefficients);
         if (inliers->indices.size() == 0)
         {
@@ -308,7 +233,7 @@ private:
 
         // Extract the planar inliers from the input cloud
         pcl::ExtractIndices<pcl::PointXYZI> extract;
-        extract.setInputCloud(sor_cloud_filtered_ptr);
+        extract.setInputCloud(sor_cloud_filtered);
         extract.setIndices(inliers);
         extract.setNegative(false);
 
@@ -391,14 +316,27 @@ private:
             const Eigen::Vector3f meanDiagonal = 0.5f*(maxPoint.getVector3fMap() + minPoint.getVector3fMap());
 
             // Final transform
+            const Eigen::Vector3f bboxTrans = eigenVectorsPCA * meanDiagonal + pcaCentroid.head<3>();
             const Eigen::Quaternionf bboxQuat(eigenVectorsPCA);
             bboxQuat.norm();
-            const Eigen::Vector3f bboxTrans = eigenVectorsPCA * meanDiagonal + pcaCentroid.head<3>();
+            Eigen::Matrix3f R = bboxQuat.toRotationMatrix();
 
-            auto maxp = bboxQuat*(maxPoint.getVector3fMap() + bboxTrans);
-            auto minp = bboxQuat*(minPoint.getVector3fMap() + bboxTrans);
-            max_min_pts2.max_pts.push_back(maxp);
-            max_min_pts2.min_pts.push_back(minp);
+            Eigen::Vector3f maxp, minp;
+            maxp << maxPoint.x, maxPoint.y, maxPoint.z;
+            minp << minPoint.x, minPoint.y, minPoint.z;
+
+            Eigen::Vector3f max_f = R * maxp + bboxTrans;
+            Eigen::Vector3f min_f = R * minp + bboxTrans;
+
+            max_min_pts2.max_pts.push_back(max_f);
+            max_min_pts2.min_pts.push_back(min_f);
+
+            // std::cout << max_f << std::endl;
+
+            // auto maxp = bboxQuat*(maxPoint.getVector3fMap() + bboxTrans);
+            // auto minp = bboxQuat*(minPoint.getVector3fMap() + bboxTrans);
+            // max_min_pts2.max_pts.push_back(maxp);
+            // max_min_pts2.min_pts.push_back(minp);
         }
         
         /* ========================================
@@ -411,12 +349,12 @@ private:
         /* ========================================
          * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
          * ========================================*/
-        // this->publishPointCloud(voxel_grid_pub_, *cloud_voxel_filtered);
+        this->publishPointCloud(voxel_grid_pub_, *cloud_voxel_filtered);
         this->publishPointCloud(plane_pub_, *cloud_f);
         this->publishPointCloud(euclidean_pub_, *clusters[0]);
-        this->publishPointCloud(stat_pub_, sor_cloud_filtered);
+        this->publishPointCloud(stat_pub_, *sor_cloud_filtered);
 
-        this->publish3DBBox(marker_pub_, line_list);
+        this->publish3DBBox(marker_pub_, line_list2);
         // this->publish3DBBoxOBB(marker_pub_, line_list2);
 
         auto stop = std::chrono::high_resolution_clock::now();
@@ -448,7 +386,6 @@ private:
         bboxes->scale.z = 0.1;
         bboxes->color.g = 1.0;
         bboxes->color.a = 1.0;
-        // bboxes->pose.orientation.w = 1.0;
 
         publisher->publish(*bboxes);
     }
@@ -471,15 +408,6 @@ private:
         bboxes->color.b = 0.3;
         bboxes->color.g = 1.0;
         bboxes->color.a = 1.0;
-
-        // Set pose
-        // bboxes->pose.position.x = translation.x();
-        // bboxes->pose.position.y = translation.y();
-        // bboxes->pose.position.z = translation.z();
-        // bboxes->pose.orientation.x = quat.x();
-        // bboxes->pose.orientation.y = quat.y();
-        // bboxes->pose.orientation.z = quat.z();
-        // bboxes->pose.orientation.w = quat.w();
 
         publisher->publish(*bboxes);
     }
