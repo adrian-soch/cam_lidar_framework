@@ -30,6 +30,10 @@ find_package(tf2_eigen REQUIRED)
 find_package(PCL REQUIRED)
 
 add_executable(perception_node src/perception_node.cpp)
+target_include_directories(perception_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
 ament_target_dependencies(perception_node rclcpp tf2_ros tf2 tf2_eigen sensor_msgs visualization_msgs geometry_msgs pcl_ros)
 
 install(TARGETS

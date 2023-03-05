@@ -15,13 +15,17 @@
  *
  */
 
-#include <iostream> 
+#include <iostream>
+
+#include "lidar_pipeline/perception_node.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 #include <rclcpp/qos.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <geometry_msgs/msg/point.hpp>
+#include <vision_msgs/msg/bounding_box3_d.hpp>
 #include <tf2/transform_datatypes.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -42,10 +46,12 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
 
-
 #include <tf2/convert.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2/LinearMath/Quaternion.h>
+
+namespace lidar_pipeline
+{
 
 class PerceptionNode : public rclcpp::Node
 {
@@ -67,6 +73,7 @@ public:
         stat_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("stat_cluster", 1);
         polygon_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("polygon_cluster", 1);
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("markers", 1);
+        marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers2", 1);
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -131,11 +138,6 @@ private:
     struct CubePoints{
         std::vector<Eigen::Vector4f> max_pts;
         std::vector<Eigen::Vector4f> min_pts;
-    };
-
-    struct CubePointsPCL{
-        std::vector<Eigen::Vector3f> max_pts;
-        std::vector<Eigen::Vector3f> min_pts;
     };
 
     enum Axis {X, Y, Z};
@@ -265,14 +267,14 @@ private:
 
 
         std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
+        std::vector<vision_msgs::msg::BoundingBox3D> bboxes;
         CubePoints max_min_pts;
-        CubePointsPCL max_min_pts2;
         
         for (const auto &cluster : cluster_indices)
         {
             pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZI>);
 
-            // Compute MinMax points ABB
+            // Compute MinMax points AABB
             Eigen::Vector4f minPt{}, maxPt{};
             pcl::getMinMax3D(*cloud_filtered, cluster, minPt, maxPt);
 
@@ -291,60 +293,71 @@ private:
             // RCLCPP_INFO(this->get_logger(), "Cluster has '%lu' points", cloud_cluster->points.size());
             clusters.push_back(cloud_cluster);
 
-            // Oriented Bounding Box (OBB)
-            // http://codextechnicanum.blogspot.com/2015/04/find-minimum-oriented-bounding-box-of.html
-
-            Eigen::Vector4f pcaCentroid;
-            pcl::compute3DCentroid(*cloud_cluster, pcaCentroid);
-
+            Eigen::Vector4f centroid;
+            pcl::compute3DCentroid(*cloud_cluster, centroid);
+            pcl::PointXYZI min_pt, max_pt;
+            Eigen::Vector3f center;
+            pcl::getMinMax3D(*cloud_cluster, min_pt, max_pt); 
+            center = (max_pt.getVector3fMap() + min_pt.getVector3fMap())/2;
+            
             Eigen::Matrix3f covariance;
-            pcl::computeCovarianceMatrixNormalized(*cloud_cluster, pcaCentroid, covariance);
+            pcl::computeCovarianceMatrixNormalized(*cloud_cluster, centroid, covariance);
             Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
             Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
+            // Eigen::Vector3f eigenValuesPCA  = eigen_solver.eigenvalues();
             eigenVectorsPCA.col(2) = eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
+            eigenVectorsPCA.col(0) = eigenVectorsPCA.col(1).cross(eigenVectorsPCA.col(2));
+            eigenVectorsPCA.col(1) = eigenVectorsPCA.col(2).cross(eigenVectorsPCA.col(0));
 
-            // Transform the original cloud to the origin where the principal components correspond to the axes.
-            Eigen::Matrix4f projectionTransform(Eigen::Matrix4f::Identity());
-            projectionTransform.block<3,3>(0,0) = eigenVectorsPCA.transpose();
-            projectionTransform.block<3,1>(0,3) = -1.f * (projectionTransform.block<3,3>(0,0) * pcaCentroid.head<3>());
-            pcl::PointCloud<pcl::PointXYZI>::Ptr cloudPointsProjected (new pcl::PointCloud<pcl::PointXYZI>);
-            pcl::transformPointCloud(*cloud_cluster, *cloudPointsProjected, projectionTransform);
+            Eigen::Matrix3f eigenVectorsPCA1;
+            eigenVectorsPCA1.col(0) = eigenVectorsPCA.col(2);
+            eigenVectorsPCA1.col(1) = eigenVectorsPCA.col(1);
+            eigenVectorsPCA1.col(2) = eigenVectorsPCA.col(0);
+            eigenVectorsPCA = eigenVectorsPCA1;
 
-            // Get the minimum and maximum points of the transformed cloud.
-            pcl::PointXYZI minPoint, maxPoint;
-            pcl::getMinMax3D(*cloudPointsProjected, minPoint, maxPoint);
-            const Eigen::Vector3f meanDiagonal = 0.5f*(maxPoint.getVector3fMap() + minPoint.getVector3fMap());
+            Eigen::Vector3f ea = (eigenVectorsPCA).eulerAngles(2, 1, 0); //yaw pitch roll
+            Eigen::AngleAxisf keep_Z_Rot(ea[0], Eigen::Vector3f::UnitZ());
+            Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+            transform.translate(center);
+            transform.rotate(keep_Z_Rot); // radians
+            
+            pcl::PointCloud<pcl::PointXYZI>::Ptr transformedCloud(new pcl::PointCloud<pcl::PointXYZI>);
+            pcl::transformPointCloud(*cloud_cluster, *transformedCloud, transform.inverse());
 
-            // Final transform
-            const Eigen::Vector3f bboxTrans = eigenVectorsPCA * meanDiagonal + pcaCentroid.head<3>();
-            const Eigen::Quaternionf bboxQuat(eigenVectorsPCA);
-            bboxQuat.norm();
-            Eigen::Matrix3f R = bboxQuat.toRotationMatrix();
+            pcl::PointXYZI min_pt_T, max_pt_T;
+            pcl::getMinMax3D(*transformedCloud, min_pt_T, max_pt_T);
+            Eigen::Vector3f center_new = (max_pt_T.getVector3fMap() + min_pt_T.getVector3fMap()) / 2;
+            Eigen::Vector3f box_dim;
+            box_dim = max_pt_T.getVector3fMap() - min_pt_T.getVector3fMap();
+            Eigen::Affine3f transform2 = Eigen::Affine3f::Identity();
+            transform2.translate(center_new);
+            // Eigen::Affine3f transform3 = transform * transform2;
 
-            Eigen::Vector3f maxp, minp;
-            maxp << maxPoint.x, maxPoint.y, maxPoint.z;
-            minp << minPoint.x, minPoint.y, minPoint.z;
+            const Eigen::Quaternionf bboxQ(keep_Z_Rot);
 
-            Eigen::Vector3f max_f = R * maxp + bboxTrans;
-            Eigen::Vector3f min_f = R * minp + bboxTrans;
+            pcl::PointXYZI result;
+            result.getArray3fMap() = max_pt_T.getArray3fMap() - min_pt_T.getArray3fMap();
 
-            max_min_pts2.max_pts.push_back(max_f);
-            max_min_pts2.min_pts.push_back(min_f);
+            // Init and fill bboxes
+            vision_msgs::msg::BoundingBox3D bb;
+            bb.center.position.x = centroid[X];
+            bb.center.position.y = centroid[Y];
+            bb.center.position.z = centroid[Z];
+            bb.center.orientation.x = bboxQ.x();
+            bb.center.orientation.y = bboxQ.y();
+            bb.center.orientation.z = bboxQ.z();
+            bb.center.orientation.w = bboxQ.w();
+            bb.size.x = result.x;
+            bb.size.y = result.y;
+            bb.size.z = result.z;
 
-            // std::cout << max_f << std::endl;
-
-            // auto maxp = bboxQuat*(maxPoint.getVector3fMap() + bboxTrans);
-            // auto minp = bboxQuat*(minPoint.getVector3fMap() + bboxTrans);
-            // max_min_pts2.max_pts.push_back(maxp);
-            // max_min_pts2.min_pts.push_back(minp);
+            bboxes.push_back(bb);
         }
         
         /* ========================================
          * Compute Bounding Boxes
          * ========================================*/
         std::vector<geometry_msgs::msg::Point> line_list = minMax2lines(max_min_pts);
-        std::vector<geometry_msgs::msg::Point> line_list2 = minMax2lines(max_min_pts2);
-        
 
         /* ========================================
          * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
@@ -354,8 +367,8 @@ private:
         this->publishPointCloud(euclidean_pub_, *clusters[0]);
         this->publishPointCloud(stat_pub_, *sor_cloud_filtered);
 
-        this->publish3DBBox(marker_pub_, line_list2);
-        // this->publish3DBBoxOBB(marker_pub_, line_list2);
+        this->publish3DBBox(marker_pub_, line_list);
+        this->publish3DBBoxOBB(marker_array_pub_, bboxes);
 
         auto stop = std::chrono::high_resolution_clock::now();
         auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
@@ -384,88 +397,39 @@ private:
         bboxes->scale.x = 0.06;
         bboxes->scale.y = 0.1;
         bboxes->scale.z = 0.1;
+
         bboxes->color.g = 1.0;
         bboxes->color.a = 1.0;
 
         publisher->publish(*bboxes);
     }
 
-    void publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr publisher,
-        const std::vector<geometry_msgs::msg::Point>& line_list)
+    void publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher,
+        const std::vector<vision_msgs::msg::BoundingBox3D>& bboxes)
     {
-        visualization_msgs::msg::Marker::SharedPtr bboxes(new visualization_msgs::msg::Marker);
-        bboxes->header.frame_id = world_frame;
-        bboxes->header.stamp = this->get_clock()->now();
-        bboxes->type = visualization_msgs::msg::Marker::LINE_LIST;
-        bboxes->action = visualization_msgs::msg::Marker::ADD;
-        bboxes->points = line_list;
-        bboxes->scale.x = 0.06;
-        bboxes->scale.y = 0.1;
-        bboxes->scale.z = 0.1;
+        visualization_msgs::msg::MarkerArray marker_array;
+        int idx = 0;
+        for(auto c : bboxes) {
+            visualization_msgs::msg::Marker marker;
+            marker.id = idx++;
+            marker.header.frame_id = world_frame;
+            marker.header.stamp = this->get_clock()->now();
+            marker.type = visualization_msgs::msg::Marker::CUBE;
+            marker.action = visualization_msgs::msg::Marker::ADD;
 
-        // Set colour
-        bboxes->color.r = 0.2;
-        bboxes->color.b = 0.3;
-        bboxes->color.g = 1.0;
-        bboxes->color.a = 1.0;
+            marker.pose = c.center; // Sets position and orientation
+            marker.scale = c.size;  // Set w,l,h
+            marker.color.a = 0.5;   // Set alpha so we can see underlying points
+            marker.color.r = 0.1;
+            marker.color.g = 0.8;
+            marker.color.b = 0.3;
 
-        publisher->publish(*bboxes);
+            marker_array.markers.push_back(marker);
+        }
+        publisher->publish(marker_array);
     }
 
     std::vector<geometry_msgs::msg::Point> minMax2lines(CubePoints &max_min_pts)
-    {
-        std::vector<geometry_msgs::msg::Point> out;
-        geometry_msgs::msg::Point p0, p1, v1, v2, v3, v4, v5, v6, v7, v8;
-
-        auto i = max_min_pts.max_pts.begin();
-        auto j = max_min_pts.min_pts.begin();
-        while (i != max_min_pts.max_pts.end() and j != max_min_pts.min_pts.end())
-        {
-            auto p1 = *i++;
-            auto p2 = *j++;
-
-            // Create 8 vertices of a cube
-            v1.x = p1[X];
-            v1.y = p1[Y];
-            v1.z = p1[Z];
-
-            v2.x = p2[X];
-            v2.y = p1[Y];
-            v2.z = p1[Z];
-
-            v3.x = p2[X];
-            v3.y = p2[Y];
-            v3.z = p1[Z];
-
-            v4.x = p1[X];
-            v4.y = p2[Y];
-            v4.z = p1[Z];
-
-            v5.x = p1[X];
-            v5.y = p1[Y];
-            v5.z = p2[Z];
-
-            v6.x = p2[X];
-            v6.y = p1[Y];
-            v6.z = p2[Z];
-
-            v7.x = p2[X];
-            v7.y = p2[Y];
-            v7.z = p2[Z];
-
-            v8.x = p1[X];
-            v8.y = p2[Y];
-            v8.z = p2[Z];
-
-            // Append points in pairs for marker LINE_LIST to create cube edges
-            out.insert(out.end(), {v1,v2, v2,v3, v1,v4, v3,v4,
-                                    v1,v5, v3,v7, v4,v8, v2,v6,
-                                    v5,v8, v7,v8, v5,v6, v6,v7});
-        }
-        return out;
-    }
-
-    std::vector<geometry_msgs::msg::Point> minMax2lines(CubePointsPCL &max_min_pts)
     {
         std::vector<geometry_msgs::msg::Point> out;
         geometry_msgs::msg::Point p0, p1, v1, v2, v3, v4, v5, v6, v7, v8;
@@ -529,7 +493,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr stat_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr polygon_pub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
-
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
     /*
      * Parameters
      */
@@ -548,7 +512,6 @@ private:
     float cluster_tol;
     int cluster_min_size;
     int cluster_max_size;
-    size_t median_filter_len;
 
     /*
      * TF
@@ -558,11 +521,13 @@ private:
     std::unique_ptr<tf2_ros::TransformBroadcaster> br;
 };
 
+} // End namespace lidar_pipeline
+
 
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<PerceptionNode>();
+    auto node = std::make_shared<lidar_pipeline::PerceptionNode>();
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
