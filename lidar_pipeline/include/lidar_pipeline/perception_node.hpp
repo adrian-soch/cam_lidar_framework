@@ -16,11 +16,14 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include <rclcpp/qos.hpp>
+#include <std_msgs/msg/color_rgba.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <vision_msgs/msg/bounding_box3_d.hpp>
+#include <vision_msgs/msg/detection3_d.hpp>
+#include <vision_msgs/msg/detection3_d_array.hpp>
 #include <tf2/transform_datatypes.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -190,6 +193,15 @@ private:
         return bb;
     }
 
+    void getBboxColorRGBA(const std::string id, std_msgs::msg::ColorRGBA *out)
+    {
+        // take in the id number
+        // return colour via pointer based on id/object class
+
+
+
+    }
+
     void publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
                            pcl::PointCloud<pcl::PointXYZI> point_cloud)
     {
@@ -220,7 +232,7 @@ private:
     }
 
     void publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher,
-        const std::vector<vision_msgs::msg::BoundingBox3D>& bboxes)
+        const std::vector<vision_msgs::msg::Detection3D>& bboxes)
     {
         visualization_msgs::msg::MarkerArray marker_array;
         int idx = 0;
@@ -232,12 +244,13 @@ private:
             marker.type = visualization_msgs::msg::Marker::CUBE;
             marker.action = visualization_msgs::msg::Marker::ADD;
 
-            marker.pose = c.center; // Sets position and orientation
-            marker.scale = c.size;  // Set w,l,h
-            marker.color.a = 0.5;   // Set alpha so we can see underlying points
-            marker.color.r = 0.1;
-            marker.color.g = 0.8;
-            marker.color.b = 0.3;
+            marker.pose = c.bbox.center; // Sets position and orientation
+            marker.scale = c.bbox.size;  // Set w,l,h
+            
+            std_msgs::msg::ColorRGBA rgba;
+            getBboxColorRGBA(c.id, &rgba); 
+            marker.color = rgba;
+            marker.color.a = 0.4;   // Set alpha so we can see underlying points
 
             marker_array.markers.push_back(marker);
         }

@@ -38,7 +38,7 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {"cloud_topic": "/points"},
-            {"world_frame": "map"},
+            {"world_frame": "laser_data_frame"},
             {"camera_frame": "laser_data_frame"},
             {"voxel_leaf_size": 0.25}, # All in meters
             {"x_filter_min": 1.0},
@@ -51,8 +51,7 @@ def generate_launch_description():
             {"plane_distance_threshold": 0.4},
             {"cluster_tolerance": 1.5},
             {"cluster_min_size": 3},
-            {"cluster_max_size": 2000},
-            {"median_filter_size": 3}
+            {"cluster_max_size": 2000}
         ]
     )
     

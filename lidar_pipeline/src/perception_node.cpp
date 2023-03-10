@@ -6,9 +6,10 @@
  * @date 2023-01-12
  *
  * @todo
- *      - Convert axis-aligned BB to OBB
- *      - create functions and clean up callback
- *      - create .hpp and .cpp to make easier reading
+ *      - add basic rules based classification http://docs.ros.org/en/api/vision_msgs/html/msg/Detection3DArray.html
+ *          * change 3dbbox to 2d detection so we can add a class
+ *      - add data association and MOT
+ *      - create functions for filter ops and clean up callback
  *      - Use IPC by running this node in a container with the Ouster Node
  *
  * @copyright Copyright (c) 2023
@@ -146,7 +147,8 @@ void lidar_pipeline::PerceptionNode::cloud_callback(const sensor_msgs::msg::Poin
 
 
     std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
-    std::vector<vision_msgs::msg::BoundingBox3D> bboxes;
+    std::vector<vision_msgs::msg::Detection3D> bboxes;
+    // std::vector<vision_msgs::msg::BoundingBox3D> bboxes;
     CubePoints max_min_pts;
     
     for (const auto &cluster : cluster_indices)
@@ -173,8 +175,22 @@ void lidar_pipeline::PerceptionNode::cloud_callback(const sensor_msgs::msg::Poin
         clusters.push_back(cloud_cluster);
 
         // Init and fill bboxes
+        vision_msgs::msg::Detection3D d3d;
         vision_msgs::msg::BoundingBox3D bb = getOrientedBoudingBox(*cloud_cluster);
-        bboxes.push_back(bb);
+        
+        // Basic Size based classifier
+        // Exclude if larger or smaller than human, wheelchair, bus, truck
+        if((bb.size.x < 3.0 || bb.size.y < 3.0) && // max with 3m
+            (bb.size.x < 20.0 || bb.size.y < 20.0) && // max length 20m
+            bb.size.z < 5.0 &&                         // max height 5m
+            (bb.size.x > 0.25 || bb.size.y < 0.25) && //min width 0.25m
+            bb.size.z > 0.5) {                          //min height 0.5m
+            
+            d3d.header.stamp = recent_cloud->header.stamp;
+            d3d.bbox = bb;
+            d3d.id = "thing";
+            bboxes.push_back(d3d);
+        }
     }
     
     /* ========================================
