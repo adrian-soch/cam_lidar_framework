@@ -17,11 +17,13 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/statistical_outlier_removal.h>
+
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
 
+#include <pcl/common/common.h>
 
 template<typename PointT>
 class Operations {
@@ -29,6 +31,9 @@ public:
     using PointCloud = pcl::PointCloud<PointT>;
     using PointCloudPtr = typename PointCloud::Ptr;
     using PointCloudConstPtr = typename PointCloud::ConstPtr;
+
+    using Tree = pcl::search::KdTree<PointT>;
+    using TreePtr = typename Tree::Ptr;
 
     /**
      * @brief 
@@ -89,9 +94,9 @@ public:
 
     int ground_plane_removal(PointCloudPtr cloud_ptr, int max_iterations, double dist_thresh) {
 
-        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_plane(new pcl::PointCloud<pcl::PointXYZI>());
+        PointCloudPtr cloud_plane(new PointCloud());
 
-        pcl::SACSegmentation<pcl::PointXYZI> seg;
+        pcl::SACSegmentation<PointT> seg;
         pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
         pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
         seg.setOptimizeCoefficients(true);
@@ -107,7 +112,7 @@ public:
             return -1;
         
         // Extract the planar inliers from the input cloud
-        pcl::ExtractIndices<pcl::PointXYZI> extract;
+        pcl::ExtractIndices<PointT> extract;
         extract.setInputCloud(cloud_ptr);
         extract.setIndices(inliers);
         extract.setNegative(false);
@@ -120,6 +125,21 @@ public:
         extract.filter(*cloud_ptr);
 
         return 0;
+    }
+
+    void euclidean_clustering(PointCloudPtr cloud_ptr, std::vector<pcl::PointIndices> &cluster_indices,
+        double cluster_tol, int cluster_min_size, int cluster_max_size) {
+
+        TreePtr tree(new Tree);
+        tree->setInputCloud(cloud_ptr);
+
+        pcl::EuclideanClusterExtraction<PointT> ec;
+        ec.setClusterTolerance(cluster_tol);
+        ec.setMinClusterSize(cluster_min_size);
+        ec.setMaxClusterSize(cluster_max_size);
+        ec.setSearchMethod(tree);
+        ec.setInputCloud(cloud_ptr);
+        ec.extract(cluster_indices);
     }
 
 };

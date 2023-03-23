@@ -82,31 +82,25 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     }
 
     /* ========================================
-    * EUCLIDEAN CLUSTER EXTRACTION
+    * CLUSTERING
     * ========================================*/
-    // Creating the KdTree object for the search method of the extraction
-    pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZI>);
-    tree->setInputCloud(plane_ptr);
-
     std::vector<pcl::PointIndices> cluster_indices;
-    pcl::EuclideanClusterExtraction<pcl::PointXYZI> ec;
-    ec.setClusterTolerance(cluster_tol);
-    ec.setMinClusterSize(cluster_min_size);
-    ec.setMaxClusterSize(cluster_max_size);
-    ec.setSearchMethod(tree);
-    ec.setInputCloud(plane_ptr);
-    ec.extract(cluster_indices);
 
+    cloud_ops.euclidean_clustering(plane_ptr, cluster_indices,
+        cluster_tol, cluster_min_size, cluster_max_size);
 
     std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
     std::vector<vision_msgs::msg::Detection3D> bboxes;
-
     CubePoints max_min_pts;
     
     for (const auto &cluster : cluster_indices)
     {
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZI>);
 
+        //#########################################
+        // TODO
+        //#########################################
+        
         // Compute MinMax points AABB
         Eigen::Vector4f minPt{}, maxPt{};
         pcl::getMinMax3D(*plane_ptr, cluster, minPt, maxPt);
@@ -123,7 +117,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         cloud_cluster->height = 1;
         cloud_cluster->is_dense = true;
 
-        // RCLCPP_INFO(this->get_logger(), "Cluster has '%lu' points", cloud_cluster->points.size());
         clusters.push_back(cloud_cluster);
 
         // Init and fill bboxes
