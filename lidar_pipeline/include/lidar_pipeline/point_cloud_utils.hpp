@@ -72,6 +72,56 @@ public:
         crop.filter(*cloud_ptr);
     }
 
+    /**
+     * @brief 
+     * 
+     * @param cloud_ptr 
+     * @param mean 
+     * @param stddev_mult 
+     */
+    void stats_outlier_removal(PointCloudPtr cloud_ptr, int mean, float stddev_mult) {
+        pcl::StatisticalOutlierRemoval<PointT> sor;
+        sor.setInputCloud(cloud_ptr);
+        sor.setMeanK(mean);
+        sor.setStddevMulThresh(stddev_mult);
+        sor.filter(*cloud_ptr);
+    }
+
+    int ground_plane_removal(PointCloudPtr cloud_ptr, int max_iterations, double dist_thresh) {
+
+        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_plane(new pcl::PointCloud<pcl::PointXYZI>());
+
+        pcl::SACSegmentation<pcl::PointXYZI> seg;
+        pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+        pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
+        seg.setOptimizeCoefficients(true);
+        seg.setModelType(pcl::SACMODEL_PLANE);
+        seg.setMethodType(pcl::SAC_RANSAC);
+        seg.setMaxIterations(max_iterations);
+        seg.setDistanceThreshold(dist_thresh);
+
+        // Segment the largest planar component from the cropped cloud
+        seg.setInputCloud(cloud_ptr);
+        seg.segment(*inliers, *coefficients);
+        if (inliers->indices.size() == 0)
+            return -1;
+        
+        // Extract the planar inliers from the input cloud
+        pcl::ExtractIndices<pcl::PointXYZI> extract;
+        extract.setInputCloud(cloud_ptr);
+        extract.setIndices(inliers);
+        extract.setNegative(false);
+
+        // Get the points associated with the planar surface
+        extract.filter(*cloud_plane);
+
+        // Remove the planar inliers, extract the rest
+        extract.setNegative(true);
+        extract.filter(*cloud_ptr);
+
+        return 0;
+    }
+
 };
 
 #endif

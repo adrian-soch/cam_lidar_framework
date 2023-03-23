@@ -61,71 +61,32 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     /* ========================================
     * CROPBOX
     * ========================================*/
-    pcl::PointCloud<pcl::PointXYZI> xyz_filtered_cloud;
-    pcl::CropBox<pcl::PointXYZI> crop;
-    crop.setInputCloud(cloud_ptr);
-    Eigen::Vector4f min_point = Eigen::Vector4f(x_filter_min, y_filter_min, z_filter_min, 0);
-    Eigen::Vector4f max_point = Eigen::Vector4f(x_filter_max, y_filter_max, z_filter_max, 0);
-    crop.setMin(min_point);
-    crop.setMax(max_point);
-    crop.filter(xyz_filtered_cloud);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr crop_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*cloud_ptr));
+    cloud_ops.crop_box_filter(crop_cloud_ptr, x_filter_min, y_filter_min, z_filter_min,
+        x_filter_max, y_filter_max, z_filter_max, false);
 
     /* ========================================
     * STATISTICAL OUTLIER REMOVAL
     * ========================================*/
-    pcl::PointCloud<pcl::PointXYZI>::Ptr sor_input_cloud(new pcl::PointCloud<pcl::PointXYZI>(xyz_filtered_cloud));
-    pcl::PointCloud<pcl::PointXYZI>::Ptr sor_cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
-    pcl::StatisticalOutlierRemoval<pcl::PointXYZI> sor;
-    sor.setInputCloud(sor_input_cloud);
-    sor.setMeanK(50);
-    sor.setStddevMulThresh(1.0);
-    sor.filter(*sor_cloud_filtered);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr stats_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*crop_cloud_ptr));
+    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 50, 1.0);
     
     /* ========================================
     * PLANE SEGEMENTATION
     * ========================================*/
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_f(new pcl::PointCloud<pcl::PointXYZI>);
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>);
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_plane(new pcl::PointCloud<pcl::PointXYZI>());
-    // Create the segmentation object for the planar model and set all the parameters
-    pcl::SACSegmentation<pcl::PointXYZI> seg;
-    pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-    seg.setOptimizeCoefficients(true);
-    seg.setModelType(pcl::SACMODEL_PLANE);
-    seg.setMethodType(pcl::SAC_RANSAC);
-    seg.setMaxIterations(plane_max_iter);
-    seg.setDistanceThreshold(plane_dist_thresh);
-    // Segment the largest planar component from the cropped cloud
-    seg.setInputCloud(sor_cloud_filtered);
-    seg.segment(*inliers, *coefficients);
-    if (inliers->indices.size() == 0)
-    {
+    pcl::PointCloud<pcl::PointXYZI>::Ptr plane_ptr(new pcl::PointCloud<pcl::PointXYZI>(*crop_cloud_ptr));
+    int ret_code = cloud_ops.ground_plane_removal(plane_ptr, plane_max_iter, plane_dist_thresh);
+
+    if(ret_code != 0) {
         RCLCPP_WARN(this->get_logger(), "Could not estimate a planar model for the given dataset.");
     }
 
-    // Extract the planar inliers from the input cloud
-    pcl::ExtractIndices<pcl::PointXYZI> extract;
-    extract.setInputCloud(sor_cloud_filtered);
-    extract.setIndices(inliers);
-    extract.setNegative(false);
-
-    // Get the points associated with the planar surface
-    extract.filter(*cloud_plane);
-    // RCLCPP_INFO(this->get_logger(),
-    //             "PointCloud2 representing the planar component: '%lu' data points.", cloud_plane->points.size());
-
-    // Remove the planar inliers, extract the rest
-    extract.setNegative(true);
-    extract.filter(*cloud_f);
-
     /* ========================================
-        * EUCLIDEAN CLUSTER EXTRACTION
-        * ========================================*/
+    * EUCLIDEAN CLUSTER EXTRACTION
+    * ========================================*/
     // Creating the KdTree object for the search method of the extraction
     pcl::search::KdTree<pcl::PointXYZI>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZI>);
-    *cloud_filtered = *cloud_f;
-    tree->setInputCloud(cloud_filtered);
+    tree->setInputCloud(plane_ptr);
 
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZI> ec;
@@ -133,13 +94,13 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     ec.setMinClusterSize(cluster_min_size);
     ec.setMaxClusterSize(cluster_max_size);
     ec.setSearchMethod(tree);
-    ec.setInputCloud(cloud_filtered);
+    ec.setInputCloud(plane_ptr);
     ec.extract(cluster_indices);
 
 
     std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
     std::vector<vision_msgs::msg::Detection3D> bboxes;
-    // std::vector<vision_msgs::msg::BoundingBox3D> bboxes;
+
     CubePoints max_min_pts;
     
     for (const auto &cluster : cluster_indices)
@@ -148,7 +109,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
         // Compute MinMax points AABB
         Eigen::Vector4f minPt{}, maxPt{};
-        pcl::getMinMax3D(*cloud_filtered, cluster, minPt, maxPt);
+        pcl::getMinMax3D(*plane_ptr, cluster, minPt, maxPt);
 
         max_min_pts.max_pts.push_back(maxPt);
         max_min_pts.min_pts.push_back(minPt);
@@ -156,7 +117,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         // Put each cluster into a vector
         for (const auto &idx : cluster.indices)
         {
-            cloud_cluster->points.push_back((*cloud_filtered)[idx]);
+            cloud_cluster->points.push_back((*plane_ptr)[idx]);
         }
         cloud_cluster->width = cloud_cluster->points.size();
         cloud_cluster->height = 1;
@@ -189,9 +150,8 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
         * ========================================*/
     this->publishPointCloud(voxel_grid_pub_, *cloud_ptr);
-    this->publishPointCloud(plane_pub_, *cloud_f);
-    this->publishPointCloud(euclidean_pub_, *clusters[0]);
-    this->publishPointCloud(stat_pub_, *sor_cloud_filtered);
+    this->publishPointCloud(plane_pub_, *plane_ptr);
+    this->publishPointCloud(stat_pub_, *stats_cloud_ptr);
 
     this->publish3DBBox(marker_pub_, line_list);
     this->publish3DBBoxOBB(marker_array_pub_, bboxes);
