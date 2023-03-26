@@ -7,13 +7,8 @@
  * @todo
  *      - Test on different clouds (check for runtime issues)
  *      - time the clustering methods
- *      - abstract functions so we can swap methods
- *      - try other method of OBB from https://pcl.readthedocs.io/projects/tutorials/en/latest/moment_of_inertia.html#moment-of-inertia
  *      - visualize all clusters in diff colours via `region growing segmentation` tutorial
- *      - add basic rules based classification http://docs.ros.org/en/api/vision_msgs/html/msg/Detection3DArray.html
- *          * change 3dbbox to 2d detection so we can add a class
  *      - add data association and MOT
- *      - create functions for filter ops and clean up callback
  *      - Use IPC by running this node in a container with the Ouster Node ?
  * @copyright Copyright (c) 2023
  * 
@@ -97,10 +92,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     {
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZI>);
 
-        //#########################################
-        // TODO
-        //#########################################
-        
         // Compute MinMax points AABB
         Eigen::Vector4f minPt{}, maxPt{};
         pcl::getMinMax3D(*plane_ptr, cluster, minPt, maxPt);
@@ -122,6 +113,8 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         // Init and fill bboxes
         vision_msgs::msg::Detection3D d3d;
         vision_msgs::msg::BoundingBox3D bb = getOrientedBoudingBox(*cloud_cluster);
+
+        vision_msgs::msg::BoundingBox3D bb2 = getOrientedBoudingBox2(*cloud_cluster);
         
         // Basic Size based classifier
         std::string id = simpleClassifier(bb);
@@ -216,6 +209,37 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
 
     return bb;
 }
+
+template <typename PointT>
+vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox2(const pcl::PointCloud<PointT> &cloud_cluster)
+{  
+    pcl::MomentOfInertiaEstimation <PointT> feature_extractor;
+    feature_extractor.setInputCloud(cloud_cluster);
+    feature_extractor.compute();
+
+    PointT min_point_OBB, max_point_OBB, position_OBB;
+    Eigen::Matrix3f rotational_matrix_OBB;
+    feature_extractor.getOBB(min_point_OBB, max_point_OBB, position_OBB, rotational_matrix_OBB);
+
+    Eigen::Quaternionf quat(rotational_matrix_OBB);
+
+    vision_msgs::msg::BoundingBox3D bb;
+    bb.center.position.x = position_OBB.x;
+    bb.center.position.y = position_OBB.y;
+    bb.center.position.z = position_OBB.z;
+    bb.center.orientation.x = quat.x();
+    bb.center.orientation.y = quat.y();
+    bb.center.orientation.z = quat.z();
+    bb.center.orientation.w = quat.w();
+    bb.size.x = size.x;
+    bb.size.y = size.y;
+    bb.size.z = size.z;
+
+    return bb;
+}
+
+
+
 std::string LidarProcessing::simpleClassifier(const vision_msgs::msg::BoundingBox3D bb) {
     std::string out;
 
@@ -323,6 +347,17 @@ void LidarProcessing::publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg
         marker_array.markers.push_back(marker);
     }
     publisher->publish(marker_array);
+}
+
+void LidarProcessing::publishDetections(rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr publisher,
+    const std::vector<vision_msgs::msg::Detection3D>& detections)
+{
+    vision_msgs::msg::Detection3DArray det_array;
+    det_array.detections = detections;
+    det_array.header.frame_id = world_frame;
+    det_array.header.stamp = this->get_clock()->now();
+    
+    publisher->publish(det_array);
 }
 
 std::vector<geometry_msgs::msg::Point> LidarProcessing::minMax2lines(CubePoints &max_min_pts)
