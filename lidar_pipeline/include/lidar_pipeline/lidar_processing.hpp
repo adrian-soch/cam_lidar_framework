@@ -30,10 +30,10 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 
+#include <pcl/features/moment_of_inertia_estimation.h>
+
 #include <pcl_ros/transforms.hpp>
 #include <pcl_conversions/pcl_conversions.h>
-
-// #include <pcl/common/io.h>
 
 #include <tf2/convert.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -61,8 +61,11 @@ public:
         euclidean_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("euclidean_cluster", 1);
         stat_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("stat_cluster", 1);
         polygon_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("polygon_cluster", 1);
+
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("markers", 1);
         marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers2", 1);
+
+        detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("detections", 1);
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -141,8 +144,11 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr euclidean_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr stat_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr polygon_pub_;
+
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
+
+    rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr detection_pub_;
     /*
      * Parameters
      */
@@ -174,7 +180,8 @@ private:
 
 
     /**
-     * @brief 
+     * @brief Executed when a point cloud is received. Must execute faster 
+     *          than the pointcloud publishing period. (Typically 100ms)
      * 
      * @param recent_cloud 
      */
@@ -190,8 +197,11 @@ private:
     template <typename PointT>
     vision_msgs::msg::BoundingBox3D getOrientedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
 
+    template <typename PointT>
+    vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox2(const pcl::PointCloud<PointT> &cloud_cluster);
+
     /**
-     * @brief 
+     * @brief Simple bbounding box dimension based classier
      * 
      * @param bb 
      * @return std::string 
@@ -207,7 +217,7 @@ private:
     void getBboxColorRGBA(const std::string id, std_msgs::msg::ColorRGBA *out);
 
     /**
-     * @brief 
+     * @brief Publish a pointcloud
      * 
      * @param publisher 
      * @param point_cloud 
@@ -219,7 +229,7 @@ private:
         const std::vector<geometry_msgs::msg::Point>& line_list);
 
     /**
-     * @brief 
+     * @brief Publish the 3D boubnding box as a cube list marker array
      * 
      * @param publisher 
      * @param bboxes 
@@ -228,7 +238,17 @@ private:
         const std::vector<vision_msgs::msg::Detection3D>& bboxes);
 
     /**
-     * @brief 
+     * @brief Publish 3D object detections
+     * 
+     * @param publisher 
+     * @param detections 
+     */
+    void LidarProcessing::publishDetections(rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr publisher,
+        const std::vector<vision_msgs::msg::Detection3D>& detections);
+
+    /**
+     * @brief Convert 3D min/max points into a set of points representing vertices of a cube
+     *          the vertices are in pairs that create each line segment of a 3D box
      * 
      * @param max_min_pts 
      * @return std::vector<geometry_msgs::msg::Point> 

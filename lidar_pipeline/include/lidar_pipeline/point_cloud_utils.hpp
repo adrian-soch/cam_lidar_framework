@@ -36,11 +36,11 @@ public:
     using TreePtr = typename Tree::Ptr;
 
     /**
-     * @brief 
+     * @brief Perform voxel grid filtering on a point cloud
      * 
-     * @tparam PointT 
-     * @param cloud_ptr 
-     * @param voxel_leaf_size 
+     * @tparam PointT: Type of point cloud (ex. XYZ, XYZI)
+     * @param cloud_ptr: Pointer to a PCL cloud object
+     * @param voxel_leaf_size: size in meters of the voxel grid
      */
     void voxel_grid_filter(PointCloudPtr cloud_ptr, float voxel_leaf_size) {
 
@@ -51,7 +51,8 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Crops points outside of the cube defined by the x/y/z params
+     *          box is centered about the point (0,0,0)
      * 
      * @tparam PointT
      * @param cloud_ptr
@@ -78,7 +79,7 @@ public:
     }
 
     /**
-     * @brief 
+     * @brief Remove statistical outliers
      * 
      * @param cloud_ptr 
      * @param mean 
@@ -92,6 +93,14 @@ public:
         sor.filter(*cloud_ptr);
     }
 
+    /**
+     * @brief Estimate a plane with RANSAC, then remove points on the plane
+     * 
+     * @param cloud_ptr 
+     * @param max_iterations: Max number of RANSAC itersations
+     * @param dist_thresh   RANSAC threshold to add points to the consensus set
+     * @return int:         0 for success, -1 if fails to find plane
+     */
     int ground_plane_removal(PointCloudPtr cloud_ptr, int max_iterations, double dist_thresh) {
 
         PointCloudPtr cloud_plane(new PointCloud());
@@ -127,6 +136,15 @@ public:
         return 0;
     }
 
+    /**
+     * @brief Perform euclidean clustering on an given point cloud
+     * 
+     * @param cloud_ptr 
+     * @param cluster_indices 
+     * @param cluster_tol 
+     * @param cluster_min_size 
+     * @param cluster_max_size 
+     */
     void euclidean_clustering(PointCloudPtr cloud_ptr, std::vector<pcl::PointIndices> &cluster_indices,
         double cluster_tol, int cluster_min_size, int cluster_max_size) {
 
