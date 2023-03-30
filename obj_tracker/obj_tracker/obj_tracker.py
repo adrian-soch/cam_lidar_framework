@@ -128,7 +128,7 @@ def quat2yaw(w,z) -> float:
     """
     return np.arctan2(2.0 * w * z)
 
-def track2MarkerArray(track_ids):
+def track2MarkerArray(track_ids) -> MarkerArray:
     """
     Create ROS 2 markers for track results
 
@@ -137,7 +137,6 @@ def track2MarkerArray(track_ids):
     """
 
     m_arr = MarkerArray()
-
     idx = 0
     for trk in track_ids:
         marker = Marker()
@@ -145,14 +144,20 @@ def track2MarkerArray(track_ids):
         marker.header.frame_id = WORLD_FRAME
         marker.type = Marker.TEXT_VIEW_FACING
         marker.action = Marker.ADD
-        marker.scale.z = 0.1
+        marker.scale.z = 0.8 # height of `A` in meters
+        marker.text = str(int(trk[4]))
 
-        marker.pose.position.x = trk[]
-        marker.pose.position.y = 
+        marker.pose.position.x = trk[0]
+        marker.pose.position.y = trk[1]
+
+        marker.color.a = 1.0
+        marker.color.g = 0.9
+        marker.color.b = 0.7
+
         idx += 1
+        m_arr.markers.append(marker)
 
-
-    return 1
+    return m_arr
 
 def main(args=None):
     rclpy.init(args=args)
