@@ -166,6 +166,17 @@ public:
 
     }
 
+    /**
+     * @brief 
+     * 
+     * @param cloud_ptr 
+     * @param min_cluster_size 
+     * @param max_cluster_size 
+     * @param num_neighbours 
+     * @param smoothness_threshold 
+     * @param curvature_threshold 
+     * @param cluster_indices 
+     */
     void region_growing_clustering(PointCloudPtr cloud_ptr, int min_cluster_size, int max_cluster_size,
         int num_neighbours, float smoothness_threshold, float curvature_threshold,
         std::vector<pcl::PointIndices> &cluster_indices) {
@@ -195,6 +206,18 @@ public:
         reg.extract(cluster_indices);
     }
 
+    /**
+     * @brief 
+     * 
+     * @param cloud_ptr 
+     * @param min_cluster_size 
+     * @param max_cluster_size 
+     * @param num_neighbours 
+     * @param smoothness_threshold 
+     * @param curvature_threshold 
+     * @param cluster_indices 
+     * @param colored_cloud 
+     */
     void region_growing_clustering(PointCloudPtr cloud_ptr, int min_cluster_size, int max_cluster_size,
         int num_neighbours, float smoothness_threshold, float curvature_threshold,
         std::vector<pcl::PointIndices> &cluster_indices,
