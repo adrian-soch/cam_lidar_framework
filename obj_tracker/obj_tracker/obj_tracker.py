@@ -12,14 +12,15 @@
  * @copyright Copyright (c) 2023
 """
 
-from sort import sort
+from .sort import sort
+
+import time
+import numpy as np
 
 import rclpy
 from rclpy.node import Node
 from vision_msgs.msg import Detection3DArray
 from visualization_msgs.msg import MarkerArray, Marker
-
-import numpy as np
 
 WORLD_FRAME = 'map'
 
@@ -47,7 +48,7 @@ class ObjectTracker(Node):
         Args:
             msg (vision_msgs/Detection3DArray)
         """
-        self.get_logger().info('Got dets')
+        t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
         detections = detection3DArray2Numpy(msg.detections)
         
@@ -56,11 +57,14 @@ class ObjectTracker(Node):
         track_ids = self.tracker.update(detections)
 
         # Create and publish Text Marker Array
-        m_arr = track2MarkerArray(track_ids)
+        m_arr = track2MarkerArray(track_ids, msg.header.stamp)
         self.publisher_.publish(m_arr)
 
-        with np.printoptions(precision=3, suppress=True):
-            print(track_ids)
+        # with np.printoptions(precision=3, suppress=True):
+        #     print(track_ids)
+
+        t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+        self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(len(m_arr.markers), (t2-t1)*1000))
 
 
 def detection3DArray2Numpy(detection_list):
@@ -128,7 +132,7 @@ def quat2yaw(w,z) -> float:
     """
     return np.arctan2(2.0 * w * z)
 
-def track2MarkerArray(track_ids) -> MarkerArray:
+def track2MarkerArray(track_ids, stamp) -> MarkerArray:
     """
     Create ROS 2 markers for track results
 
@@ -141,6 +145,7 @@ def track2MarkerArray(track_ids) -> MarkerArray:
     for trk in track_ids:
         marker = Marker()
         marker.id = idx
+        marker.header.stamp = stamp
         marker.header.frame_id = WORLD_FRAME
         marker.type = Marker.TEXT_VIEW_FACING
         marker.action = Marker.ADD
