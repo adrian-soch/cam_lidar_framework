@@ -26,6 +26,7 @@
 #include <vision_msgs/msg/bounding_box3_d.hpp>
 #include <vision_msgs/msg/detection3_d.hpp>
 #include <vision_msgs/msg/detection3_d_array.hpp>
+#include <vision_msgs/msg/object_hypothesis_with_pose.hpp>
 #include <tf2/transform_datatypes.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -198,7 +199,7 @@ private:
     vision_msgs::msg::BoundingBox3D getOrientedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
 
     template <typename PointT>
-    vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox2(const pcl::PointCloud<PointT> &cloud_cluster);
+    vision_msgs::msg::BoundingBox3D getOrientedBoudingBox2(const pcl::PointCloud<PointT> &cloud_cluster);
 
     /**
      * @brief Simple bbounding box dimension based classier
@@ -243,7 +244,7 @@ private:
      * @param publisher 
      * @param detections 
      */
-    void LidarProcessing::publishDetections(rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr publisher,
+    void publishDetections(rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr publisher,
         const std::vector<vision_msgs::msg::Detection3D>& detections);
 
     /**

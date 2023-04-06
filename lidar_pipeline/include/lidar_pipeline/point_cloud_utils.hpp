@@ -12,6 +12,7 @@
 #ifndef POINT_CLOUD_UTILITIES_HPP_
 #define POINT_CLOUD_UTILITIES_HPP_
 
+#include <pcl/features/normal_3d.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/extract_indices.h>
@@ -22,6 +23,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <pcl/segmentation/region_growing.h>
 
 #include <pcl/common/common.h>
 
@@ -158,6 +160,94 @@ public:
         ec.setSearchMethod(tree);
         ec.setInputCloud(cloud_ptr);
         ec.extract(cluster_indices);
+    }
+
+    void conditional_euclidian_clustering(PointCloudPtr cloud_ptr) {
+
+    }
+
+    /**
+     * @brief 
+     * 
+     * @param cloud_ptr 
+     * @param min_cluster_size 
+     * @param max_cluster_size 
+     * @param num_neighbours 
+     * @param smoothness_threshold 
+     * @param curvature_threshold 
+     * @param cluster_indices 
+     */
+    void region_growing_clustering(PointCloudPtr cloud_ptr, int min_cluster_size, int max_cluster_size,
+        int num_neighbours, float smoothness_threshold, float curvature_threshold,
+        std::vector<pcl::PointIndices> &cluster_indices) {
+
+        TreePtr tree(new Tree);
+
+        pcl::PointCloud <pcl::Normal>::Ptr normals(new pcl::PointCloud <pcl::Normal>);
+        pcl::NormalEstimation<PointT, pcl::Normal> normal_estimator;
+        normal_estimator.setSearchMethod(tree);
+        normal_estimator.setInputCloud(cloud_ptr);
+        normal_estimator.setKSearch(50);
+        normal_estimator.compute(*normals);
+
+        pcl::IndicesPtr indices(new std::vector <int>);
+        pcl::removeNaNFromPointCloud(*cloud_ptr, *indices);
+
+        pcl::RegionGrowing<PointT, pcl::Normal> reg;
+        reg.setMinClusterSize(min_cluster_size);
+        reg.setMaxClusterSize(max_cluster_size);
+        reg.setSearchMethod(tree);
+        reg.setNumberOfNeighbours(30);
+        reg.setInputCloud(cloud_ptr);
+        reg.setIndices(indices);
+        reg.setInputNormals(normals);
+        reg.setSmoothnessThreshold(smoothness_threshold / 180.0 * M_PI);
+        reg.setCurvatureThreshold(curvature_threshold);
+        reg.extract(cluster_indices);
+    }
+
+    /**
+     * @brief 
+     * 
+     * @param cloud_ptr 
+     * @param min_cluster_size 
+     * @param max_cluster_size 
+     * @param num_neighbours 
+     * @param smoothness_threshold 
+     * @param curvature_threshold 
+     * @param cluster_indices 
+     * @param colored_cloud 
+     */
+    void region_growing_clustering(PointCloudPtr cloud_ptr, int min_cluster_size, int max_cluster_size,
+        int num_neighbours, float smoothness_threshold, float curvature_threshold,
+        std::vector<pcl::PointIndices> &cluster_indices,
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr colored_cloud) {
+
+        TreePtr tree(new Tree);
+
+        pcl::PointCloud <pcl::Normal>::Ptr normals(new pcl::PointCloud <pcl::Normal>);
+        pcl::NormalEstimation<PointT, pcl::Normal> normal_estimator;
+        normal_estimator.setSearchMethod(tree);
+        normal_estimator.setInputCloud(cloud_ptr);
+        normal_estimator.setKSearch(50);
+        normal_estimator.compute(*normals);
+
+        pcl::IndicesPtr indices(new std::vector <int>);
+        pcl::removeNaNFromPointCloud(*cloud_ptr, *indices);
+
+        pcl::RegionGrowing<PointT, pcl::Normal> reg;
+        reg.setMinClusterSize(min_cluster_size);
+        reg.setMaxClusterSize(max_cluster_size);
+        reg.setSearchMethod(tree);
+        reg.setNumberOfNeighbours(30);
+        reg.setInputCloud(cloud_ptr);
+        reg.setIndices(indices);
+        reg.setInputNormals(normals);
+        reg.setSmoothnessThreshold(smoothness_threshold / 180.0 * M_PI);
+        reg.setCurvatureThreshold(curvature_threshold);
+        reg.extract(cluster_indices);
+
+        colored_cloud = reg.getColoredCloud();
     }
 
 };

@@ -5,6 +5,7 @@
  * @version 0.1
  * @date 2023-03-23
  * @todo
+ *      - SVM classifier (train on stanford data, test with real data)
  *      - Test on different clouds (check for runtime issues)
  *      - time the clustering methods
  *      - visualize all clusters in diff colours via `region growing segmentation` tutorial
@@ -85,7 +86,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         cluster_tol, cluster_min_size, cluster_max_size);
 
     std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
-    std::vector<vision_msgs::msg::Detection3D> bboxes;
+    std::vector<vision_msgs::msg::Detection3D> detection_array;
     CubePoints max_min_pts;
     
     for (const auto &cluster : cluster_indices)
@@ -110,20 +111,20 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
         clusters.push_back(cloud_cluster);
 
-        // Init and fill bboxes
-        vision_msgs::msg::Detection3D d3d;
-        vision_msgs::msg::BoundingBox3D bb = getOrientedBoudingBox(*cloud_cluster);
+        // Init and fill detection_array
+        vision_msgs::msg::Detection3D detection;
+        vision_msgs::msg::BoundingBox3D bbox = getOrientedBoudingBox(*cloud_cluster);
 
-        vision_msgs::msg::BoundingBox3D bb2 = getOrientedBoudingBox2(*cloud_cluster);
+        // vision_msgs::msg::BoundingBox3D bb2 = getOrientedBoudingBox2(*cloud_cluster);
         
         // Basic Size based classifier
-        std::string id = simpleClassifier(bb);
+        std::string id = simpleClassifier(bbox);
+        id = "car"; // Hardcode until classidier is better
         if(!id.empty()) {                        
-            
-            d3d.header.stamp = recent_cloud->header.stamp;
-            d3d.bbox = bb;
-            d3d.id = id;
-            bboxes.push_back(d3d);
+            detection.header.stamp = recent_cloud->header.stamp;
+            detection.bbox = bbox;
+            detection.id = id;
+            detection_array.push_back(detection);
         }
     }
     
@@ -140,7 +141,9 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     this->publishPointCloud(stat_pub_, *stats_cloud_ptr);
 
     this->publish3DBBox(marker_pub_, line_list);
-    this->publish3DBBoxOBB(marker_array_pub_, bboxes);
+    this->publish3DBBoxOBB(marker_array_pub_, detection_array);
+
+    this->publishDetections(detection_pub_, detection_array);
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
@@ -190,61 +193,65 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
     transform2.translate(center_new);
     // Eigen::Affine3f transform3 = transform * transform2;
 
-    const Eigen::Quaternionf bboxQ(keep_Z_Rot);
+    Eigen::Quaternionf bboxQ(keep_Z_Rot);
+    bboxQ.normalize();
 
     PointT size;
     size.getArray3fMap() = max_pt_T.getArray3fMap() - min_pt_T.getArray3fMap();
 
-    vision_msgs::msg::BoundingBox3D bb;
-    bb.center.position.x = centroid[X];
-    bb.center.position.y = centroid[Y];
-    bb.center.position.z = centroid[Z];
-    bb.center.orientation.x = bboxQ.x();
-    bb.center.orientation.y = bboxQ.y();
-    bb.center.orientation.z = bboxQ.z();
-    bb.center.orientation.w = bboxQ.w();
-    bb.size.x = size.x;
-    bb.size.y = size.y;
-    bb.size.z = size.z;
+    vision_msgs::msg::BoundingBox3D bbox;
+    bbox.center.position.x = centroid[X];
+    bbox.center.position.y = centroid[Y];
+    bbox.center.position.z = centroid[Z];
+    bbox.center.orientation.x = bboxQ.x();
+    bbox.center.orientation.y = bboxQ.y();
+    bbox.center.orientation.z = bboxQ.z();
+    bbox.center.orientation.w = bboxQ.w();
+    bbox.size.x = size.x;
+    bbox.size.y = size.y;
+    bbox.size.z = size.z;
 
-    return bb;
+    return bbox;
 }
 
-template <typename PointT>
-vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox2(const pcl::PointCloud<PointT> &cloud_cluster)
-{  
-    pcl::MomentOfInertiaEstimation <PointT> feature_extractor;
-    feature_extractor.setInputCloud(cloud_cluster);
-    feature_extractor.compute();
+// template <typename PointT>
+// vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox2(const pcl::PointCloud<PointT> &cloud_cluster)
+// {  
+//     pcl::MomentOfInertiaEstimation<PointT> feature_extractor;
+//     feature_extractor.setInputCloud(cloud_cluster);
+//     feature_extractor.compute();
 
-    PointT min_point_OBB, max_point_OBB, position_OBB;
-    Eigen::Matrix3f rotational_matrix_OBB;
-    feature_extractor.getOBB(min_point_OBB, max_point_OBB, position_OBB, rotational_matrix_OBB);
+//     PointT min_point_OBB, max_point_OBB, position_OBB;
+//     Eigen::Matrix3f rotational_matrix_OBB;
+//     feature_extractor.getOBB(min_point_OBB, max_point_OBB, position_OBB, rotational_matrix_OBB);
 
-    Eigen::Quaternionf quat(rotational_matrix_OBB);
+//     Eigen::Quaternionf quat(rotational_matrix_OBB);
 
-    vision_msgs::msg::BoundingBox3D bb;
-    bb.center.position.x = position_OBB.x;
-    bb.center.position.y = position_OBB.y;
-    bb.center.position.z = position_OBB.z;
-    bb.center.orientation.x = quat.x();
-    bb.center.orientation.y = quat.y();
-    bb.center.orientation.z = quat.z();
-    bb.center.orientation.w = quat.w();
-    bb.size.x = size.x;
-    bb.size.y = size.y;
-    bb.size.z = size.z;
+//     PointT size;
+//     size.getArray3fMap() = max_point_OBB.getArray3fMap() - min_point_OBB.getArray3fMap();
 
-    return bb;
-}
+//     vision_msgs::msg::BoundingBox3D bbox;
+//     bbox.center.position.x = position_OBB.x;
+//     bbox.center.position.y = position_OBB.y;
+//     bbox.center.position.z = position_OBB.z;
+//     bbox.center.orientation.x = quat.x();
+//     bbox.center.orientation.y = quat.y();
+//     bbox.center.orientation.z = quat.z();
+//     bbox.center.orientation.w = quat.w();
+//     bbox.size.x = size.x;
+//     bbox.size.y = size.y;
+//     bbox.size.z = size.z;
+
+//     return bbox;
+// }
 
 
 
-std::string LidarProcessing::simpleClassifier(const vision_msgs::msg::BoundingBox3D bb) {
+std::string LidarProcessing::simpleClassifier(const vision_msgs::msg::BoundingBox3D bbox) {
     std::string out;
 
     // check size from small to large
-    double cluster_vol = bb.size.x * bb.size.y * bb.size.z;
+    double cluster_vol = bbox.size.x * bbox.size.y * bbox.size.z;
 
     double min_human_vol = 0.5*0.5*0.5;
     double max_human_vol = 2.2*0.7*0.4;
@@ -307,28 +314,28 @@ void LidarProcessing::publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::Poin
 void LidarProcessing::publish3DBBox(rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr publisher,
     const std::vector<geometry_msgs::msg::Point>& line_list)
 {
-    visualization_msgs::msg::Marker::SharedPtr bboxes(new visualization_msgs::msg::Marker);
-    bboxes->header.frame_id = world_frame;
-    bboxes->header.stamp = this->get_clock()->now();
-    bboxes->type = visualization_msgs::msg::Marker::LINE_LIST;
-    bboxes->action = visualization_msgs::msg::Marker::ADD;
-    bboxes->points = line_list;
-    bboxes->scale.x = 0.06;
-    bboxes->scale.y = 0.1;
-    bboxes->scale.z = 0.1;
+    visualization_msgs::msg::Marker::SharedPtr detection_array(new visualization_msgs::msg::Marker);
+    detection_array->header.frame_id = world_frame;
+    detection_array->header.stamp = this->get_clock()->now();
+    detection_array->type = visualization_msgs::msg::Marker::LINE_LIST;
+    detection_array->action = visualization_msgs::msg::Marker::ADD;
+    detection_array->points = line_list;
+    detection_array->scale.x = 0.06;
+    detection_array->scale.y = 0.1;
+    detection_array->scale.z = 0.1;
 
-    bboxes->color.g = 1.0;
-    bboxes->color.a = 1.0;
+    detection_array->color.g = 1.0;
+    detection_array->color.a = 1.0;
 
-    publisher->publish(*bboxes);
+    publisher->publish(*detection_array);
 }
 
 void LidarProcessing::publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher,
-    const std::vector<vision_msgs::msg::Detection3D>& bboxes)
+    const std::vector<vision_msgs::msg::Detection3D>& detection_array)
 {
     visualization_msgs::msg::MarkerArray marker_array;
     int idx = 0;
-    for(auto c : bboxes) {
+    for(auto c : detection_array) {
         visualization_msgs::msg::Marker marker;
         marker.id = idx++;
         marker.header.frame_id = world_frame;
