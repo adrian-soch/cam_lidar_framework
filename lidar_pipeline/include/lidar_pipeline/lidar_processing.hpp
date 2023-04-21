@@ -57,11 +57,9 @@ public:
         RCLCPP_INFO(this->get_logger(), "Setting up publishers");
 
         voxel_grid_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("voxel_cluster", 1);
-        passthrough_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("passthrough_cluster", 1);
+        crop_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("crop_cluster", 1);
         plane_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("plane_cluster", 1);
-        euclidean_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("euclidean_cluster", 1);
         stat_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("stat_cluster", 1);
-        polygon_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("polygon_cluster", 1);
 
         marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("markers", 1);
         marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers2", 1);
@@ -140,11 +138,9 @@ private:
      */
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_subscriber_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr voxel_grid_pub_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr passthrough_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr crop_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr plane_pub_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr euclidean_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr stat_pub_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr polygon_pub_;
 
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;

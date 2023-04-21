@@ -156,8 +156,8 @@ def track2MarkerArray(track_ids, stamp) -> MarkerArray:
         marker.pose.position.y = trk[1]
 
         marker.color.a = 1.0
-        marker.color.g = 0.9
-        marker.color.b = 0.7
+        marker.color.g = 0.8
+        marker.color.b = 0.6
 
         idx += 1
         m_arr.markers.append(marker)

@@ -31,13 +31,18 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     geometry_msgs::msg::TransformStamped stransform;
     try
     {
-        stransform = tf_buffer_->lookupTransform(world_frame, recent_cloud->header.frame_id,
-                                                    tf2::TimePointZero, tf2::durationFromSec(3));
+        stransform = tf_buffer_->lookupTransform(world_frame, camera_frame,
+                                                    tf2::TimePointZero, tf2::durationFromSec(0.5));
     }
     catch (const tf2::TransformException &ex)
     {
         RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
     }
+
+    
+    stransform.transform.rotation.y = 0.0998334;
+    stransform.transform.rotation.w = 0.9950042;
+    stransform.transform.translation.z = 7.5;
 
     sensor_msgs::msg::PointCloud2 transformed_cloud;
     pcl_ros::transformPointCloud(world_frame, stransform, *recent_cloud, transformed_cloud);
@@ -47,6 +52,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     */
     pcl::PointCloud<pcl::PointXYZI> cloud;
     pcl::fromROSMsg(transformed_cloud, cloud);
+    // pcl::fromROSMsg(*recent_cloud, cloud);
 
     /* ========================================
     * VOXEL GRID
@@ -70,7 +76,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     /* ========================================
     * PLANE SEGEMENTATION
     * ========================================*/
-    pcl::PointCloud<pcl::PointXYZI>::Ptr plane_ptr(new pcl::PointCloud<pcl::PointXYZI>(*crop_cloud_ptr));
+    pcl::PointCloud<pcl::PointXYZI>::Ptr plane_ptr(new pcl::PointCloud<pcl::PointXYZI>(*stats_cloud_ptr));
     int ret_code = cloud_ops.ground_plane_removal(plane_ptr, plane_max_iter, plane_dist_thresh);
 
     if(ret_code != 0) {
@@ -137,6 +143,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
         * ========================================*/
     this->publishPointCloud(voxel_grid_pub_, *cloud_ptr);
+    this->publishPointCloud(crop_pub_, *crop_cloud_ptr);
     this->publishPointCloud(plane_pub_, *plane_ptr);
     this->publishPointCloud(stat_pub_, *stats_cloud_ptr);
 

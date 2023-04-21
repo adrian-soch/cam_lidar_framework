@@ -22,7 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'obj_tracker = obj_tracker.obj_tracker:main'
+            'object_tracker = obj_tracker.obj_tracker:main'
         ],
     },
 )
