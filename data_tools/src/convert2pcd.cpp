@@ -49,17 +49,9 @@
     private:
     void callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) const
     {
-        // Transform for lidar2ground
-        geometry_msgs::msg::TransformStamped stransform;
-        stransform.transform.rotation.y = 0.0998334;
-        stransform.transform.rotation.w = 0.9950042;
-        stransform.transform.translation.z = 7.5;
-
-        sensor_msgs::msg::PointCloud2 transformed_cloud;
-        pcl_ros::transformPointCloud("map", stransform, *msg, transformed_cloud);
 
         pcl::PointCloud<pcl::PointXYZI>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZI>());
-        pcl::fromROSMsg(transformed_cloud, *pcl_cloud);
+        pcl::fromROSMsg(*msg, *pcl_cloud);
 
         // Save PCD file with an increasing file name
         std::stringstream ss;
