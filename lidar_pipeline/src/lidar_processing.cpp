@@ -5,11 +5,11 @@
  * @version 0.1
  * @date 2023-03-23
  * @todo
+ *      - Load lidar2ground transform from file
  *      - SVM classifier (train on stanford data, test with real data)
  *      - Test on different clouds (check for runtime issues)
  *      - time the clustering methods
  *      - visualize all clusters in diff colours via `region growing segmentation` tutorial
- *      - add data association and MOT
  *      - Use IPC by running this node in a container with the Ouster Node ?
  * @copyright Copyright (c) 2023
  * 
@@ -42,7 +42,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     
     stransform.transform.rotation.y = 0.0998334;
     stransform.transform.rotation.w = 0.9950042;
-    stransform.transform.translation.z = 7.5;
+    stransform.transform.translation.z = 12;
 
     sensor_msgs::msg::PointCloud2 transformed_cloud;
     pcl_ros::transformPointCloud(world_frame, stransform, *recent_cloud, transformed_cloud);

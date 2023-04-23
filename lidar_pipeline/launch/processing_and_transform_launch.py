@@ -38,7 +38,7 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {"cloud_topic": "/points"},
-            {"world_frame": "laser_data_frame"},
+            {"world_frame": "map"},
             {"camera_frame": "laser_data_frame"},
             {"voxel_leaf_size": 0.25}, # All in meters
             {"x_filter_min": 1.0},
