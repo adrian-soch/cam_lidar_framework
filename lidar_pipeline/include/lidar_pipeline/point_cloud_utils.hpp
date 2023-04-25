@@ -12,20 +12,22 @@
 #ifndef POINT_CLOUD_UTILITIES_HPP_
 #define POINT_CLOUD_UTILITIES_HPP_
 
+#include <pcl/common/common.h>
+#include <pcl/filters/crop_box.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/extract_indices.h>
-#include <pcl/filters/crop_box.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 
-#include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
+#include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
-#include <pcl/segmentation/region_growing.h>
 
-#include <pcl/common/common.h>
+#include <pcl/segmentation/region_growing.h>
+#include <pcl/segmentation/conditional_euclidean_clustering.h>
+#include <pcl/common/transforms.h>
 
 template<typename PointT>
 class Operations {
@@ -197,7 +199,7 @@ public:
         reg.setMinClusterSize(min_cluster_size);
         reg.setMaxClusterSize(max_cluster_size);
         reg.setSearchMethod(tree);
-        reg.setNumberOfNeighbours(30);
+        reg.setNumberOfNeighbours(num_neighbours);
         reg.setInputCloud(cloud_ptr);
         reg.setIndices(indices);
         reg.setInputNormals(normals);
@@ -239,7 +241,7 @@ public:
         reg.setMinClusterSize(min_cluster_size);
         reg.setMaxClusterSize(max_cluster_size);
         reg.setSearchMethod(tree);
-        reg.setNumberOfNeighbours(30);
+        reg.setNumberOfNeighbours(num_neighbours);
         reg.setInputCloud(cloud_ptr);
         reg.setIndices(indices);
         reg.setInputNormals(normals);
@@ -248,6 +250,68 @@ public:
         reg.extract(cluster_indices);
 
         colored_cloud = reg.getColoredCloud();
+    }
+
+    typedef pcl::PointXYZI PointTypeIO;
+    typedef pcl::PointXYZINormal PointTypeFull;
+    static bool enforceIntensitySimilarity (const PointTypeFull& point_a, const PointTypeFull& point_b, float squared_distance)
+    {
+    if (std::abs (point_a.intensity - point_b.intensity) < 5.0f)
+        return (true);
+    else
+        return (false);
+    }
+
+    static bool enforceCurvatureOrIntensitySimilarity (const PointTypeFull& point_a, const PointTypeFull& point_b, float squared_distance)
+    {
+    Eigen::Map<const Eigen::Vector3f> point_a_normal = point_a.getNormalVector3fMap (), point_b_normal = point_b.getNormalVector3fMap ();
+    if (std::abs (point_a.intensity - point_b.intensity) < 5.0f)
+        return (true);
+    if (std::abs (point_a_normal.dot (point_b_normal)) < 0.05)
+        return (true);
+    return (false);
+    }
+
+    static bool customRegionGrowing (const PointTypeFull& point_a, const PointTypeFull& point_b, float squared_distance)
+    {
+    Eigen::Map<const Eigen::Vector3f> point_a_normal = point_a.getNormalVector3fMap (), point_b_normal = point_b.getNormalVector3fMap ();
+    if (squared_distance < 10000)
+    {
+        if (std::abs (point_a.intensity - point_b.intensity) < 800.0f)
+            return (true);
+        if (std::abs (point_a_normal.dot (point_b_normal)) < 6.0)
+            return (true);
+    }
+    else
+    {
+        if (std::abs (point_a.intensity - point_b.intensity) < 300.0f)
+            return (true);
+    }
+    return (false);
+    }
+
+    void conditional_euclidean_clustering(PointCloudPtr cloud_ptr, std::vector<pcl::PointIndices> &cluster_indices) {
+
+        // Data containers used
+        pcl::PointCloud<PointTypeFull>::Ptr cloud_with_normals (new pcl::PointCloud<PointTypeFull>);
+        pcl::IndicesClustersPtr clusters (new pcl::IndicesClusters), small_clusters (new pcl::IndicesClusters), large_clusters (new pcl::IndicesClusters);
+        TreePtr search_tree (new Tree);
+
+        pcl::NormalEstimation<PointT, PointTypeFull> ne;
+        ne.setInputCloud (cloud_ptr);
+        ne.setSearchMethod (search_tree);
+        ne.setRadiusSearch (300.0);
+        ne.compute (*cloud_with_normals);
+
+        // Set up a Conditional Euclidean Clustering class
+        pcl::ConditionalEuclideanClustering<PointTypeFull> cec (true);
+        cec.setInputCloud (cloud_with_normals);
+        cec.setConditionFunction (&customRegionGrowing);
+        cec.setClusterTolerance (500.0);
+        cec.setMinClusterSize (cloud_with_normals->size () / 1000);
+        cec.setMaxClusterSize (cloud_with_normals->size () / 5);
+        cec.segment (cluster_indices);
+        cec.getRemovedClusters (small_clusters, large_clusters);
     }
 
 };
