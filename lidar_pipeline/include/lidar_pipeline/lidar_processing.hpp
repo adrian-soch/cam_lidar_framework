@@ -219,8 +219,9 @@ private:
      * @param publisher 
      * @param point_cloud 
      */
+    template <typename PointT>
     void publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
-                           pcl::PointCloud<pcl::PointXYZI> point_cloud);
+            const pcl::PointCloud<PointT> &point_cloud);
 
     void publish3DBBox(rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr publisher,
         const std::vector<geometry_msgs::msg::Point>& line_list);

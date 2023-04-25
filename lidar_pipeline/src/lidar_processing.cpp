@@ -40,9 +40,9 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     }
 
     
-    stransform.transform.rotation.y = 0.0998334;
-    stransform.transform.rotation.w = 0.9950042;
-    stransform.transform.translation.z = 12;
+    // stransform.transform.rotation.y = 0.0998334;
+    // stransform.transform.rotation.w = 0.9950042;
+    // stransform.transform.translation.z = 12;
 
     sensor_msgs::msg::PointCloud2 transformed_cloud;
     pcl_ros::transformPointCloud(world_frame, stransform, *recent_cloud, transformed_cloud);
@@ -52,7 +52,11 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     */
     pcl::PointCloud<pcl::PointXYZI> cloud;
     pcl::fromROSMsg(transformed_cloud, cloud);
-    // pcl::fromROSMsg(*recent_cloud, cloud);
+
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    transform.translation() << 0.0, 0.0, 12.0;
+    transform.rotate(Eigen::Quaternionf( 0.9950042, 0.0, 0.099833, 0.0));
+    pcl::transformPointCloud (cloud, cloud, transform);
 
     /* ========================================
     * VOXEL GRID
@@ -71,7 +75,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * STATISTICAL OUTLIER REMOVAL
     * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr stats_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*crop_cloud_ptr));
-    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 50, 1.0);
+    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 100, 0.2);
     
     /* ========================================
     * PLANE SEGEMENTATION
@@ -86,10 +90,23 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     /* ========================================
     * CLUSTERING
     * ========================================*/
+
     std::vector<pcl::PointIndices> cluster_indices;
 
+    // Uncomment to use vanilla euclidean clustering
     cloud_ops.euclidean_clustering(plane_ptr, cluster_indices,
         cluster_tol, cluster_min_size, cluster_max_size);
+
+    // Uncomment to use conditional euclidean clustering
+    // cloud_ops.conditional_euclidean_clustering(plane_ptr, cluster_indices);
+
+    // Uncomment to use region growing for clustering
+    // cloud_ops.region_growing_clustering(stats_cloud_ptr, cluster_min_size, cluster_max_size,
+    //     10, 3.0, 10.0, cluster_indices);
+
+    /* ========================================
+    * Compute Bounding Boxes
+    * ========================================*/
 
     std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
     std::vector<vision_msgs::msg::Detection3D> detection_array;
@@ -134,9 +151,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         }
     }
     
-    /* ========================================
-        * Compute Bounding Boxes
-        * ========================================*/
     std::vector<geometry_msgs::msg::Point> line_list = minMax2lines(max_min_pts);
 
     /* ========================================
@@ -308,8 +322,9 @@ void LidarProcessing::getBboxColorRGBA(const std::string id, std_msgs::msg::Colo
     }
 }
 
+template <typename PointT>
 void LidarProcessing::publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
-                        pcl::PointCloud<pcl::PointXYZI> point_cloud)
+        const pcl::PointCloud<PointT> &point_cloud)
 {
     sensor_msgs::msg::PointCloud2::SharedPtr pc2_cloud(new sensor_msgs::msg::PointCloud2);
     pcl::toROSMsg(point_cloud, *pc2_cloud);
