@@ -13,6 +13,7 @@
 """
 
 import os
+import glob
 import shutil
 import argparse
 
@@ -29,15 +30,13 @@ def createRelatedImageFolders(root_folder, json_file):
         # Move the file into the corresponding folder
         filepath = os.path.join(root_folder, filename)
         shutil.move(filepath, os.path.join(folderpath, filename))
-        
-        print(f"Moved {filename} to {foldername} folder")
 
         # Copy the file into the folder
         shutil.copy(json_file, folderpath)
 
         # Rename json to match image
         _, json_name = os.path.split(json_file)
-        image_name = os.listdir(folderpath)[0]
+        _, image_name = os.path.split(glob.glob(folderpath + '/*.jpg')[0])
         new_json_name = image_name + '.json'
         os.rename(os.path.join(folderpath,json_name), os.path.join(folderpath,new_json_name))
             
