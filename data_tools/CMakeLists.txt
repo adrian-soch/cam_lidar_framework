@@ -38,9 +38,16 @@ target_include_directories(msg_to_image PUBLIC
   $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(msg_to_image rclcpp sensor_msgs geometry_msgs OpenCV cv_bridge)
 
+add_executable(pcd2xyzi src/pcd2xyzi.cpp)
+target_include_directories(pcd2xyzi PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(pcd2xyzi PCL pcl_ros)
+
 install(TARGETS
     pc2_to_pcd
     msg_to_image
+    pcd2xyzi
     DESTINATION lib/${PROJECT_NAME}
 )
 
