@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 {
     // Initialize the ROS 2 node
     rclcpp::init(argc, argv);
-      if (argc != 3)
+    if (argc != 3)
     {
         RCLCPP_ERROR(rclcpp::get_logger("image_saver"), "Usage: %s <topic_name> <file_path>", argv[0]);
         return 1;

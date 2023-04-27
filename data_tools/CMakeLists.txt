@@ -44,10 +44,17 @@ target_include_directories(pcd2xyzi PUBLIC
   $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(pcd2xyzi PCL pcl_ros)
 
+add_executable(image_cloud2file src/synced_image_cloud_2file.cpp)
+target_include_directories(image_cloud2file PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(image_cloud2file pcl_ros rclcpp sensor_msgs OpenCV cv_bridge)
+
 install(TARGETS
     pc2_to_pcd
     msg_to_image
     pcd2xyzi
+    image_cloud2file
     DESTINATION lib/${PROJECT_NAME}
 )
 

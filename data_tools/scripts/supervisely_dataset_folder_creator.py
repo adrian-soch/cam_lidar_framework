@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     # Define the argparse
     parser = argparse.ArgumentParser(description='Process some files.')
-    parser.add_argument('--root_folder', '-r', type=str, default='/home/adrian/dev/metrics/dec7_daytime_dataset/related_images',
+    parser.add_argument('--root_folder', '-r', type=str, default='/home/adrian/dev/metrics/dec7_daytime_2/related_images',
             help='The path to the root folder of all the related images.')
     
     parser.add_argument('--json_file', '-j', type=str, default='/home/adrian/dev/metrics/000240.jpg.json',
