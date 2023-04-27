@@ -166,6 +166,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     this->publish3DBBoxOBB(marker_array_pub_, detection_array);
 
     this->publishDetections(detection_pub_, detection_array);
+    this->publishDistanceMarkers(range_marker_array_pub_);
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
@@ -413,6 +414,35 @@ std::vector<geometry_msgs::msg::Point> LidarProcessing::minMax2lines(CubePoints 
                                 v5,v8, v7,v8, v5,v6, v6,v7});
     }
     return out;
+}
+
+void LidarProcessing::publishDistanceMarkers(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher) {
+    visualization_msgs::msg::MarkerArray ranges;
+    int idx = 0;
+    std::vector<float> range_values {25,50,75};
+    for(auto r : range_values) {
+        visualization_msgs::msg::Marker marker;
+        marker.id = idx++;
+        marker.header.frame_id = world_frame;
+        marker.header.stamp = this->get_clock()->now();
+        marker.type = visualization_msgs::msg::Marker::CYLINDER;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+
+        marker.pose.position.z = idx*-0.01;
+
+        marker.scale.x = r*2.0;
+        marker.scale.y = r*2.0;
+        marker.scale.z = 0.001;
+
+        //Set lifetime so they dont clutter the screen
+        // marker.lifetime = rclcpp::Duration::from_seconds(0.1);
+        
+        marker.color.b = r/10.0;
+        marker.color.a = 0.5;   // Set alpha so we can see underlying points
+
+        ranges.markers.push_back(marker);
+    }
+    publisher->publish(ranges);
 }
 
 } // end namespace lidar_pipeline
