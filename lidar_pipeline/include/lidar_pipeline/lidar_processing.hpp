@@ -56,15 +56,18 @@ public:
          */
         RCLCPP_INFO(this->get_logger(), "Setting up publishers");
 
-        voxel_grid_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("voxel_cluster", 1);
-        crop_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("crop_cluster", 1);
-        plane_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("plane_cluster", 1);
-        stat_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("stat_cluster", 1);
+        voxel_grid_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/voxel_cluster", 1);
+        crop_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/crop_cluster", 1);
+        plane_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/plane_cluster", 1);
+        stat_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/stat_cluster", 1);
 
-        marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("markers", 1);
-        marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("markers2", 1);
+        marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("lidar_proc/aabboxes", 1);
+        marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/obboxes", 1);
+        range_marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/ranges", 1);
 
-        detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("detections", 1);
+        rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr range_marker_array_pub_;
+
+        detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/detections", 1);
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -144,6 +147,7 @@ private:
 
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr range_marker_array_pub_;
 
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr detection_pub_;
     /*
@@ -252,6 +256,13 @@ private:
      * @return std::vector<geometry_msgs::msg::Point> 
      */
     std::vector<geometry_msgs::msg::Point> minMax2lines(CubePoints &max_min_pts);
+
+    /**
+     * @brief Publish range markers with respect to the sensor position
+     * 
+     * @param publisher 
+     */
+    void publishDistanceMarkers(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher);
 };
 
 } // end namespace perceptions_node

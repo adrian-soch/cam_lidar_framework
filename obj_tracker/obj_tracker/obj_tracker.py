@@ -31,12 +31,12 @@ class ObjectTracker(Node):
         super().__init__('object_tracker')
         self.subscription = self.create_subscription(
             Detection3DArray,
-            'detections',
+            'lidar_proc/detections',
             self.callback,
             5)
         self.subscription  # prevent unused variable warning
 
-        self.publisher_ = self.create_publisher(MarkerArray, 'track_markers', 2)
+        self.publisher_ = self.create_publisher(MarkerArray, 'lidar_proc/track_markers', 2)
 
         #create instance of SORT
         self.tracker = sort.Sort()
