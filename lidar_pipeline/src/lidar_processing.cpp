@@ -64,9 +64,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * CROPBOX
     * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr crop_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*cloud_ptr));
-    // cloud_ops.crop_box_filter(crop_cloud_ptr, x_filter_min, y_filter_min, z_filter_min,
-    //     x_filter_max, y_filter_max, z_filter_max, false);
-
     // Crop just the road using a prism
     // Box values and transform are current hard coded
     cloud_ops.prism_segmentation(crop_cloud_ptr);
@@ -75,7 +72,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * STATISTICAL OUTLIER REMOVAL
     * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr stats_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*crop_cloud_ptr));
-    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 80, 0.2);
+    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 50, 10.0);
     
     /* ========================================
     * PLANE SEGEMENTATION
