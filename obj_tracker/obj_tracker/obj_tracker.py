@@ -19,6 +19,7 @@ import numpy as np
 
 import rclpy
 from rclpy.node import Node
+from rclpy.duration import Duration
 from vision_msgs.msg import Detection3DArray
 from visualization_msgs.msg import MarkerArray, Marker
 
@@ -154,6 +155,8 @@ def track2MarkerArray(track_ids, stamp) -> MarkerArray:
 
         marker.pose.position.x = trk[0]
         marker.pose.position.y = trk[1]
+
+        marker.lifetime = Duration(seconds=0.1).to_msg()
 
         marker.color.a = 1.0
         marker.color.g = 0.8
