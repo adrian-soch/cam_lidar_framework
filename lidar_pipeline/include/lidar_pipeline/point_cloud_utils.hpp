@@ -27,6 +27,7 @@
 
 #include <pcl/segmentation/region_growing.h>
 #include <pcl/segmentation/conditional_euclidean_clustering.h>
+#include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/common/transforms.h>
 
 template<typename PointT>
@@ -80,6 +81,74 @@ public:
         crop.setMax(max_point);
         crop.setKeepOrganized(keep_organized);
         crop.filter(*cloud_ptr);
+    }
+
+    void prism_segmentation(PointCloudPtr cloud_ptr) {
+
+        PointCloudPtr pick_surface_cloud_ptr(new PointCloud());
+        pcl::PointIndices::Ptr pt_inliers (new pcl::PointIndices());
+        pcl::ExtractIndices<PointT> extract_ind;
+
+        pcl::ExtractPolygonalPrismData<PointT> prism;
+        prism.setInputCloud(cloud_ptr);
+
+        //     "position": {
+        // "x": 55.531973409981155,
+        // "y": -6.0932405550507704,
+        // "z": 3.94961578162149
+        // },
+        // "rotation": {
+        //     "x": 0,
+        //     "y": 0,
+        //     "z": -1.398410635281484
+        // },
+        // "dimensions": {
+        //     "x": 16.84218043629091,
+        //     "y": 79.6080431207005,
+        //     "z": 7.030711258125345
+        // }
+
+        // create prism surface
+        double box_length = 17;
+        double box_width = 80;
+        double box_height = 7.0;
+
+        pick_surface_cloud_ptr->width = 5;
+        pick_surface_cloud_ptr->height = 1;
+        pick_surface_cloud_ptr->points.resize(5);
+
+        pick_surface_cloud_ptr->points[0].x = 0.5f*box_length;
+        pick_surface_cloud_ptr->points[0].y = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[0].z = 0.0;
+
+        pick_surface_cloud_ptr->points[1].x = -0.5f*box_length;
+        pick_surface_cloud_ptr->points[1].y = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[1].z = 0;
+
+        pick_surface_cloud_ptr->points[2].x = -0.5f*box_length;
+        pick_surface_cloud_ptr->points[2].y = -0.5f*box_width;
+        pick_surface_cloud_ptr->points[2].z = 0.0;
+
+        pick_surface_cloud_ptr->points[3].x = 0.5f*box_length;
+        pick_surface_cloud_ptr->points[3].y = -0.5f*box_width;
+        pick_surface_cloud_ptr->points[3].z = 0;
+
+        pick_surface_cloud_ptr->points[4].x = 0.5f*box_length;
+        pick_surface_cloud_ptr->points[4].y = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[4].z = 0;
+
+        Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+        transform.translation() << 55.0, -6.0, 0.0;
+        transform.rotate(Eigen::Quaternionf(0.7680537, 0.0, 0.0, -0.6403854));
+
+        pcl::transformPointCloud(*pick_surface_cloud_ptr,*pick_surface_cloud_ptr, transform);
+        prism.setInputPlanarHull(pick_surface_cloud_ptr);
+        prism.setHeightLimits(-box_height, box_height);
+        prism.segment(*pt_inliers);
+
+        extract_ind.setInputCloud(cloud_ptr);
+        extract_ind.setIndices(pt_inliers);
+        extract_ind.filter(*cloud_ptr);
     }
 
     /**

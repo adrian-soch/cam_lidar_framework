@@ -39,10 +39,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
     }
 
-    
-    // stransform.transform.rotation.y = 0.0998334;
-    // stransform.transform.rotation.w = 0.9950042;
-    // stransform.transform.translation.z = 12;
 
     sensor_msgs::msg::PointCloud2 transformed_cloud;
     pcl_ros::transformPointCloud(world_frame, stransform, *recent_cloud, transformed_cloud);
@@ -68,14 +64,18 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * CROPBOX
     * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr crop_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*cloud_ptr));
-    cloud_ops.crop_box_filter(crop_cloud_ptr, x_filter_min, y_filter_min, z_filter_min,
-        x_filter_max, y_filter_max, z_filter_max, false);
+    // cloud_ops.crop_box_filter(crop_cloud_ptr, x_filter_min, y_filter_min, z_filter_min,
+    //     x_filter_max, y_filter_max, z_filter_max, false);
+
+    // Crop just the road using a prism
+    // Box values and transform are current hard coded
+    cloud_ops.prism_segmentation(crop_cloud_ptr);
 
     /* ========================================
     * STATISTICAL OUTLIER REMOVAL
     * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr stats_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*crop_cloud_ptr));
-    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 100, 0.2);
+    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 80, 0.2);
     
     /* ========================================
     * PLANE SEGEMENTATION
@@ -137,8 +137,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         // Init and fill detection_array
         vision_msgs::msg::Detection3D detection;
         vision_msgs::msg::BoundingBox3D bbox = getOrientedBoudingBox(*cloud_cluster);
-
-        // vision_msgs::msg::BoundingBox3D bb2 = getOrientedBoudingBox2(*cloud_cluster);
         
         // Basic Size based classifier
         std::string id = simpleClassifier(bbox);
@@ -234,37 +232,6 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
 
     return bbox;
 }
-
-// template <typename PointT>
-// vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox2(const pcl::PointCloud<PointT> &cloud_cluster)
-// {  
-//     pcl::MomentOfInertiaEstimation<PointT> feature_extractor;
-//     feature_extractor.setInputCloud(cloud_cluster);
-//     feature_extractor.compute();
-
-//     PointT min_point_OBB, max_point_OBB, position_OBB;
-//     Eigen::Matrix3f rotational_matrix_OBB;
-//     feature_extractor.getOBB(min_point_OBB, max_point_OBB, position_OBB, rotational_matrix_OBB);
-
-//     Eigen::Quaternionf quat(rotational_matrix_OBB);
-
-//     PointT size;
-//     size.getArray3fMap() = max_point_OBB.getArray3fMap() - min_point_OBB.getArray3fMap();
-
-//     vision_msgs::msg::BoundingBox3D bbox;
-//     bbox.center.position.x = position_OBB.x;
-//     bbox.center.position.y = position_OBB.y;
-//     bbox.center.position.z = position_OBB.z;
-//     bbox.center.orientation.x = quat.x();
-//     bbox.center.orientation.y = quat.y();
-//     bbox.center.orientation.z = quat.z();
-//     bbox.center.orientation.w = quat.w();
-//     bbox.size.x = size.x;
-//     bbox.size.y = size.y;
-//     bbox.size.z = size.z;
-
-//     return bbox;
-// }
 
 
 
@@ -367,6 +334,9 @@ void LidarProcessing::publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg
 
         marker.pose = c.bbox.center; // Sets position and orientation
         marker.scale = c.bbox.size;  // Set w,l,h
+
+        //Set lifetime so they dont clutter the screen
+        marker.lifetime = rclcpp::Duration::from_seconds(0.1);
         
         std_msgs::msg::ColorRGBA rgba;
         getBboxColorRGBA(c.id, &rgba); 
