@@ -64,9 +64,15 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * CROPBOX
     * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr crop_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*cloud_ptr));
+
+    /** @todo load params from calib file
+    */
+    Eigen::Affine3f box_transform = Eigen::Affine3f::Identity();
+    box_transform.translation() << 55.0, -6.0, 0.0;
+    box_transform.rotate(Eigen::Quaternionf(0.7680537, 0.0, 0.0, -0.6403854));
+
     // Crop just the road using a prism
-    // Box values and transform are current hard coded
-    cloud_ops.prism_segmentation(crop_cloud_ptr);
+    cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, 17.0, 80.0, 5.5);
 
     /* ========================================
     * STATISTICAL OUTLIER REMOVAL

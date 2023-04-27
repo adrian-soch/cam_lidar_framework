@@ -83,7 +83,16 @@ public:
         crop.filter(*cloud_ptr);
     }
 
-    void prism_segmentation(PointCloudPtr cloud_ptr) {
+    /**
+     * @brief Crop everything outside of the provided rectangular prism
+     * 
+     * @param cloud_ptr 
+     * @param transform 
+     * @param box_width float
+     * @param box_length float
+     * @param box_height float
+     */
+    void prism_segmentation(PointCloudPtr cloud_ptr, Eigen::Affine3f &transform, float box_width, float box_length, float box_height) {
 
         PointCloudPtr pick_surface_cloud_ptr(new PointCloud());
         pcl::PointIndices::Ptr pt_inliers (new pcl::PointIndices());
@@ -92,54 +101,30 @@ public:
         pcl::ExtractPolygonalPrismData<PointT> prism;
         prism.setInputCloud(cloud_ptr);
 
-        //     "position": {
-        // "x": 55.531973409981155,
-        // "y": -6.0932405550507704,
-        // "z": 3.94961578162149
-        // },
-        // "rotation": {
-        //     "x": 0,
-        //     "y": 0,
-        //     "z": -1.398410635281484
-        // },
-        // "dimensions": {
-        //     "x": 16.84218043629091,
-        //     "y": 79.6080431207005,
-        //     "z": 7.030711258125345
-        // }
-
-        // create prism surface
-        double box_length = 17;
-        double box_width = 80;
-        double box_height = 7.0;
-
         pick_surface_cloud_ptr->width = 5;
         pick_surface_cloud_ptr->height = 1;
         pick_surface_cloud_ptr->points.resize(5);
 
-        pick_surface_cloud_ptr->points[0].x = 0.5f*box_length;
-        pick_surface_cloud_ptr->points[0].y = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[0].x = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[0].y = 0.5f*box_length;
         pick_surface_cloud_ptr->points[0].z = 0.0;
 
-        pick_surface_cloud_ptr->points[1].x = -0.5f*box_length;
-        pick_surface_cloud_ptr->points[1].y = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[1].x = -0.5f*box_width;
+        pick_surface_cloud_ptr->points[1].y = 0.5f*box_length;
         pick_surface_cloud_ptr->points[1].z = 0;
 
-        pick_surface_cloud_ptr->points[2].x = -0.5f*box_length;
-        pick_surface_cloud_ptr->points[2].y = -0.5f*box_width;
+        pick_surface_cloud_ptr->points[2].x = -0.5f*box_width;
+        pick_surface_cloud_ptr->points[2].y = -0.5f*box_length;
         pick_surface_cloud_ptr->points[2].z = 0.0;
 
-        pick_surface_cloud_ptr->points[3].x = 0.5f*box_length;
-        pick_surface_cloud_ptr->points[3].y = -0.5f*box_width;
+        pick_surface_cloud_ptr->points[3].x = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[3].y = -0.5f*box_length;
         pick_surface_cloud_ptr->points[3].z = 0;
 
-        pick_surface_cloud_ptr->points[4].x = 0.5f*box_length;
-        pick_surface_cloud_ptr->points[4].y = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[4].x = 0.5f*box_width;
+        pick_surface_cloud_ptr->points[4].y = 0.5f*box_length;
         pick_surface_cloud_ptr->points[4].z = 0;
 
-        Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-        transform.translation() << 55.0, -6.0, 0.0;
-        transform.rotate(Eigen::Quaternionf(0.7680537, 0.0, 0.0, -0.6403854));
 
         pcl::transformPointCloud(*pick_surface_cloud_ptr,*pick_surface_cloud_ptr, transform);
         prism.setInputPlanarHull(pick_surface_cloud_ptr);
