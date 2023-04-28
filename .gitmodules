@@ -7,6 +7,3 @@
 [submodule "fusion_engine/fusion_engine/camera_processing/yolov7"]
 	path = fusion_engine/fusion_engine/camera_processing/yolov7
 	url = https://github.com/WongKinYiu/yolov7.git
-[submodule "obj_tracker/obj_tracker/--force"]
-	path = obj_tracker/obj_tracker/--force
-	url = https://github.com/adrian-soch/sort.git
