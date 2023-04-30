@@ -2,10 +2,10 @@ from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess
 from launch.substitutions import PathJoinSubstitution
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 from launch_ros.substitutions import FindPackageShare
-
-# from ament_index_python.packages import get_package_share_directory
 
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags'
 
@@ -36,35 +36,12 @@ def generate_launch_description():
             output='screen',
         )
 
-    perception_node = Node(
-        package='lidar_pipeline',
-        executable='perception_node',
-        name='perception_node',
-        # prefix='valgrind --leak-check=yes ',
-        output='screen',
-        parameters=[
-            {"cloud_topic": "/points"},
-            {"world_frame": "map"},
-            {"camera_frame": "laser_data_frame"},
-            {"voxel_leaf_size": 0.25}, # All in meters
-            {"x_filter_min": 1.0},
-            {"x_filter_max": 80.0},
-            {"y_filter_min": -16.0},
-            {"y_filter_max": 5.0},
-            {"z_filter_min": -10.0},
-            {"z_filter_max": 15.0},
-            # {"x_filter_min": 0.5},
-            # {"x_filter_max": 120.0},
-            # {"y_filter_min": -18.0},
-            # {"y_filter_max": 20.0},
-            # {"z_filter_min": -10.0},
-            # {"z_filter_max": 15.0},
-            {"plane_max_iterations": 120},
-            {"plane_distance_threshold": 0.4},
-            {"cluster_tolerance": 1.5},
-            {"cluster_min_size": 3},
-            {"cluster_max_size": 2000}
-        ]
+    perception_node = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution(
+                [FindPackageShare("lidar_pipeline"), "launch",
+                    "processing_and_transform_launch.py"])]
+        )
     )
 
     rosbag_play = ExecuteProcess(

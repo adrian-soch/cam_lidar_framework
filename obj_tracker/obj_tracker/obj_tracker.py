@@ -39,7 +39,7 @@ class ObjectTracker(Node):
         self.publisher_ = self.create_publisher(MarkerArray, 'lidar_proc/track_markers', 2)
 
         #create instance of SORT
-        self.tracker = sort.Sort()
+        self.tracker = sort.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
         
 
     def callback(self, msg):
