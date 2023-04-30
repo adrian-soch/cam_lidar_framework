@@ -5,6 +5,11 @@
 │   ├── include
 │   │   └── cam2image
 │   └── src
+├── data_tools
+│   ├── include
+│   │   └── data_tools
+│   ├── scripts
+│   └── src
 ├── Docs
 ├── fusion_engine
 │   ├── config
@@ -15,19 +20,20 @@
 │   ├── launch
 │   ├── resource
 │   └── test
-├── ros2_numpy
-│   ├── ros2_numpy
+├── lidar_pipeline
+│   ├── configs
+│   ├── include
+│   │   └── lidar_pipeline
+│   ├── launch
+│   └── src
+├── obj_tracker
+│   ├── obj_tracker
+│   │   └── sort
+│   ├── resource
 │   └── test
-└── ros2_ouster_drivers
-    ├── ouster_msgs
-    │   ├── msg
-    │   └── srv
-    └── ros2_ouster
-        ├── design
-        ├── include
-        ├── launch
-        ├── params
-        └── src
+└── ros2_numpy
+    ├── ros2_numpy
+    └── test
 
 ```
 <!---
@@ -41,7 +47,11 @@ tree -d -L 3 -I __pycache__
 
 > `ros2_numpy`: Fork of repo with tools for converting msgs to numpy
 
-> `lidar_pipeline`: LiDAR Object Detection and Tracking Module 
+> `lidar_pipeline`: LiDAR Object Detection Module 
+
+> `obj_tracker`: LiDAR Object Tracking Module 
+
+> `data_tools`: Tools for converting and processing data 
 
 # Install
 
@@ -99,6 +109,7 @@ colcon build
 
 ### Colcon build fails?
 - Check that the libraries you import are in your `CMakeLists.txt` (C++) or `setup.py` (Python) files.
+- Certain warning disappera if you build a 2nd time.
 
 ### Known issues
 
