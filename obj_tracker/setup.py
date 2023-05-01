@@ -17,7 +17,7 @@ setup(
     zip_safe=True,
     maintainer='adrian',
     maintainer_email='sochania@mcmaster.ca',
-    description='TODO: 2D Object Tracking',
+    description='2D Object Tracking',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
