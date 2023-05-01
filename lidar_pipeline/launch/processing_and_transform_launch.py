@@ -21,15 +21,6 @@ def generate_launch_description():
             arguments = ['0', '0', '0', '3.1416', '0', '0', 'map', 'laser_sensor_frame']
         )
 
-    # s_transform2 = Node(
-    #         package='tf2_ros',
-    #         executable='static_transform_publisher',
-
-    #         #params from visual inspection
-    #         # To make the road paralell with the XY plane/rviz2 grid
-    #         arguments = ['0', '0', '0', '3.1416', '0', '0', 'laser_sensor_frame', 'laser_data_frame']
-    #     )
-
     perception_node = Node(
         package='lidar_pipeline',
         executable='perception_node',
@@ -40,7 +31,7 @@ def generate_launch_description():
             {"cloud_topic": "/points"},
             {"world_frame": "map"},
             {"camera_frame": "laser_data_frame"},
-            {"voxel_leaf_size": 0.25}, # All in meters
+            {"voxel_leaf_size": 0.2}, # All in meters
             {"x_filter_min": 1.0},
             {"x_filter_max": 120.0},
             {"y_filter_min": -25.0},
@@ -48,8 +39,8 @@ def generate_launch_description():
             {"z_filter_min": -15.0},
             {"z_filter_max": 15.0},
             {"plane_max_iterations": 120},
-            {"plane_distance_threshold": 0.5},
-            {"cluster_tolerance": 0.95},
+            {"plane_distance_threshold": 0.35},
+            {"cluster_tolerance": 1.35},
             {"cluster_min_size": 2},
             {"cluster_max_size": 2000}
         ]
