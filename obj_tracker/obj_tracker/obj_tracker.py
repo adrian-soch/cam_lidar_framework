@@ -20,8 +20,9 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
-from vision_msgs.msg import Detection3DArray
-from visualization_msgs.msg import MarkerArray, Marker
+from vision_msgs.msg import ObjectHypothesisWithPose
+from visualization_msgs.msg import Marker, MarkerArray
+from vision_msgs.msg import Detection3D, Detection3DArray
 
 WORLD_FRAME = 'map'
 
@@ -36,7 +37,8 @@ class ObjectTracker(Node):
             5)
         self.subscription  # prevent unused variable warning
 
-        self.publisher_ = self.create_publisher(MarkerArray, 'lidar_proc/track_markers', 2)
+        self.track_publisher_ = self.create_publisher(Detection3DArray, 'lidar_proc/tracks', 2)
+        self.marker_publisher_ = self.create_publisher(MarkerArray, 'lidar_proc/track_markers', 2)
 
         #create instance of SORT
         self.tracker = sort.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
@@ -54,18 +56,52 @@ class ObjectTracker(Node):
         detections = detection3DArray2Numpy(msg.detections)
         
         # update SORT with detections
-        # track_bbs_ids is a np array where each row contains a valid bounding box and track_id (last column)
+        # track_bbs_ids is a np array where each row contains a valid bounding box and track_id
+        # [x1,y1,x2,y2,id]
         track_ids = self.tracker.update(detections)
+
+        # Create and Publish 3D Detections with Track IDs
+        track_msg_arr = createDetection3DArr(track_ids)
+        self.track_publisher_.publish(track_msg_arr)
 
         # Create and publish Text Marker Array
         m_arr = track2MarkerArray(track_ids, msg.header.stamp)
-        self.publisher_.publish(m_arr)
+        self.marker_publisher_.publish(m_arr)
 
         # with np.printoptions(precision=3, suppress=True):
         #     print(track_ids)
 
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(len(m_arr.markers), (t2-t1)*1000))
+
+def createDetection3DArr(tracks) -> Detection3DArray:
+    """Convert tracker output to message for publishing
+
+    Args:
+        tracks (ndarray): Array of the form [[x1,y1,x2,y2,id], [x1,y1,x2,y2,id], ...]
+
+    Returns:
+        Detection3DArray:
+    """
+    out = Detection3DArray()
+
+    for trk in tracks:
+        det = Detection3D()
+        result = ObjectHypothesisWithPose()
+        result.hypothesis.score = trk[4]
+
+        det.results.append(result)
+
+        x_len = trk[2] - trk[0]
+        y_len = trk[3] - trk[1]
+
+        det.bbox.center.position.x = x_len/2.0 + trk[0]
+        det.bbox.center.position.y = y_len/2.0 + trk[1]
+        det.bbox.size.x = x_len
+        det.bbox.size.y = y_len
+
+        out.detections.append(det)
+    return out
 
 
 def detection3DArray2Numpy(detection_list):
