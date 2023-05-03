@@ -112,7 +112,7 @@ public:
         cluster_min_size = cluster_min_size_param.as_int();
         cluster_max_size = cluster_max_size_param.as_int();
 
-        dbscan.set_params(0.5, 10);
+        dbscan.set_params(1.0, 2);
 
         /*
          * SET UP SUBSCRIBER

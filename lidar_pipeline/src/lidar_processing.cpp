@@ -93,13 +93,17 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * ========================================*/
 
     std::vector<pcl::PointIndices> cluster_indices;
-
+    
     // Uncomment to use vanilla euclidean clustering
     // cloud_ops.euclidean_clustering(plane_ptr, cluster_indices,
     //     cluster_tol, cluster_min_size, cluster_max_size);
 
     // Uncomment to use DBSCAN clustering
-    cluster_indices = dbscan.run(plane_ptr);
+    // Must also create dbscan object in .hpp file
+    // cluster_indices = dbscan.run(plane_ptr);
+
+    //Uncomment to use OPTICS algorithm
+    cloud_ops.optics_clustering(plane_ptr, cluster_indices, 2, 1.0);
 
     // Uncomment to use conditional euclidean clustering
     // cloud_ops.conditional_euclidean_clustering(plane_ptr, cluster_indices);
