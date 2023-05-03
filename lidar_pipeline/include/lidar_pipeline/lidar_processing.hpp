@@ -13,6 +13,7 @@
 #define LIDAR_PROCESSING_HPP_
 
 #include "lidar_pipeline/point_cloud_utils.hpp"
+#include "lidar_pipeline/pcl_dbscan.hpp"
 
 #include <iostream>
 
@@ -111,6 +112,8 @@ public:
         cluster_min_size = cluster_min_size_param.as_int();
         cluster_max_size = cluster_max_size_param.as_int();
 
+        dbscan.set_params(0.5, 10);
+
         /*
          * SET UP SUBSCRIBER
          */
@@ -171,6 +174,7 @@ private:
 
     // Create cloud operation object
     Operations<pcl::PointXYZI> cloud_ops;
+    DBSCAN<pcl::PointXYZI> dbscan;
 
     /*
      * TF
