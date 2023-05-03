@@ -7,9 +7,7 @@
  * @todo
  *      - Load lidar2ground transform from file
  *      - SVM classifier (train on stanford data, test with real data)
- *      - Test on different clouds (check for runtime issues)
- *      - time the clustering methods
- *      - visualize all clusters in diff colours via `region growing segmentation` tutorial
+ *      - Test on different data (check for runtime issues)
  *      - Use IPC by running this node in a container with the Ouster Node ?
  * @copyright Copyright (c) 2023
  * 
@@ -95,10 +93,17 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * ========================================*/
 
     std::vector<pcl::PointIndices> cluster_indices;
-
+    
     // Uncomment to use vanilla euclidean clustering
-    cloud_ops.euclidean_clustering(plane_ptr, cluster_indices,
-        cluster_tol, cluster_min_size, cluster_max_size);
+    // cloud_ops.euclidean_clustering(plane_ptr, cluster_indices,
+    //     cluster_tol, cluster_min_size, cluster_max_size);
+
+    // Uncomment to use DBSCAN clustering
+    // Must also create dbscan object in .hpp file
+    // cluster_indices = dbscan.run(plane_ptr);
+
+    //Uncomment to use OPTICS algorithm
+    cloud_ops.optics_clustering(plane_ptr, cluster_indices, 2, 1.0);
 
     // Uncomment to use conditional euclidean clustering
     // cloud_ops.conditional_euclidean_clustering(plane_ptr, cluster_indices);

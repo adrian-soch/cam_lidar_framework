@@ -30,6 +30,8 @@
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/common/transforms.h>
 
+#include "optics.hpp"
+
 template<typename PointT>
 class Operations {
 public:
@@ -366,6 +368,17 @@ public:
         cec.setMaxClusterSize (cloud_with_normals->size () / 5);
         cec.segment (cluster_indices);
         cec.getRemovedClusters (small_clusters, large_clusters);
+    }
+
+    void optics_clustering(PointCloudPtr cloud_ptr, std::vector<pcl::PointIndices> &cluster_indices, int min_pts, float reachability_thresh) {
+        std::vector<pcl::PointIndicesPtr> indices_ptr_vector; // your input vector
+        Optics::optics<PointT>(cloud_ptr, min_pts, reachability_thresh, indices_ptr_vector);
+
+        for(auto &indices_ptr : indices_ptr_vector) // loop over each element
+        {
+            pcl::PointIndices indices = std::move(*indices_ptr); // access and move the value pointed by the shared pointer
+            cluster_indices.push_back(indices); // add the value to the output vector
+        }
     }
 
 };
