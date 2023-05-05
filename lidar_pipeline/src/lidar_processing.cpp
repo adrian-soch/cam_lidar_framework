@@ -93,17 +93,13 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * ========================================*/
 
     std::vector<pcl::PointIndices> cluster_indices;
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr dense_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*plane_ptr));
+    cloud_ops.warp_density(dense_cloud_ptr);
     
     // Uncomment to use vanilla euclidean clustering
-    // cloud_ops.euclidean_clustering(plane_ptr, cluster_indices,
-    //     cluster_tol, cluster_min_size, cluster_max_size);
-
-    // Uncomment to use DBSCAN clustering
-    // Must also create dbscan object in .hpp file
-    // cluster_indices = dbscan.run(plane_ptr);
-
-    //Uncomment to use OPTICS algorithm
-    cloud_ops.optics_clustering(plane_ptr, cluster_indices, 2, 1.0);
+    cloud_ops.euclidean_clustering(dense_cloud_ptr, cluster_indices,
+        cluster_tol, cluster_min_size, cluster_max_size);
 
     // Uncomment to use conditional euclidean clustering
     // cloud_ops.conditional_euclidean_clustering(plane_ptr, cluster_indices);
@@ -111,6 +107,13 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     // Uncomment to use region growing for clustering
     // cloud_ops.region_growing_clustering(stats_cloud_ptr, cluster_min_size, cluster_max_size,
     //     10, 3.0, 10.0, cluster_indices);
+ 
+    // Uncomment to use DBSCAN clustering
+    // Must also create dbscan object in .hpp file
+    // cluster_indices = dbscan.run(plane_ptr);
+
+    //Uncomment to use OPTICS algorithm
+    // cloud_ops.optics_clustering(dense_cloud_ptr, cluster_indices, 2, 0.6);
 
     /* ========================================
     * Compute Bounding Boxes
@@ -165,7 +168,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     this->publishPointCloud(voxel_grid_pub_, *cloud_ptr);
     this->publishPointCloud(crop_pub_, *crop_cloud_ptr);
     this->publishPointCloud(plane_pub_, *plane_ptr);
-    this->publishPointCloud(stat_pub_, *stats_cloud_ptr);
+    this->publishPointCloud(stat_pub_, *dense_cloud_ptr);
 
     this->publish3DBBox(marker_pub_, line_list);
     this->publish3DBBoxOBB(marker_array_pub_, detection_array);

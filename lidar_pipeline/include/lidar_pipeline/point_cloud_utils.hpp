@@ -381,6 +381,24 @@ public:
         }
     }
 
+    void warp_density(PointCloudPtr cloud_ptr, float max_range=120.0) {
+        for(size_t idx = 0; idx < cloud_ptr->points.size(); ++idx)
+        {
+            float x = cloud_ptr->points[idx].x;
+            float y = cloud_ptr->points[idx].y;
+            // float z = cloud_ptr->points[idx].z;
+
+            float max_detection_range = max_range-30.0;
+
+            float range = sqrt(pow(x, 2.0)+pow(y, 2.0));
+            float value = std::clamp(range/max_detection_range, 0.0f, 1.0f);
+            float alpha = tan(value*1.56999)/tan(1.5699) * max_range;
+
+            cloud_ptr->points[idx].x = (range - alpha)*cos(atan2f(y,x));
+            cloud_ptr->points[idx].y = (range - alpha)*sin(atan2f(y,x));
+        }
+    }
+
 };
 
 #endif
