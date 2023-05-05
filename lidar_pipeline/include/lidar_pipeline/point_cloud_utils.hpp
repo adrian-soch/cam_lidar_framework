@@ -381,6 +381,22 @@ public:
         }
     }
 
+    void warp_density(PointCloudPtr cloud_ptr) {
+        for(size_t idx = 0; idx < cloud_ptr->points.size(); ++idx)
+        {
+            float x = cloud_ptr->points[idx].x;
+            float y = cloud_ptr->points[idx].y;
+            // float z = cloud_ptr->points[idx].z;
+
+            float range = sqrt(pow(x, 2.0)+pow(y, 2.0));
+            float alpha = range*range/20000 * 12;
+
+            cloud_ptr->points[idx].x = (range - alpha)*cos(atan2f(y,x));
+            cloud_ptr->points[idx].y = (range - alpha)*sin(atan2f(y,x));
+
+        }
+    }
+
 };
 
 #endif

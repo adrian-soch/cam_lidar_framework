@@ -403,7 +403,7 @@ bool computeReachabilityDistances(const typename pcl::PointCloud<PointT>::Ptr& s
     return false;
   }
 
-  for (auto pointIndex{0}; pointIndex < sourceSize; ++pointIndex) {
+  for (size_t pointIndex{0}; pointIndex < sourceSize; ++pointIndex) {
     if (processed[pointIndex]) {
       continue;
     }
