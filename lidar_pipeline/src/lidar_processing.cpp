@@ -101,20 +101,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     cloud_ops.euclidean_clustering(dense_cloud_ptr, cluster_indices,
         cluster_tol, cluster_min_size, cluster_max_size);
 
-    // Uncomment to use conditional euclidean clustering
-    // cloud_ops.conditional_euclidean_clustering(plane_ptr, cluster_indices);
-
-    // Uncomment to use region growing for clustering
-    // cloud_ops.region_growing_clustering(stats_cloud_ptr, cluster_min_size, cluster_max_size,
-    //     10, 3.0, 10.0, cluster_indices);
- 
-    // Uncomment to use DBSCAN clustering
-    // Must also create dbscan object in .hpp file
-    // cluster_indices = dbscan.run(plane_ptr);
-
-    //Uncomment to use OPTICS algorithm
-    // cloud_ops.optics_clustering(dense_cloud_ptr, cluster_indices, 2, 0.6);
-
     /* ========================================
     * Compute Bounding Boxes
     * ========================================*/
