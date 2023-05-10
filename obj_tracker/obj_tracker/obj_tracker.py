@@ -85,7 +85,7 @@ def createDetection3DArr(tracks, header) -> Detection3DArray:
     """
     out = Detection3DArray()
     out.header = header
-    
+
     for trk in tracks:
         det = Detection3D()
         result = ObjectHypothesisWithPose()
@@ -115,6 +115,9 @@ def detection3DArray2Numpy(detection_list):
     Returns:
         numpy_arr: Numpy float array of [x1,y1,x2,y2,score].
     """
+    if len(detection_list) <= 0:
+        return np.empty((0, 5))
+
     # Pre-allocate numpy array
     out_arr = np.empty(shape=(len(detection_list),5), dtype=float)
 
@@ -143,6 +146,10 @@ def detection3DArray2Numpy2(detection_list):
         numpy_arr: Numpy float array of [x,y,z,h/l,h/w]. Position of bounding box x,y,z 
             and ratio of height/length, height/width of the bounding box
     """
+
+    if len(detection_list) <= 0:
+        return np.empty((0, 5))
+
     # Pre-allocate numpy array
     out_arr = np.empty(shape=(len(detection_list),5), dtype=float)
 
