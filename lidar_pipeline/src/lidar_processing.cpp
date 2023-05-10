@@ -20,6 +20,7 @@ namespace lidar_pipeline
 
 void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr recent_cloud)
 {
+    stamp_ = recent_cloud->header.stamp;
     // RCLCPP_INFO(this->get_logger(), "Cloud service called; getting a PointCloud2 on topic");
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -294,7 +295,7 @@ void LidarProcessing::publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::Poin
     sensor_msgs::msg::PointCloud2::SharedPtr pc2_cloud(new sensor_msgs::msg::PointCloud2);
     pcl::toROSMsg(point_cloud, *pc2_cloud);
     pc2_cloud->header.frame_id = world_frame;
-    pc2_cloud->header.stamp = this->get_clock()->now();
+    pc2_cloud->header.stamp = stamp_;
     publisher->publish(*pc2_cloud);
 }
 
@@ -303,7 +304,7 @@ void LidarProcessing::publish3DBBox(rclcpp::Publisher<visualization_msgs::msg::M
 {
     visualization_msgs::msg::Marker::SharedPtr detection_array(new visualization_msgs::msg::Marker);
     detection_array->header.frame_id = world_frame;
-    detection_array->header.stamp = this->get_clock()->now();
+    detection_array->header.stamp = stamp_;
     detection_array->type = visualization_msgs::msg::Marker::LINE_LIST;
     detection_array->action = visualization_msgs::msg::Marker::ADD;
     detection_array->points = line_list;
@@ -326,7 +327,7 @@ void LidarProcessing::publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg
         visualization_msgs::msg::Marker marker;
         marker.id = idx++;
         marker.header.frame_id = world_frame;
-        marker.header.stamp = this->get_clock()->now();
+        marker.header.stamp = stamp_;
         marker.type = visualization_msgs::msg::Marker::CUBE;
         marker.action = visualization_msgs::msg::Marker::ADD;
 
@@ -352,7 +353,7 @@ void LidarProcessing::publishDetections(rclcpp::Publisher<vision_msgs::msg::Dete
     vision_msgs::msg::Detection3DArray det_array;
     det_array.detections = detections;
     det_array.header.frame_id = world_frame;
-    det_array.header.stamp = this->get_clock()->now();
+    det_array.header.stamp = stamp_;
     
     publisher->publish(det_array);
 }
