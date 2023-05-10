@@ -49,8 +49,9 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     pcl::fromROSMsg(transformed_cloud, cloud);
 
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    transform.translation() << 0.0, 0.0, 12.0;
-    transform.rotate(Eigen::Quaternionf( 0.9950042, 0.0, 0.099833, 0.0));
+    transform.translation() << lidar2world_translation[0], lidar2world_translation[1], lidar2world_translation[2];
+    transform.rotate(Eigen::Quaternionf(lidar2world_quat[0],lidar2world_quat[1],
+                                        lidar2world_quat[2],lidar2world_quat[3]));
     pcl::transformPointCloud (cloud, cloud, transform);
 
     /* ========================================
@@ -67,8 +68,9 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     /** @todo load params from calib file
     */
     Eigen::Affine3f box_transform = Eigen::Affine3f::Identity();
-    box_transform.translation() << 55.0, -6.0, 0.0;
-    box_transform.rotate(Eigen::Quaternionf(0.7680537, 0.0, 0.0, -0.6403854));
+    box_transform.translation() << crop_box_translation[0], crop_box_translation[1], crop_box_translation[2];
+    box_transform.rotate(Eigen::Quaternionf(crop_box_quat[0],crop_box_quat[1],
+                                            crop_box_quat[2],crop_box_quat[3]));
 
     // Crop just the road using a prism
     cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, 17.0, 80.0, 5.5);
