@@ -414,7 +414,7 @@ std::vector<geometry_msgs::msg::Point> LidarProcessing::minMax2lines(CubePoints 
 void LidarProcessing::publishDistanceMarkers(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher) {
     visualization_msgs::msg::MarkerArray ranges;
     int idx = 0;
-    std::vector<float> range_values {25,50,75};
+    std::vector<float> range_values {25,50,75,100};
     for(auto r : range_values) {
         visualization_msgs::msg::Marker marker;
         marker.id = idx++;
@@ -423,17 +423,14 @@ void LidarProcessing::publishDistanceMarkers(rclcpp::Publisher<visualization_msg
         marker.type = visualization_msgs::msg::Marker::CYLINDER;
         marker.action = visualization_msgs::msg::Marker::ADD;
 
-        marker.pose.position.z = idx*-0.01;
+        marker.pose.position.z = idx*-0.015;
 
         marker.scale.x = r*2.0;
         marker.scale.y = r*2.0;
         marker.scale.z = 0.001;
-
-        //Set lifetime so they dont clutter the screen
-        // marker.lifetime = rclcpp::Duration::from_seconds(0.1);
-        
+      
         marker.color.b = r/10.0;
-        marker.color.a = 0.5;   // Set alpha so we can see underlying points
+        marker.color.a = 0.25;   // Set alpha so we can see underlying points
 
         ranges.markers.push_back(marker);
     }

@@ -48,9 +48,7 @@ class LidarProcessing : public rclcpp::Node
 {
 public:
     LidarProcessing()
-        : Node("perception_node", rclcpp::NodeOptions()
-                                      .allow_undeclared_parameters(true)
-                                      .automatically_declare_parameters_from_overrides(true))
+        : Node("perception_node", rclcpp::NodeOptions())
     {
         /*
          * SET UP PUBLISHERS
@@ -84,12 +82,6 @@ public:
         this->get_parameter_or("world_frame", world_frame_param, rclcpp::Parameter("", "laser_data_frame"));
         this->get_parameter_or("camera_frame", camera_frame_param, rclcpp::Parameter("", "laser_data_frame"));
         this->get_parameter_or("voxel_leaf_size", voxel_leaf_size_param, rclcpp::Parameter("", 0.25));
-        this->get_parameter_or("x_filter_min", x_filter_min_param, rclcpp::Parameter("", 1.0));
-        this->get_parameter_or("x_filter_max", x_filter_max_param, rclcpp::Parameter("", 120.0));
-        this->get_parameter_or("y_filter_min", y_filter_min_param, rclcpp::Parameter("", -25.0));
-        this->get_parameter_or("y_filter_max", y_filter_max_param, rclcpp::Parameter("", 10.0));
-        this->get_parameter_or("z_filter_min", z_filter_min_param, rclcpp::Parameter("", -1.0));
-        this->get_parameter_or("z_filter_max", z_filter_max_param, rclcpp::Parameter("", 8.0));
         this->get_parameter_or("plane_max_iterations", plane_max_iter_param, rclcpp::Parameter("", 100));
         this->get_parameter_or("plane_distance_threshold", plane_dist_thresh_param, rclcpp::Parameter("", 0.4));
         this->get_parameter_or("cluster_tolerance", cluster_tol_param, rclcpp::Parameter("", 1.5));
@@ -100,12 +92,6 @@ public:
         world_frame = world_frame_param.as_string();
         camera_frame = camera_frame_param.as_string();
         voxel_leaf_size = float(voxel_leaf_size_param.as_double());
-        x_filter_min = x_filter_min_param.as_double();
-        x_filter_max = x_filter_max_param.as_double();
-        y_filter_min = y_filter_min_param.as_double();
-        y_filter_max = y_filter_max_param.as_double();
-        z_filter_min = z_filter_min_param.as_double();
-        z_filter_max = z_filter_max_param.as_double();
         plane_max_iter = plane_max_iter_param.as_int();
         plane_dist_thresh = plane_dist_thresh_param.as_double();
         cluster_tol = cluster_tol_param.as_double();
@@ -158,12 +144,6 @@ private:
     std::string world_frame;
     std::string camera_frame;
     float voxel_leaf_size;
-    float x_filter_min;
-    float x_filter_max;
-    float y_filter_min;
-    float y_filter_max;
-    float z_filter_min;
-    float z_filter_max;
     int plane_max_iter;
     float plane_dist_thresh;
     float cluster_tol;
