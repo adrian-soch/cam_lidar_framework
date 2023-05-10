@@ -5,7 +5,7 @@ It will publish the tracking results as marker array to be visualized in rviz
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
-from vision_msgs.msg import Detection3DArray, Detection3D
+from vision_msgs.msg import Detection3DArray
 from visualization_msgs.msg import Marker, MarkerArray
 
 import random
@@ -27,6 +27,8 @@ class DetectorNode(Node):
 
         self.get_logger().info('Starting Tracker BBox Visualization')
 
+        self.tracklet_idx = 0
+
     def detection_callback(self, msg):
         # Create a MarkerArray message
         track_bbox_array = MarkerArray()
@@ -37,7 +39,7 @@ class DetectorNode(Node):
         for detection in msg.detections:
 
             # Get track ID
-            trk_id = detection.results[0].score
+            trk_id = detection.results[0].hypothesis.score
 
             # Get a colour based on the track ID
             # set the seed value so the same colour is applied
@@ -69,11 +71,9 @@ class DetectorNode(Node):
             
             # Create a sphere marker for the track
             tracklet = Marker()
-
-            # TODO fix this id so we dont overwrite any markers
-            tracklet.id = idx
+            tracklet.id = self.tracklet_idx
             tracklet.header = msg.header
-            tracklet.type = Marker.sphere
+            tracklet.type = Marker.SPHERE
             tracklet.action = Marker.ADD
             tracklet.pose.position = pos
             tracklet.scale.x = 0.3
@@ -83,10 +83,11 @@ class DetectorNode(Node):
             tracklet.color.r = r
             tracklet.color.g = g
             tracklet.color.b = b
-            tracklet.lifetime = Duration(seconds=0.5).to_msg()
+            tracklet.lifetime = Duration(seconds=0.75).to_msg()
 
             # Add the marker to the array
             idx += 1
+            self.tracklet_idx = (self.tracklet_idx + 1) % 400000
             track_bbox_array.markers.append(marker)
             tracklet_array.markers.append(tracklet)
 
