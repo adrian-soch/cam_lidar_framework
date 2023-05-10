@@ -35,6 +35,13 @@ def generate_launch_description():
             name='lidar_obj_tracker',
             output='screen',
         )
+    
+    lidar_tracker_viz = Node(
+            package='obj_tracker',
+            executable='tracker_bbox_viz',
+            name='tracker_bbox_viz',
+            output='screen',
+        )
 
     perception_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -70,6 +77,7 @@ def generate_launch_description():
         lidar_tracker,
         perception_node,
         s_transform,
+        lidar_tracker_viz,
         rosbag_play,
         rviz_node
    ])
