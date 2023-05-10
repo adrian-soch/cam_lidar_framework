@@ -30,6 +30,7 @@
 #include <tf2/transform_datatypes.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <builtin_interfaces/msg/time.hpp>
 
 #include <pcl/features/moment_of_inertia_estimation.h>
 
@@ -168,6 +169,8 @@ private:
     float cluster_tol;
     int cluster_min_size;
     int cluster_max_size;
+
+    builtin_interfaces::msg::Time stamp_;
 
     // Create cloud operation object
     Operations<pcl::PointXYZI> cloud_ops;

@@ -23,7 +23,7 @@ setup(
     entry_points={
         'console_scripts': [
             'object_tracker = obj_tracker.obj_tracker:main',
-            'tracker_bbox_viz = obj_tracker.tracker_viz_node.py'
+            'tracker_bbox_viz = obj_tracker.tracker_viz_node:main'
         ],
     },
 )
