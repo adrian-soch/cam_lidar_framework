@@ -1,5 +1,10 @@
-from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch import LaunchDescription
+from launch.substitutions import PathJoinSubstitution
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
 
@@ -21,29 +26,12 @@ def generate_launch_description():
             arguments = ['0', '0', '0', '3.1416', '0', '0', 'map', 'laser_sensor_frame']
         )
 
-    perception_node = Node(
-        package='lidar_pipeline',
-        executable='perception_node',
-        name='perception_node',
-        # prefix='valgrind --leak-check=yes ',
-        output='screen',
-        parameters=[
-            {"cloud_topic": "/points"},
-            {"world_frame": "map"},
-            {"camera_frame": "laser_data_frame"},
-            {"voxel_leaf_size": 0.2}, # All in meters
-            {"x_filter_min": 1.0},
-            {"x_filter_max": 120.0},
-            {"y_filter_min": -25.0},
-            {"y_filter_max": 10.0},
-            {"z_filter_min": -15.0},
-            {"z_filter_max": 15.0},
-            {"plane_max_iterations": 120},
-            {"plane_distance_threshold": 0.35},
-            {"cluster_tolerance": 1.35},
-            {"cluster_min_size": 2},
-            {"cluster_max_size": 2000}
-        ]
+    perception_node = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution(
+                [FindPackageShare("lidar_pipeline"), "launch",
+                    "processing_node.launch.py"])]
+        )
     )
     
     # Items above will only be launched if they are present in this list

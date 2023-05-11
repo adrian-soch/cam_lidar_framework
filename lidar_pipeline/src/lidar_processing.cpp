@@ -49,8 +49,9 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     pcl::fromROSMsg(transformed_cloud, cloud);
 
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    transform.translation() << 0.0, 0.0, 12.0;
-    transform.rotate(Eigen::Quaternionf( 0.9950042, 0.0, 0.099833, 0.0));
+    transform.translation() << lidar2world_translation[0], lidar2world_translation[1], lidar2world_translation[2];
+    transform.rotate(Eigen::Quaternionf(lidar2world_quat[0],lidar2world_quat[1],
+                                        lidar2world_quat[2],lidar2world_quat[3]));
     pcl::transformPointCloud (cloud, cloud, transform);
 
     /* ========================================
@@ -67,8 +68,9 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     /** @todo load params from calib file
     */
     Eigen::Affine3f box_transform = Eigen::Affine3f::Identity();
-    box_transform.translation() << 55.0, -6.0, 0.0;
-    box_transform.rotate(Eigen::Quaternionf(0.7680537, 0.0, 0.0, -0.6403854));
+    box_transform.translation() << crop_box_translation[0], crop_box_translation[1], crop_box_translation[2];
+    box_transform.rotate(Eigen::Quaternionf(crop_box_quat[0],crop_box_quat[1],
+                                            crop_box_quat[2],crop_box_quat[3]));
 
     // Crop just the road using a prism
     cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, 17.0, 80.0, 5.5);
@@ -414,7 +416,7 @@ std::vector<geometry_msgs::msg::Point> LidarProcessing::minMax2lines(CubePoints 
 void LidarProcessing::publishDistanceMarkers(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher) {
     visualization_msgs::msg::MarkerArray ranges;
     int idx = 0;
-    std::vector<float> range_values {25,50,75};
+    std::vector<float> range_values {25,50,75,100};
     for(auto r : range_values) {
         visualization_msgs::msg::Marker marker;
         marker.id = idx++;
@@ -423,17 +425,14 @@ void LidarProcessing::publishDistanceMarkers(rclcpp::Publisher<visualization_msg
         marker.type = visualization_msgs::msg::Marker::CYLINDER;
         marker.action = visualization_msgs::msg::Marker::ADD;
 
-        marker.pose.position.z = idx*-0.01;
+        marker.pose.position.z = idx*-0.015;
 
         marker.scale.x = r*2.0;
         marker.scale.y = r*2.0;
         marker.scale.z = 0.001;
-
-        //Set lifetime so they dont clutter the screen
-        // marker.lifetime = rclcpp::Duration::from_seconds(0.1);
-        
+      
         marker.color.b = r/10.0;
-        marker.color.a = 0.5;   // Set alpha so we can see underlying points
+        marker.color.a = 0.25;   // Set alpha so we can see underlying points
 
         ranges.markers.push_back(marker);
     }

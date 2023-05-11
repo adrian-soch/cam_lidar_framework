@@ -48,9 +48,7 @@ class LidarProcessing : public rclcpp::Node
 {
 public:
     LidarProcessing()
-        : Node("perception_node", rclcpp::NodeOptions()
-                                      .allow_undeclared_parameters(true)
-                                      .automatically_declare_parameters_from_overrides(true))
+        : Node("perception_node", rclcpp::NodeOptions())
     {
         /*
          * SET UP PUBLISHERS
@@ -66,51 +64,43 @@ public:
         marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/obboxes", 1);
         range_marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/ranges", 1);
 
-        rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr range_marker_array_pub_;
-
         detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/detections", 1);
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
          */
-        rclcpp::Parameter cloud_topic_param, world_frame_param, camera_frame_param, voxel_leaf_size_param,
-            x_filter_min_param, x_filter_max_param, y_filter_min_param, y_filter_max_param, z_filter_min_param,
-            z_filter_max_param, plane_max_iter_param, plane_dist_thresh_param, cluster_tol_param,
-            cluster_min_size_param, cluster_max_size_param;
 
         RCLCPP_INFO(this->get_logger(), "Getting parameters");
 
-        this->get_parameter_or("cloud_topic", cloud_topic_param, rclcpp::Parameter("", "/points"));
-        this->get_parameter_or("world_frame", world_frame_param, rclcpp::Parameter("", "laser_data_frame"));
-        this->get_parameter_or("camera_frame", camera_frame_param, rclcpp::Parameter("", "laser_data_frame"));
-        this->get_parameter_or("voxel_leaf_size", voxel_leaf_size_param, rclcpp::Parameter("", 0.25));
-        this->get_parameter_or("x_filter_min", x_filter_min_param, rclcpp::Parameter("", 1.0));
-        this->get_parameter_or("x_filter_max", x_filter_max_param, rclcpp::Parameter("", 120.0));
-        this->get_parameter_or("y_filter_min", y_filter_min_param, rclcpp::Parameter("", -25.0));
-        this->get_parameter_or("y_filter_max", y_filter_max_param, rclcpp::Parameter("", 10.0));
-        this->get_parameter_or("z_filter_min", z_filter_min_param, rclcpp::Parameter("", -1.0));
-        this->get_parameter_or("z_filter_max", z_filter_max_param, rclcpp::Parameter("", 8.0));
-        this->get_parameter_or("plane_max_iterations", plane_max_iter_param, rclcpp::Parameter("", 100));
-        this->get_parameter_or("plane_distance_threshold", plane_dist_thresh_param, rclcpp::Parameter("", 0.4));
-        this->get_parameter_or("cluster_tolerance", cluster_tol_param, rclcpp::Parameter("", 1.5));
-        this->get_parameter_or("cluster_min_size", cluster_min_size_param, rclcpp::Parameter("", 3));
-        this->get_parameter_or("cluster_max_size", cluster_max_size_param, rclcpp::Parameter("", 1500));
+        // Declare parameters and default values
+        this->declare_parameter("cloud_topic", "/points");
+        this->declare_parameter("world_frame", "map");
+        this->declare_parameter("camera_frame", "laser_data_frame");
+        this->declare_parameter("voxel_leaf_size", 0.2);
+        this->declare_parameter("plane_max_iter", 120);
+        this->declare_parameter("plane_dist_thresh", 0.35);
+        this->declare_parameter("cluster_tol", 1.35);
+        this->declare_parameter("cluster_min_size", 2);
+        this->declare_parameter("cluster_max_size", 2000);
+        this->declare_parameter<std::vector<double>>("lidar2world_transform.translation", {0.0});
+        this->declare_parameter<std::vector<double>>("lidar2world_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
+        this->declare_parameter<std::vector<double>>("crop_box_transform.translation", {0.0});
+        this->declare_parameter<std::vector<double>>("crop_box_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
 
-        cloud_topic = cloud_topic_param.as_string();
-        world_frame = world_frame_param.as_string();
-        camera_frame = camera_frame_param.as_string();
-        voxel_leaf_size = float(voxel_leaf_size_param.as_double());
-        x_filter_min = x_filter_min_param.as_double();
-        x_filter_max = x_filter_max_param.as_double();
-        y_filter_min = y_filter_min_param.as_double();
-        y_filter_max = y_filter_max_param.as_double();
-        z_filter_min = z_filter_min_param.as_double();
-        z_filter_max = z_filter_max_param.as_double();
-        plane_max_iter = plane_max_iter_param.as_int();
-        plane_dist_thresh = plane_dist_thresh_param.as_double();
-        cluster_tol = cluster_tol_param.as_double();
-        cluster_min_size = cluster_min_size_param.as_int();
-        cluster_max_size = cluster_max_size_param.as_int();
+        // Get values from cmd line or YAML
+        this->get_parameter("cloud_topic", cloud_topic);
+        this->get_parameter("world_frame", world_frame);
+        this->get_parameter("camera_frame", camera_frame);
+        this->get_parameter("voxel_leaf_size", voxel_leaf_size);
+        this->get_parameter("plane_max_iter", plane_max_iter);
+        this->get_parameter("plane_dist_thresh", plane_dist_thresh);
+        this->get_parameter("cluster_tol", cluster_tol);
+        this->get_parameter("cluster_min_size", cluster_min_size);
+        this->get_parameter("cluster_max_size", cluster_max_size);
+        this->get_parameter("crop_box_transform.translation", crop_box_translation);
+        this->get_parameter("crop_box_transform.quaternion", crop_box_quat);
+        this->get_parameter("lidar2world_transform.translation", lidar2world_translation);
+        this->get_parameter("lidar2world_transform.quaternion", lidar2world_quat);
 
         /*
          * SET UP SUBSCRIBER
@@ -151,6 +141,7 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr range_marker_array_pub_;
 
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr detection_pub_;
+
     /*
      * Parameters
      */
@@ -158,17 +149,15 @@ private:
     std::string world_frame;
     std::string camera_frame;
     float voxel_leaf_size;
-    float x_filter_min;
-    float x_filter_max;
-    float y_filter_min;
-    float y_filter_max;
-    float z_filter_min;
-    float z_filter_max;
     int plane_max_iter;
     float plane_dist_thresh;
     float cluster_tol;
     int cluster_min_size;
     int cluster_max_size;
+    std::vector<double> lidar2world_translation;
+    std::vector<double> lidar2world_quat;
+    std::vector<double> crop_box_translation;
+    std::vector<double> crop_box_quat;
 
     builtin_interfaces::msg::Time stamp_;
 
