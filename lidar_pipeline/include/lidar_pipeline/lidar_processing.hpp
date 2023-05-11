@@ -64,8 +64,6 @@ public:
         marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/obboxes", 1);
         range_marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/ranges", 1);
 
-        rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr range_marker_array_pub_;
-
         detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/detections", 1);
 
         /*
@@ -74,7 +72,7 @@ public:
 
         RCLCPP_INFO(this->get_logger(), "Getting parameters");
 
-
+        // Declare parameters and default values
         this->declare_parameter("cloud_topic", "/points");
         this->declare_parameter("world_frame", "map");
         this->declare_parameter("camera_frame", "laser_data_frame");
@@ -84,12 +82,12 @@ public:
         this->declare_parameter("cluster_tol", 1.35);
         this->declare_parameter("cluster_min_size", 2);
         this->declare_parameter("cluster_max_size", 2000);
-        this->declare_parameter<std::vector<double>>("crop_box_transform.translation", {0.0});
-        this->declare_parameter<std::vector<double>>("crop_box_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
         this->declare_parameter<std::vector<double>>("lidar2world_transform.translation", {0.0});
         this->declare_parameter<std::vector<double>>("lidar2world_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
+        this->declare_parameter<std::vector<double>>("crop_box_transform.translation", {0.0});
+        this->declare_parameter<std::vector<double>>("crop_box_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
 
-
+        // Get values from cmd line or YAML
         this->get_parameter("cloud_topic", cloud_topic);
         this->get_parameter("world_frame", world_frame);
         this->get_parameter("camera_frame", camera_frame);
