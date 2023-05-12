@@ -12,7 +12,7 @@
  * @copyright Copyright (c) 2023
 """
 
-from .sort import sort
+from .sort import sort_rotated_bbox
 
 import time
 import numpy as np
@@ -41,7 +41,7 @@ class ObjectTracker(Node):
         self.marker_publisher_ = self.create_publisher(MarkerArray, 'lidar_proc/track_markers', 2)
 
         #create instance of SORT
-        self.tracker = sort.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
+        self.tracker = sort_rotated_bbox.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
         
 
     def callback(self, msg):
@@ -58,6 +58,8 @@ class ObjectTracker(Node):
         # update SORT with detections
         # track_bbs_ids is a np array where each row contains a valid bounding box and track_id
         # [x1,y1,x2,y2,id]
+
+        # TODO change to [[vertex 1, v2, v3, v4, v1],[cx, cy]]
         track_ids = self.tracker.update(detections)
 
         # Create and Publish 3D Detections with Track IDs
