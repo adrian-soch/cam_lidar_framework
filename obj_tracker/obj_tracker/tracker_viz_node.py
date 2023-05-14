@@ -52,6 +52,7 @@ class DetectorNode(Node):
             # Get the position and size of the detection
             pos = detection.bbox.center.position
             size = detection.bbox.size
+            quat = detection.bbox.center.orientation
 
             # Create a cube marker for the detection
             marker = Marker()
@@ -62,7 +63,14 @@ class DetectorNode(Node):
             marker.pose.position = pos
             marker.scale.x = size.x
             marker.scale.y = size.y
-            marker.scale.z = 0.25
+
+            marker.pose.orientation = quat
+
+            # Fixed height based on length
+            if size.x > 4 or size.y > 4:
+                marker.scale.z = 3.2
+            else:
+                marker.scale.z = 2.0
             marker.color.a = 0.6
             marker.color.r = r
             marker.color.g = g
