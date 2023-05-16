@@ -24,6 +24,8 @@ from vision_msgs.msg import ObjectHypothesisWithPose
 from visualization_msgs.msg import Marker, MarkerArray
 from vision_msgs.msg import Detection3D, Detection3DArray
 
+from tf_transformations import quaternion_from_euler
+
 WORLD_FRAME = 'map'
 
 class ObjectTracker(Node):
@@ -88,15 +90,18 @@ def createDetection3DArr(tracks, header) -> Detection3DArray:
         det.results.append(result)
 
         y_len = np.sqrt(trk[2]*trk[3])
-        x_len = y_len/trk[3]
+        x_len = trk[2]/y_len
 
         det.bbox.center.position.x = trk[0]
         det.bbox.center.position.y = trk[1]
         det.bbox.size.x = x_len
         det.bbox.size.y = y_len
-
-        det.bbox.center.orientation.w = np.cos(trk[4] / 2)
-        det.bbox.center.orientation.z = np.sin(trk[4] / 2)
+        
+        q = quaternion_from_euler(0, 0, trk[4])
+        det.bbox.center.orientation.x = q[0]
+        det.bbox.center.orientation.y = q[1]
+        det.bbox.center.orientation.z = q[2]
+        det.bbox.center.orientation.w = q[3]
 
         out.detections.append(det)
     return out
@@ -145,7 +150,7 @@ def quat2yaw(q) -> float:
     return np.arctan2(2.0* (q.y*q.z + q.w*q.x), q.w*q.w - q.x*q.x - q.y*q.y + q.z*q.z)
 
 
-def euler_from_quaternion(q):
+def euler_from_quaternion(q, add_pi=False):
         """
         Convert a quaternion into euler angles (roll, pitch, yaw)
         roll is rotation around x in radians (counterclockwise)
@@ -164,6 +169,12 @@ def euler_from_quaternion(q):
         t3 = +2.0 * (q.w * q.z + q.x * q.y)
         t4 = +1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         yaw_z = np.arctan2(t3, t4)
+
+        if add_pi:
+            yaw_z += np.pi
+
+            # Renormalize the angle to [-pi, pi]
+            yaw_z = np.mod(yaw_z + np.pi, 2 * np.pi) - np.pi
      
         return yaw_z # in radians
 
