@@ -135,22 +135,7 @@ def detection3DArray2Numpy(detection_list):
 
     return out_arr
 
-def quat2yaw(q) -> float:
-    """Convert quaternion to yaw angle
-        Assumes quat is normalized
-
-    Args:
-        quaternion with .w, .y, .x, .z components
-
-    Returns:
-        float: yaw angle in radians
-    """
-    # return np.arctan2(2.0 * w * z)
-
-    return np.arctan2(2.0* (q.y*q.z + q.w*q.x), q.w*q.w - q.x*q.x - q.y*q.y + q.z*q.z)
-
-
-def euler_from_quaternion(q, add_pi=False):
+def euler_from_quaternion(q):
         """
         Convert a quaternion into euler angles (roll, pitch, yaw)
         roll is rotation around x in radians (counterclockwise)
@@ -169,12 +154,6 @@ def euler_from_quaternion(q, add_pi=False):
         t3 = +2.0 * (q.w * q.z + q.x * q.y)
         t4 = +1.0 - 2.0 * (q.y * q.y + q.z * q.z)
         yaw_z = np.arctan2(t3, t4)
-
-        if add_pi:
-            yaw_z += np.pi
-
-            # Renormalize the angle to [-pi, pi]
-            yaw_z = np.mod(yaw_z + np.pi, 2 * np.pi) - np.pi
      
         return yaw_z # in radians
 
