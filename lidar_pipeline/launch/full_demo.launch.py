@@ -7,7 +7,9 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 from launch_ros.substitutions import FindPackageShare
 
-ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags'
+ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
+BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
+# BAG_NAME = 'dec7_2022/roofTestDaylight_2_FHD_qosOverrride_true/'
 
 def generate_launch_description():
 
@@ -55,7 +57,7 @@ def generate_launch_description():
         cmd=[[
             'ros2 bag play ',
             ABS_PATH_TO_ROSBAGS,
-            '/dec7_2022/roofTestDark_1_HD_qosOverrride_true/',
+            BAG_NAME,
             ' -l'
         ]],
         shell=True
