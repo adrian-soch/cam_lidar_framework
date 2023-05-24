@@ -73,7 +73,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
                                             crop_box_quat[2],crop_box_quat[3]));
 
     // Crop just the road using a prism
-    cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, 17.0, 80.0, 5.5);
+    cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, crop_box_size[0], crop_box_size[1], crop_box_size[2]);
 
     /* ========================================
     * STATISTICAL OUTLIER REMOVAL
