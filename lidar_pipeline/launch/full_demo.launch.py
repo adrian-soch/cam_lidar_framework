@@ -8,8 +8,10 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
 
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
+# BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
 # BAG_NAME = 'dec7_2022/roofTestDaylight_2_FHD_qosOverrride_true/'
+# BAG_NAME = 'may10_2023/q6_2_may10_2023'
+BAG_NAME = 'may10_2023/q7_2_may10_2023'
 
 def generate_launch_description():
 

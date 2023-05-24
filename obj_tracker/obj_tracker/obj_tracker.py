@@ -12,7 +12,7 @@
  * @copyright Copyright (c) 2023
 """
 
-from sort import sort_rotated_bbox
+from .sort import sort_rotated_bbox
 
 import time
 import numpy as np

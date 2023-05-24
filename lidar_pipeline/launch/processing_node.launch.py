@@ -7,7 +7,7 @@ from ament_index_python.packages import get_package_share_directory
 
 share_dir = get_package_share_directory('lidar_pipeline')
 pipeline_params = os.path.join(share_dir, 'configs', 'lidar_pipeline_config.yaml')
-data_dependant_params = os.path.join(share_dir, 'configs', 'dec7_config.yaml')
+data_dependant_params = os.path.join(share_dir, 'configs', 'may10_config.yaml')
 
 def generate_launch_description():
     return LaunchDescription([
