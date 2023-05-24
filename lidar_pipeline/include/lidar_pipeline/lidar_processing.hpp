@@ -86,6 +86,7 @@ public:
         this->declare_parameter<std::vector<double>>("lidar2world_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
         this->declare_parameter<std::vector<double>>("crop_box_transform.translation", {0.0});
         this->declare_parameter<std::vector<double>>("crop_box_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
+        this->declare_parameter<std::vector<double>>("crop_box_transform.size", {1.0, 1.0, 1.0});
 
         // Get values from cmd line or YAML
         this->get_parameter("cloud_topic", cloud_topic);
@@ -97,10 +98,11 @@ public:
         this->get_parameter("cluster_tol", cluster_tol);
         this->get_parameter("cluster_min_size", cluster_min_size);
         this->get_parameter("cluster_max_size", cluster_max_size);
-        this->get_parameter("crop_box_transform.translation", crop_box_translation);
-        this->get_parameter("crop_box_transform.quaternion", crop_box_quat);
         this->get_parameter("lidar2world_transform.translation", lidar2world_translation);
         this->get_parameter("lidar2world_transform.quaternion", lidar2world_quat);
+        this->get_parameter("crop_box_transform.translation", crop_box_translation);
+        this->get_parameter("crop_box_transform.quaternion", crop_box_quat);
+        this->get_parameter("crop_box_transform.size", crop_box_size);
 
         /*
          * SET UP SUBSCRIBER
@@ -158,6 +160,7 @@ private:
     std::vector<double> lidar2world_quat;
     std::vector<double> crop_box_translation;
     std::vector<double> crop_box_quat;
+    std::vector<double> crop_box_size;
 
     builtin_interfaces::msg::Time stamp_;
 

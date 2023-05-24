@@ -12,7 +12,7 @@
  * @copyright Copyright (c) 2023
 """
 
-from .sort import sort
+from .sort import sort_rotated_bbox
 
 import time
 import numpy as np
@@ -23,6 +23,8 @@ from rclpy.duration import Duration
 from vision_msgs.msg import ObjectHypothesisWithPose
 from visualization_msgs.msg import Marker, MarkerArray
 from vision_msgs.msg import Detection3D, Detection3DArray
+
+from tf_transformations import quaternion_from_euler
 
 WORLD_FRAME = 'map'
 
@@ -41,7 +43,7 @@ class ObjectTracker(Node):
         self.marker_publisher_ = self.create_publisher(MarkerArray, 'lidar_proc/track_markers', 2)
 
         #create instance of SORT
-        self.tracker = sort.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
+        self.tracker = sort_rotated_bbox.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
         
 
     def callback(self, msg):
@@ -56,8 +58,6 @@ class ObjectTracker(Node):
         detections = detection3DArray2Numpy(msg.detections)
         
         # update SORT with detections
-        # track_bbs_ids is a np array where each row contains a valid bounding box and track_id
-        # [x1,y1,x2,y2,id]
         track_ids = self.tracker.update(detections)
 
         # Create and Publish 3D Detections with Track IDs
@@ -68,9 +68,6 @@ class ObjectTracker(Node):
         m_arr = track2MarkerArray(track_ids, msg.header.stamp)
         self.marker_publisher_.publish(m_arr)
 
-        # with np.printoptions(precision=3, suppress=True):
-        #     print(track_ids)
-
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(len(m_arr.markers), (t2-t1)*1000))
 
@@ -78,7 +75,7 @@ def createDetection3DArr(tracks, header) -> Detection3DArray:
     """Convert tracker output to message for publishing
 
     Args:
-        tracks (ndarray): Array of the form [[x1,y1,x2,y2,id], [x1,y1,x2,y2,id], ...]
+        tracks (ndarray): Array of the form [[x,y,x*y,w/h, angle], [x,y,x*y,w/h, angle], ...]
 
     Returns:
         Detection3DArray:
@@ -89,17 +86,22 @@ def createDetection3DArr(tracks, header) -> Detection3DArray:
     for trk in tracks:
         det = Detection3D()
         result = ObjectHypothesisWithPose()
-        result.hypothesis.score = trk[4]
-
+        result.hypothesis.score = trk[5]
         det.results.append(result)
 
-        x_len = trk[2] - trk[0]
-        y_len = trk[3] - trk[1]
+        y_len = np.sqrt(trk[2]*trk[3])
+        x_len = trk[2]/y_len
 
-        det.bbox.center.position.x = x_len/2.0 + trk[0]
-        det.bbox.center.position.y = y_len/2.0 + trk[1]
+        det.bbox.center.position.x = trk[0]
+        det.bbox.center.position.y = trk[1]
         det.bbox.size.x = x_len
         det.bbox.size.y = y_len
+        
+        q = quaternion_from_euler(0, 0, trk[4])
+        det.bbox.center.orientation.x = q[0]
+        det.bbox.center.orientation.y = q[1]
+        det.bbox.center.orientation.z = q[2]
+        det.bbox.center.orientation.w = q[3]
 
         out.detections.append(det)
     return out
@@ -113,7 +115,7 @@ def detection3DArray2Numpy(detection_list):
         detection_list (vision_msgs/Detection3DArray)
 
     Returns:
-        numpy_arr: Numpy float array of [x1,y1,x2,y2,score].
+        numpy_arr: Numpy float array of [[x,y,x*y,w/h, angle], [...], ...]
     """
     if len(detection_list) <= 0:
         return np.empty((0, 5))
@@ -123,59 +125,37 @@ def detection3DArray2Numpy(detection_list):
 
     idx = 0
     for det in detection_list:
-        half_x = det.bbox.size.x/2
-        half_y = det.bbox.size.y/2
-        out_arr[idx] = [
-            det.bbox.center.position.x - half_x,
-            det.bbox.center.position.y - half_y,
-            det.bbox.center.position.x + half_x,
-            det.bbox.center.position.y + half_y,
-            0.5]
+        area = det.bbox.size.y*det.bbox.size.x
+        angle = euler_from_quaternion(det.bbox.center.orientation)
+        out_arr[idx] = [det.bbox.center.position.x, det.bbox.center.position.y,
+                                 area,
+                                 det.bbox.size.y/det.bbox.size.x,
+                                 angle]
         idx += 1
 
     return out_arr
 
-def detection3DArray2Numpy2(detection_list):
-    """
-    Convert vision_msgs/Detection3DArray to numpy array
-
-    Args:
-        detection_list (vision_msgs/Detection3DArray)
-
-    Returns:
-        numpy_arr: Numpy float array of [x,y,z,h/l,h/w]. Position of bounding box x,y,z 
-            and ratio of height/length, height/width of the bounding box
-    """
-
-    if len(detection_list) <= 0:
-        return np.empty((0, 5))
-
-    # Pre-allocate numpy array
-    out_arr = np.empty(shape=(len(detection_list),5), dtype=float)
-
-    idx = 0
-    for det in detection_list:
-        out_arr[idx] = [det.bbox.center.position.x,
-            det.bbox.center.position.y,
-            det.bbox.center.position.z,
-            det.bbox.size.z/det.bbox.size.x,
-            det.bbox.size.z/det.bbox.size.y]
-        idx += 1
-
-    return out_arr
-
-def quat2yaw(w,z) -> float:
-    """Convert quaternion to yaw angle
-        Assumes quat is normalized, and x,y =0 0
-
-    Args:
-        w (float): w from unit quaternion
-        z (float): z from unit quaternion
-
-    Returns:
-        float: yaw angle in radians
-    """
-    return np.arctan2(2.0 * w * z)
+def euler_from_quaternion(q):
+        """
+        Convert a quaternion into euler angles (roll, pitch, yaw)
+        roll is rotation around x in radians (counterclockwise)
+        pitch is rotation around y in radians (counterclockwise)
+        yaw is rotation around z in radians (counterclockwise)
+        """
+        # t0 = +2.0 * (q.w * q.x + q.y * q.z)
+        # t1 = +1.0 - 2.0 * (q.x * q.x + q.y * q.y)
+        # roll_x = np.atan2(t0, t1)
+     
+        # t2 = +2.0 * (q.w * q.y - q.z * q.x)
+        # t2 = +1.0 if t2 > +1.0 else t2
+        # t2 = -1.0 if t2 < -1.0 else t2
+        # pitch_y = np.asin(t2)
+     
+        t3 = +2.0 * (q.w * q.z + q.x * q.y)
+        t4 = +1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        yaw_z = np.arctan2(t3, t4)
+     
+        return yaw_z # in radians
 
 def track2MarkerArray(track_ids, stamp) -> MarkerArray:
     """
@@ -195,7 +175,7 @@ def track2MarkerArray(track_ids, stamp) -> MarkerArray:
         marker.type = Marker.TEXT_VIEW_FACING
         marker.action = Marker.ADD
         marker.scale.z = 0.8 # height of `A` in meters
-        marker.text = str(int(trk[4]))
+        marker.text = str(int(trk[5]))
 
         marker.pose.position.x = trk[0]
         marker.pose.position.y = trk[1]

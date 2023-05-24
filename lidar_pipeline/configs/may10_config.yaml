@@ -9,14 +9,14 @@ perception_node:
       translation: [0.0, 0.0, 12.0]
 
       # [w,x,y,z] normalized quaternion
-      quaternion: [0.9938165, 0.0, 0.1110353, 0.0]
+      quaternion: [0.9795752, 0.0, 0.2010779, 0.0]
 
     crop_box_transform:
       # [x,y,z] in meters
-      translation: [55.0, -6.0, 0.0]
+      translation: [44.6, 2.0, 0.0]
 
       # [w,x,y,z] normalized quaternion
-      quaternion: [0.7680537, 0.0, 0.0, -0.6403854]
+      quaternion: [0.8127148, 0.0, 0.0, -0.5826618]
 
       # [x, y, z] in meters
-      size: [17.0, 80.0, 5.5]
+      size: [16.0, 80.0, 5.5]
