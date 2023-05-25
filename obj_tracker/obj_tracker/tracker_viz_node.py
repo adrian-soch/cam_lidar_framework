@@ -93,7 +93,7 @@ class DetectorNode(Node):
             tracklet.color.r = r
             tracklet.color.g = g
             tracklet.color.b = b
-            tracklet.lifetime = Duration(seconds=0.75).to_msg()
+            tracklet.lifetime = Duration(seconds=1.0).to_msg()
 
             # Add the marker to the array
             idx += 1
