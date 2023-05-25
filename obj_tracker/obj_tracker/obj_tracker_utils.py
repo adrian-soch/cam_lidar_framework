@@ -1,3 +1,13 @@
+"""
+ * @file obj_tracker_utils.py
+ * @brief Utils for 2D Object tracking
+ * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
+ * @version 0.1
+ * @date 2023-05-25
+ * 
+ * @copyright Copyright (c) 2023
+"""
+
 import numpy as np
 
 from vision_msgs.msg import ObjectHypothesisWithPose
@@ -5,11 +15,12 @@ from vision_msgs.msg import Detection3D, Detection3DArray
 
 from tf_transformations import quaternion_from_euler
 
-def createDetection3DArr(tracks, header) -> Detection3DArray:
+def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
     """Convert tracker output to message for publishing
 
     Args:
-        tracks (ndarray): Array of the form [[x,y,x*y,w/h, angle], [x,y,x*y,w/h, angle], ...]
+        tracks (ndarray): if isOBB: Array of the form [[x,y,x*y,w/h, angle], [x,y,x*y,w/h, angle], ...]
+        if not OBB then: tracks (ndarray): Array of the form [[x1,y1,x2,y2,id], [x1,y1,x2,y2,id], ...]
 
     Returns:
         Detection3DArray:
@@ -17,31 +28,48 @@ def createDetection3DArr(tracks, header) -> Detection3DArray:
     out = Detection3DArray()
     out.header = header
 
-    for trk in tracks:
-        det = Detection3D()
-        result = ObjectHypothesisWithPose()
-        result.hypothesis.score = trk[5]
-        det.results.append(result)
+    if isOBB:
+        for trk in tracks:
+            det = Detection3D()
+            result = ObjectHypothesisWithPose()
+            result.hypothesis.score = trk[5]
+            det.results.append(result)
 
-        y_len = np.sqrt(trk[2]*trk[3])
-        x_len = trk[2]/y_len
+            y_len = np.sqrt(trk[2]*trk[3])
+            x_len = trk[2]/y_len
 
-        det.bbox.center.position.x = trk[0]
-        det.bbox.center.position.y = trk[1]
-        det.bbox.size.x = x_len
-        det.bbox.size.y = y_len
-        
-        q = quaternion_from_euler(0, 0, trk[4])
-        det.bbox.center.orientation.x = q[0]
-        det.bbox.center.orientation.y = q[1]
-        det.bbox.center.orientation.z = q[2]
-        det.bbox.center.orientation.w = q[3]
+            det.bbox.center.position.x = trk[0]
+            det.bbox.center.position.y = trk[1]
+            det.bbox.size.x = x_len
+            det.bbox.size.y = y_len
+            
+            q = quaternion_from_euler(0, 0, trk[4])
+            det.bbox.center.orientation.x = q[0]
+            det.bbox.center.orientation.y = q[1]
+            det.bbox.center.orientation.z = q[2]
+            det.bbox.center.orientation.w = q[3]
 
-        out.detections.append(det)
+            out.detections.append(det)
+    else:
+        for trk in tracks:
+            det = Detection3D()
+            result = ObjectHypothesisWithPose()
+            result.hypothesis.score = trk[4]
+            det.results.append(result)
+
+            x_len = trk[2] - trk[0]
+            y_len = trk[3] - trk[1]
+
+            det.bbox.center.position.x = x_len/2.0 + trk[0]
+            det.bbox.center.position.y = y_len/2.0 + trk[1]
+            det.bbox.size.x = x_len
+            det.bbox.size.y = y_len
+
+            out.detections.append(det)  
     return out
 
 
-def detection3DArray2Numpy(detection_list):
+def detection3DArray2Numpy(detection_list, isOBB):
     """
     Convert vision_msgs/Detection3DArray to numpy array
 
@@ -49,7 +77,8 @@ def detection3DArray2Numpy(detection_list):
         detection_list (vision_msgs/Detection3DArray)
 
     Returns:
-        numpy_arr: Numpy float array of [[x,y,x*y,w/h, angle], [...], ...]
+        numpy_arr: if isOBB: Numpy float array of [[x,y,x*y,w/h, angle], [...], ...]
+            if not OBB: [[x1,y1,x2,y2,id], [x1,y1,x2,y2,id], ...]
     """
     if len(detection_list) <= 0:
         return np.empty((0, 5))
@@ -58,14 +87,27 @@ def detection3DArray2Numpy(detection_list):
     out_arr = np.empty(shape=(len(detection_list),5), dtype=float)
 
     idx = 0
-    for det in detection_list:
-        area = det.bbox.size.y*det.bbox.size.x
-        angle = euler_from_quaternion(det.bbox.center.orientation)
-        out_arr[idx] = [det.bbox.center.position.x, det.bbox.center.position.y,
-                                 area,
-                                 det.bbox.size.y/det.bbox.size.x,
-                                 angle]
-        idx += 1
+
+    if isOBB:
+        for det in detection_list:
+            area = det.bbox.size.y*det.bbox.size.x
+            angle = euler_from_quaternion(det.bbox.center.orientation)
+            out_arr[idx] = [det.bbox.center.position.x, det.bbox.center.position.y,
+                                    area,
+                                    det.bbox.size.y/det.bbox.size.x,
+                                    angle]
+            idx += 1
+    else:
+        for det in detection_list:
+            half_x = det.bbox.size.x/2
+            half_y = det.bbox.size.y/2
+            out_arr[idx] = [
+                det.bbox.center.position.x - half_x,
+                det.bbox.center.position.y - half_y,
+                det.bbox.center.position.x + half_x,
+                det.bbox.center.position.y + half_y,
+                0.5]
+            idx += 1
 
     return out_arr
 

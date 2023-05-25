@@ -5,9 +5,12 @@
  * @version 0.1
  * @date 2023-03-29
 
-  Note: relative imports only work when running via ROS
-    to run via python the relative import must be removed
-    Relative import is `.` in front of the imported module
+    NOTE: Default is using the oriented bounding box detections,
+        This can be changed to axis aligned detections
+
+    NOTE: Relative imports only work when running via ROS
+        to run via python the relative import must be removed
+        Relative import is `.` in front of the imported module
  * 
  * @copyright Copyright (c) 2023
 """
@@ -27,11 +30,13 @@ class ObjectTracker(Node):
         super().__init__('object_tracker')
 
         # Get the topic name from the ROS parameter server
-        detection_topic = self.declare_parameter('detection_topic', '/lidar_proc/o_detections').get_parameter_value().string_value
-        isOBB = self.declare_parameter('isOBB', True).get_parameter_value().bool_value
         self.world_frame = self.declare_parameter('world_frame', 'map').get_parameter_value().string_value
 
-        if isOBB:
+        # Current default is aa_detections for axis algined and o_detections for oriented detections
+        detection_topic = self.declare_parameter('detection_topic', '/lidar_proc/o_detections').get_parameter_value().string_value
+        self.isOBB = self.declare_parameter('isOBB', True).get_parameter_value().bool_value
+
+        if self.isOBB:
             from .sort import sort_rotated_bbox as s
         else:
             from .sort import sort as s
@@ -58,24 +63,24 @@ class ObjectTracker(Node):
         """
         t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
-        detections = detection3DArray2Numpy(msg.detections)
+        detections = detection3DArray2Numpy(msg.detections, self.isOBB)
         
         # update SORT with detections
         track_ids = self.tracker.update(detections)
 
         # Create and Publish 3D Detections with Track IDs
-        track_msg_arr = createDetection3DArr(track_ids, msg.header)
+        track_msg_arr = createDetection3DArr(track_ids, msg.header, self.isOBB)
         self.track_publisher_.publish(track_msg_arr)
 
         # Create and publish Text Marker Array
-        m_arr = self.track2MarkerArray(track_ids, msg.header.stamp)
+        m_arr = self.track2MarkerArray(track_ids, msg.header.stamp, self.isOBB)
         self.marker_publisher_.publish(m_arr)
 
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(len(m_arr.markers), (t2-t1)*1000))
 
 
-    def track2MarkerArray(self, track_ids, stamp) -> MarkerArray:
+    def track2MarkerArray(self, track_ids, stamp, isOBB) -> MarkerArray:
         """
         Create ROS 2 markers for track results
 
@@ -93,8 +98,13 @@ class ObjectTracker(Node):
             marker.type = Marker.TEXT_VIEW_FACING
             marker.action = Marker.ADD
             marker.scale.z = 0.8 # height of `A` in meters
-            marker.text = str(int(trk[5]))
 
+            if isOBB:
+                id_str = str(int(trk[5]))
+            else:
+                id_str = str(int(trk[4]))
+
+            marker.text = id_str
             marker.pose.position.x = trk[0]
             marker.pose.position.y = trk[1]
 
