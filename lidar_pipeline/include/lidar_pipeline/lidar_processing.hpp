@@ -64,7 +64,8 @@ public:
         marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/obboxes", 1);
         range_marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/ranges", 1);
 
-        detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/detections", 1);
+        aa_detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/aa_detections", 1);
+        o_detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/o_detections", 1);
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -142,7 +143,8 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_array_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr range_marker_array_pub_;
 
-    rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr detection_pub_;
+    rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr aa_detection_pub_;
+    rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr o_detection_pub_;
 
     /*
      * Parameters
@@ -184,6 +186,16 @@ private:
     void cloud_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr recent_cloud);
 
     /**
+     * @brief Get axis aligned bounding box object
+     * 
+     * @tparam PointT 
+     * @param cloud_cluster 
+     * @return vision_msgs::msg::BoundingBox3D 
+     */
+    template <typename PointT>
+    vision_msgs::msg::BoundingBox3D getAxisAlignedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
+
+    /**
      * @brief Get the Oriented Bouding Box object
      * 
      * @tparam PointT 
@@ -192,9 +204,6 @@ private:
      */
     template <typename PointT>
     vision_msgs::msg::BoundingBox3D getOrientedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
-
-    template <typename PointT>
-    vision_msgs::msg::BoundingBox3D getOrientedBoudingBox2(const pcl::PointCloud<PointT> &cloud_cluster);
 
     /**
      * @brief Simple bbounding box dimension based classier
