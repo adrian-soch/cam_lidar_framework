@@ -21,7 +21,6 @@ namespace lidar_pipeline
 void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr recent_cloud)
 {
     stamp_ = recent_cloud->header.stamp;
-    // RCLCPP_INFO(this->get_logger(), "Cloud service called; getting a PointCloud2 on topic");
     auto start = std::chrono::high_resolution_clock::now();
 
     /*
@@ -38,13 +37,12 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
     }
 
-
     sensor_msgs::msg::PointCloud2 transformed_cloud;
     pcl_ros::transformPointCloud(world_frame, stransform, *recent_cloud, transformed_cloud);
 
-    /*
+    /* ========================================
     * CONVERT PointCloud2 ROS->PCL
-    */
+    * ========================================*/
     pcl::PointCloud<pcl::PointXYZI> cloud;
     pcl::fromROSMsg(transformed_cloud, cloud);
 
@@ -109,7 +107,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * ========================================*/
 
     std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
-    std::vector<vision_msgs::msg::Detection3D> detection_array;
+    std::vector<vision_msgs::msg::Detection3D> aa_detection_array, o_detection_array;
     CubePoints max_min_pts;
     
     for (const auto &cluster : cluster_indices)
@@ -136,43 +134,72 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
         // Init and fill detection_array
         vision_msgs::msg::Detection3D detection;
-        vision_msgs::msg::BoundingBox3D bbox = getOrientedBoudingBox(*cloud_cluster);
+        vision_msgs::msg::BoundingBox3D o_bbox = getOrientedBoudingBox(*cloud_cluster);
+        vision_msgs::msg::BoundingBox3D aa_bbox = getAxisAlignedBoudingBox(*cloud_cluster);
         
         // Basic Size based classifier
-        std::string id = simpleClassifier(bbox);
+        std::string id = simpleClassifier(o_bbox);
         id = "car"; // Hardcode until classidier is better
         if(!id.empty()) {                        
             detection.header.stamp = recent_cloud->header.stamp;
-            detection.bbox = bbox;
+            detection.bbox = o_bbox;
             detection.id = id;
 
             // Minimum volume, and remove detections with a size 0 component
-            float volume = bbox.size.x*bbox.size.y*bbox.size.z;
+            float volume = o_bbox.size.x*o_bbox.size.y*o_bbox.size.z;
             if(volume > 0.0002) {
-                detection_array.push_back(detection);
+                o_detection_array.push_back(detection);
             }
+
+            // Reuse detection for axis aligned detection
+            detection.bbox = aa_bbox;
+            aa_detection_array.push_back(detection);
         }
     }
     
     std::vector<geometry_msgs::msg::Point> line_list = minMax2lines(max_min_pts);
 
     /* ========================================
-        * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
-        * ========================================*/
+    * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
+    * ========================================*/
     this->publishPointCloud(voxel_grid_pub_, *cloud_ptr);
     this->publishPointCloud(crop_pub_, *crop_cloud_ptr);
     this->publishPointCloud(plane_pub_, *plane_ptr);
     this->publishPointCloud(stat_pub_, *dense_cloud_ptr);
 
     this->publish3DBBox(marker_pub_, line_list);
-    this->publish3DBBoxOBB(marker_array_pub_, detection_array);
+    this->publish3DBBoxOBB(marker_array_pub_, o_detection_array);
 
-    this->publishDetections(detection_pub_, detection_array);
+    this->publishDetections(aa_detection_pub_, aa_detection_array);
+    this->publishDetections(o_detection_pub_, o_detection_array);
     this->publishDistanceMarkers(range_marker_array_pub_);
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     RCLCPP_INFO(get_logger(), "Time (msec): %ld", t_ms.count());
+}
+
+template <typename PointT>
+vision_msgs::msg::BoundingBox3D LidarProcessing::getAxisAlignedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster)
+{
+    PointT min_pt{}, max_pt{};
+    pcl::getMinMax3D(cloud_cluster, min_pt, max_pt);
+
+    Eigen::Vector3f center = (max_pt.getVector3fMap() + min_pt.getVector3fMap())/2;
+
+    PointT size;
+    size.getArray3fMap() = max_pt.getArray3fMap() - min_pt.getArray3fMap();
+
+    vision_msgs::msg::BoundingBox3D bbox;
+    bbox.center.position.x = center[X];
+    bbox.center.position.y = center[Y];
+    bbox.center.position.z = center[Z];
+
+    bbox.size.x = size.x;
+    bbox.size.y = size.y;
+    bbox.size.z = size.z;
+
+    return bbox;
 }
 
 template <typename PointT>
@@ -238,8 +265,6 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
 
     return bbox;
 }
-
-
 
 std::string LidarProcessing::simpleClassifier(const vision_msgs::msg::BoundingBox3D bbox) {
     std::string out;

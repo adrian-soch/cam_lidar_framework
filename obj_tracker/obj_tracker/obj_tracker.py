@@ -34,7 +34,7 @@ class ObjectTracker(Node):
         super().__init__('object_tracker')
         self.subscription = self.create_subscription(
             Detection3DArray,
-            'lidar_proc/detections',
+            'lidar_proc/o_detections',
             self.callback,
             5)
         self.subscription  # prevent unused variable warning
