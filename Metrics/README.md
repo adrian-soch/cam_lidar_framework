@@ -11,9 +11,9 @@ Since we are using a custom dataset with rooftop traffic data, the basic workflo
 ```mermaid
 graph LR;
     RawData(Raw data: \n rosbag file)-->Trans(Transformed Data: \n Pipeline + pcd conversion node);
-    Trans-->GroundTruth(3D labeled ground truth: \n Supervisely);
-    GroundTruth-->ExportedFormat(Exported format: \n From Supervisely website);
-    ExportedFormat-->MOTChallenge(MOT Challenge format: \n superviseorly2MOT.py);
+    Trans-->GroundTruth(3D labeled ground truth: \n Amazon Sage GT Maker);
+    GroundTruth-->ExportedFormat(Exported format: \n From Sage GT);
+    ExportedFormat-->MOTChallenge(MOT Challenge format: \n sageGT2MOT.py);
 ```
 
 ### Tracker Data
@@ -24,6 +24,7 @@ graph LR;
     RawData(Raw data: \n rosbag file)-->Trans(Transformed Data: \n Pipeline);
     Trans-->GroundTruth(Track Results: \n Tracker node);
     GroundTruth-->ExportedFormat(Exported results: \n Tracks to MOT CSV node);
+    ExportedFormat-->Final(Renumber results: \n re-numbering script)
 ```
 
 ## Evaluation
@@ -45,17 +46,19 @@ The required folder struture for that example is:
     │   │   │       ├── MOT20-train
     │   │   │       │   └── MOT20-01
     │   │   │       │       ├── gt
-    │   │   │       │       │   └── gt.txt
+    │   │   │       │       │   └── gt.txt ### From Sage GT
     │   │   │       │       └── seqinfo.ini
     │   │   │       └── seqmaps
     │   │   │           └── MOT20-train.txt
     │   │   └── trackers
     │   │       └── mot_challenge
     │   │           └── MOT20-train
-    │   │               └── lidar2d
+    │   │               └── lidar2d   ### From obj_tracker/tracks2csv.py
 ```
 
-With `seqinfo.ini`:
+Note: you can have multiple tracker results in the `tracker` folder.
+
+With `seqinfo.ini`. Make sure the seqLength matches the number of frames you have in the GT and the Tracker Result. Image info is iirelavent for this test:
 ```
     [Sequence]
     name=MOT20-01
@@ -67,8 +70,8 @@ With `seqinfo.ini`:
     imExt=.jpg
 ```
 And `MOT20-train.txt`:
+
 ```
 name
-MOT20-01
-
+MOT20-01  ### Make sure this matches the GT folder.
 ```

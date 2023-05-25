@@ -4,6 +4,7 @@
 ├── cam2image
 │   ├── include
 │   │   └── cam2image
+│   ├── launch
 │   └── src
 ├── data_tools
 │   ├── include
@@ -26,6 +27,9 @@
 │   │   └── lidar_pipeline
 │   ├── launch
 │   └── src
+├── Metrics
+│   └── kitti_MOT_2D_HOTA_Test
+│       └── data
 ├── obj_tracker
 │   ├── obj_tracker
 │   │   └── sort
@@ -40,19 +44,35 @@
 tree -d -L 3 -I __pycache__
 --->
 
-# Description
-> `fusion_engine`: Camera + LiDAR object detection and tracking module
+## RQT Graph
 
-> `cam2image`: Camera driver
+![image](https://github.com/adrian-soch/cam_lidar_tools/assets/6884645/fcae153a-d175-48d1-a33a-fc8e5faa0b82)
+
+![image](https://github.com/adrian-soch/cam_lidar_tools/assets/6884645/1fcd223e-6cf9-4caf-a0e6-907f08eb147d)
+
+---
+# Description
+
+## ROS Packges
+> `fusion_engine`: Camera object detection and tracking module
+
+> `cam2image`: USB Camera driver
 
 > `ros2_numpy`: Fork of repo with tools for converting msgs to numpy
 
-> `lidar_pipeline`: LiDAR Object Detection Module 
+> `lidar_pipeline`: LiDAR Object Detection Module
 
-> `obj_tracker`: LiDAR Object Tracking Module 
+> `obj_tracker`: LiDAR Object Tracking Module
 
-> `data_tools`: Tools for converting and processing data 
+> `data_tools`: Tools for converting and processing data
 
+## Non-ROS packages
+
+> Docs: Files and info that should be retained but not in the code
+
+> Metrics: Scripts and info about calculating performance metrics
+
+---
 # Install
 
 ## Install Python requirements
@@ -70,7 +90,7 @@ pip install opencv-python
 pip install opencv-contrib-python
 ```
 
-### Yolov5 requirements
+### Yolov5/7 requirements
 ```
 numpy>=1.18.5
 opencv-python>=4.1.1
@@ -105,17 +125,18 @@ colcon build
 ```
 > Always source the ROS2 install and the local ros2 wroksapce via `source /opt/ros/galactic/setup.bash` and `. install/setup.bash` respectively.
 
-## Troubleshooting and Comments
+---
+# Troubleshooting and Comments
 
-### Colcon build fails?
+## Colcon build fails?
 - Check that the libraries you import are in your `CMakeLists.txt` (C++) or `setup.py` (Python) files.
 - Certain warning disappera if you build a 2nd time.
 
-### Known issues
+## Known issues
 
 - cmake warning for PCL lib. Just re-build with the same command you used and the warning will be gone
 
-### Comments
+## Comments
 
 - Use git and commit often.
 - To clean the ros2 workspace run `rm -rf log/ install/ build/`. Warning `rm -rf` means deleting a folder without the ability to recover it.
