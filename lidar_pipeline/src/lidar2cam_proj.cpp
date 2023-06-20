@@ -1,3 +1,14 @@
+/**
+ * @file lidar2cam_proj.cpp
+ * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
+ * @brief 
+ * @version 0.1
+ * @date 2023-06-19
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include <rclcpp/rclcpp.hpp>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
@@ -5,6 +16,8 @@
 
 #include <sensor_msgs/msg/image.hpp>
 #include <vision_msgs/msg/detection3_d_array.hpp>
+
+#include <pcl/common/transforms.h>
 
 using namespace message_filters;
 
@@ -55,8 +68,60 @@ public:
 private:
     void callback(const sensor_msgs::msg::Image::ConstSharedPtr& image, const vision_msgs::msg::Detection3DArray::ConstSharedPtr& lidar_track)
     {
-        // Do something with the synchronized messages
         RCLCPP_INFO(this->get_logger(), "Received an image and a detection");
+
+        /**
+         * @todo:
+         * From python:
+         * 
+         * 
+         * # Return x,y,z,1
+            xyz1 = np.hstack([pc[:, :3], np.ones((pc.shape[0], 1), dtype=np.float32)])
+
+            # from dataFrame -> sensorFrame -> cameraFrame
+            #       (3*4) @ (4*4) @ (4*N) = (3*N)
+            temp = self.l2c_mat @  self.ld2ls_mat @ xyz1.T
+            
+            '''
+            Project pc to img
+            ###################################################
+            '''
+            # Get projection on image plane
+            # (3*3) @ (3*N) = (3*N)
+            px_proj = (self.camera_mat @ temp)
+
+            # Get depth
+            depth = px_proj[2 :].T
+
+            # Divide by depth to get 2-D projection
+            px_proj = (px_proj[:2,:] / px_proj[2 :]).T
+         * - Restrict points to camera FoV
+            - Colour points based on range
+        */
+        Eigen::Affine3f lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
+        Eigen::Affine3f lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
+                lidarData2lidarSensor_translation);
+        Eigen::Affine3f camera_matrix = param2Transform(camera_matrix_rotation, camera_matrix_translation);
+       
+        // 1. Take [x,y,z] and append such that it becomes [x,y,z,1]
+        // 2. cam_mat @ lidar2cam @ lidarDara2lidarSensor @ xyz1.T
+        // 3. reserve z values (depth)
+        // 4. get projection by divind [x,y]/z
+        // 5. crop points to retain camera fov
+        // 6. Draw points on image + publish
+
+    }
+
+    Eigen::Affine3f param2Transform(std::vector<double> rot, std::vector<double> trans) {
+        Eigen::Affine3f output = Eigen::Affine3f::Identity();
+
+        // Reshape/map vector to a 3x3 Eigen rotation matrix
+        output.rotate(Eigen::Map<Eigen::Matrix3f>((float*)rot.data()));
+
+        // Set the translation component
+        output.translation() << trans[0], trans[1], trans[2];
+
+        return output;
     }
 
     /*
