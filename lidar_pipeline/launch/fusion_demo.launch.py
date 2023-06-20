@@ -28,6 +28,7 @@ BAG_NAME = 'may10_2023/q7_2_may10_2023'
 share_dir = get_package_share_directory('lidar_pipeline')
 pipeline_params = os.path.join(share_dir, 'configs', 'lidar_pipeline_config.yaml')
 data_dependant_params = os.path.join(share_dir, 'configs', 'may10_config.yaml')
+transform_params = os.path.join(share_dir, 'configs', 'transforms.yaml')
 
 def generate_launch_description():
 
@@ -40,6 +41,16 @@ def generate_launch_description():
                 pipeline_params,
                 data_dependant_params
             ]
+    )
+
+    lidar2image_node = Node(
+        package='lidar_pipeline',
+        executable='perception_node',
+        name='projection_node',
+        output='screen',
+        parameters=[
+            transform_params
+        ]
     )
 
     execute_camera_processor = IncludeLaunchDescription(

@@ -5,7 +5,6 @@
  * @version 0.1
  * @date 2023-03-23
  * @todo
- *      - Load lidar2ground transform from file
  *      - SVM classifier (train on stanford data, test with real data)
  *      - Test on different data (check for runtime issues)
  *      - Use IPC by running this node in a container with the Ouster Node ?
@@ -63,8 +62,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr crop_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*cloud_ptr));
 
-    /** @todo load params from calib file
-    */
     Eigen::Affine3f box_transform = Eigen::Affine3f::Identity();
     box_transform.translation() << crop_box_translation[0], crop_box_translation[1], crop_box_translation[2];
     box_transform.rotate(Eigen::Quaternionf(crop_box_quat[0],crop_box_quat[1],

@@ -1,0 +1,23 @@
+lidar2cam_extrinsic:
+  rotation: [0, 1, 0, 
+             0, 0, -1, 
+            -1, 0, 0]
+  translation: [0.00, 0.0508, 0.0502]
+
+lidarData2lidarSensor_extrinsic:
+  rotation: [-1, 0, 0,
+            0, -1, 0,
+            0, 0, 1]
+  translation: [0, 0, 0.03618]
+
+camera_matrix:
+  rotation: [1199.821557, 0.000000, 960.562236,
+        0.000000, 1198.033465, 551.675808,
+        0.000000, 0.000000, 1.000000]
+  translation: [0.0, 0.0, 0.0]
+
+projection_matrix:
+  rotation: [1190.062744, 0.000000, 955.731930, 
+        0.000000, 1224.459717, 554.937895, 
+        0.000000, 0.000000, 1.000000]
+  translation: [0.0, 0.0, 0.0]
