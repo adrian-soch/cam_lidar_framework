@@ -43,7 +43,7 @@ target_include_directories(projection_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(projection_node rclcpp sensor_msgs vision_msgs message_filters)
+ament_target_dependencies(projection_node rclcpp sensor_msgs vision_msgs message_filters pcl_ros)
 
 
 install(TARGETS
