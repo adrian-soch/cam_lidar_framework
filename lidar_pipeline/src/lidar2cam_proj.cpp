@@ -48,9 +48,9 @@ public:
         this->get_parameter("cam_result_topic", cam_result_topic);
 
         // Get transforms
-        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.translation", { 0, 0, 0 });
+        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.translation", { 0.0, 0.0, 0.0 });
         this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.rotation", { 1, 0, 0, 0, 1, 0, 0, 0, 1 });
-        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.translation", { 0, 0, 0 });
+        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.translation", { 0.0, 0.0, 0.0 });
         this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.rotation", { 1, 0, 0, 0, 1, 0, 0,
                                                                                                     0, 1 });
         this->declare_parameter<std::vector<double> >("camera_matrix.translation", { 0.0, 0.0, 0.0 });
@@ -100,11 +100,18 @@ private:
         }
 
         /**
-         * @todo add inverse lidar2ground (from processing node)
-         * colour points
-         * crop those points are outside image fov
+         * @todo create pointcloud with added reverse cam2ground - this should match closely!
+         * @todo use a bigger image to plot
+         * @todo do the transform manually dont use 
          */
 
+
+/**
+ * @brief Looks like transform are not being read in correct
+ * -start wth hardcoding the defaults
+ * 
+ * - other weird issue with the detections converted to pc2 hare weirdly rotated
+ */
         Eigen::Affine3f lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
         Eigen::Affine3f lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
             lidarData2lidarSensor_translation);
@@ -117,7 +124,11 @@ private:
         // If we dont do this the points dont align with the image.
         Eigen::Affine3f transformation_matrix = lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
 
+        std::cout << lidar2cam.matrix() << std::endl;
 
+        std::cout << lidarData2lidarSensor.matrix() << std::endl;
+
+        std::cout << sensor2world.inverse().matrix() << std::endl;
         /**
          * @todo this is awful make elegant
          */
@@ -125,6 +136,7 @@ private:
         std::vector<pcl::PointCloud<pcl::PointXYZ> > clouds;
         for(auto det: lidar_track->detections) {
             pcl::PointCloud<pcl::PointXYZ> cloud = center_size2points(det.bbox);
+            pcl::transformPointCloud(cloud, cloud, transformation_matrix);
             clouds.push_back(cloud);
 
             // Convert the cloud to a vector of cv::Point3f objects
@@ -163,20 +175,13 @@ private:
         cv::projectPoints(points3d, rvec, tvec, cam_mat, dist_coeff, points2d);
 
         // Loop over the output vector and draw the projected points on the image
-        sensor_msgs::msg::Image out_img;
-        out_img = *image;
-
         for(size_t i = 0; i < points2d.size(); i++) {
             // Get the point from the vector
-            // cv::Point2f p = points2d[i];
+            cv::Point2f p = points2d[i];
 
-            cv::Point2f p { 100, 200 };
-            // Draw a circle on the image at the point location
-            cv::circle(out_img.data, p, 20, cv::Scalar(0, 255, 0), -1);
+            cv::circle(cv_ptr->image, p, 6, CV_RGB(255, 0, 0), -1);
             RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f", p.x, p.y);
         }
-
-        cv::circle(cv_ptr->image, cv::Point(50, 50), 10, CV_RGB(255,0,0), -1);
 
         // Convert the OpenCV image to a ROS image message using cv_bridge
         sensor_msgs::msg::Image::SharedPtr processed_msg = cv_ptr->toImageMsg();
@@ -259,7 +264,6 @@ private:
     std::vector<double> lidarData2lidarSensor_rotation;
     std::vector<double> camera_matrix_translation;
     std::vector<double> camera_matrix_rotation;
-
 
     std::shared_ptr<Subscriber<sensor_msgs::msg::Image> > sub_image_;
     std::shared_ptr<Subscriber<vision_msgs::msg::Detection3DArray> > sub_detection_;

@@ -45,7 +45,7 @@ def generate_launch_description():
 
     lidar2image_node = Node(
         package='lidar_pipeline',
-        executable='perception_node',
+        executable='projection_node',
         name='projection_node',
         output='screen',
         parameters=[
