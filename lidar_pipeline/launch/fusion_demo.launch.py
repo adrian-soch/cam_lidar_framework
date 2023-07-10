@@ -22,8 +22,8 @@ example:
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 # BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
 # BAG_NAME = 'dec7_2022/roofTestDaylight_2_FHD_qosOverrride_true/'
-# BAG_NAME = 'may10_2023/q6_2_may10_2023'
-BAG_NAME = 'may10_2023/q7_2_may10_2023'
+BAG_NAME = 'may10_2023/q6_2_may10_2023'
+# BAG_NAME = 'may10_2023/q7_2_may10_2023'
 
 share_dir = get_package_share_directory('lidar_pipeline')
 pipeline_params = os.path.join(share_dir, 'configs', 'lidar_pipeline_config.yaml')
@@ -115,6 +115,7 @@ def generate_launch_description():
     return LaunchDescription([
         s_transform2,
         lidar_tracker,
+        # lidar2image_node,
         perception_node,
         execute_camera_processor,
         s_transform,
