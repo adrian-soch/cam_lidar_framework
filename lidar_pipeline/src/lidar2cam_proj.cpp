@@ -48,13 +48,19 @@ public:
         this->get_parameter("cam_result_topic", cam_result_topic);
 
         // Get transforms
-        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.translation", { 0.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.rotation", { 1, 0, 0, 0, 1, 0, 0, 0, 1 });
-        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.translation", { 0.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.rotation", { 1, 0, 0, 0, 1, 0, 0,
-                                                                                                    0, 1 });
+        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.translation", { 0.0, 0.0508, 0.0502 });
+        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.rotation", { 0.0, 1.0, 0.0,
+                                                                                        0.0, 0.0, -1.0,
+                                                                                        -1.0, 0.0, 0.0 });
+        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.translation", { 0.0, 0.0,
+                                                                                                       0.03618 });
+        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.rotation", { -1.0, 0.0, 0.0,
+                                                                                                    0.0, -1.0, 0.0,
+                                                                                                    0.0, 0.0, 1.0 });
         this->declare_parameter<std::vector<double> >("camera_matrix.translation", { 0.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("camera_matrix.rotation", { 1, 0, 0, 0, 1, 0, 0, 0, 1 });
+        this->declare_parameter<std::vector<double> >("camera_matrix.rotation", { 1199.821557, 0.000000, 960.562236,
+                                                                                  0.000000, 1198.033465, 551.675808,
+                                                                                  0.000000, 0.000000, 1.000000 });
 
         this->get_parameter("lidar2cam_extrinsic.translation", lidar2cam_translation);
         this->get_parameter("lidar2cam_extrinsic.rotation", lidar2cam_rotation);
@@ -102,16 +108,16 @@ private:
         /**
          * @todo create pointcloud with added reverse cam2ground - this should match closely!
          * @todo use a bigger image to plot
-         * @todo do the transform manually dont use 
+         * @todo do the transform manually dont use
          */
 
 
-/**
- * @brief Looks like transform are not being read in correct
- * -start wth hardcoding the defaults
- * 
- * - other weird issue with the detections converted to pc2 hare weirdly rotated
- */
+        /**
+         * @brief Looks like transform are not being read in correct
+         * -start wth hardcoding the defaults
+         *
+         * - other weird issue with the detections converted to pc2 hare weirdly rotated
+         */
         Eigen::Affine3f lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
         Eigen::Affine3f lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
             lidarData2lidarSensor_translation);
@@ -124,11 +130,6 @@ private:
         // If we dont do this the points dont align with the image.
         Eigen::Affine3f transformation_matrix = lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
 
-        std::cout << lidar2cam.matrix() << std::endl;
-
-        std::cout << lidarData2lidarSensor.matrix() << std::endl;
-
-        std::cout << sensor2world.inverse().matrix() << std::endl;
         /**
          * @todo this is awful make elegant
          */
@@ -180,7 +181,7 @@ private:
             cv::Point2f p = points2d[i];
 
             cv::circle(cv_ptr->image, p, 6, CV_RGB(255, 0, 0), -1);
-            RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f", p.x, p.y);
+            // RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f", p.x, p.y);
         }
 
         // Convert the OpenCV image to a ROS image message using cv_bridge
@@ -221,8 +222,14 @@ private:
         cloud.points.push_back(pcl::PointXYZ(+x_len, +y_len, -z_len));
         cloud.points.push_back(pcl::PointXYZ(+x_len, +y_len, +z_len));
 
+        geometry_msgs::msg::Pose pose;
+        pose.position = bbox.center.position;
+        // RCLCPP_INFO(
+        //     this->get_logger(), "%f, %f, %f", bbox.center.orientation.x, bbox.center.orientation.y,
+        //     bbox.center.orientation.z);
+
         // Orient the cube
-        Eigen::Affine3f transform = pose2Transform(bbox.center);
+        Eigen::Affine3f transform = pose2Transform(pose);
         pcl::transformPointCloud(cloud, cloud, transform);
 
         return cloud;
@@ -233,7 +240,10 @@ private:
         Eigen::Affine3f output = Eigen::Affine3f::Identity();
 
         // Reshape/map vector to a 3x3 Eigen rotation matrix
-        output.rotate(Eigen::Map<Eigen::Matrix3f>((float*)rot.data()));
+        Eigen::Map<Eigen::Matrix3d> matrix(rot.data(), 3, 3);
+        Eigen::Matrix3f matrix_f = matrix.cast<float>();
+
+        output.linear() = matrix_f;
 
         // Set the translation component
         output.translation() << trans[0], trans[1], trans[2];
