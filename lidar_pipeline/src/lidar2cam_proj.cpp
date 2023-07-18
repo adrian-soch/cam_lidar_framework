@@ -106,29 +106,24 @@ private:
         }
 
         /**
-         * @todo create pointcloud with added reverse cam2ground - this should match closely!
-         * @todo use a bigger image to plot
-         * @todo do the transform manually dont use
-         */
-
-
-        /**
-         * @brief Looks like transform are not being read in correct
-         * -start wth hardcoding the defaults
+         * @brief Now that converted 3dbbox points match the processed input(with lag)
+         *  We need the 3dbbox to match the original input (before cam2ground) [DONE]
          *
-         * - other weird issue with the detections converted to pc2 hare weirdly rotated
+         * We need to perform the projection calcs manually
          */
+
         Eigen::Affine3f lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
         Eigen::Affine3f lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
             lidarData2lidarSensor_translation);
 
         Eigen::Affine3f sensor2world = Eigen::Affine3f::Identity();
         sensor2world.translation() << 0.0, 0.0, 12.0;
-        sensor2world.rotate(Eigen::Quaternionf(0.0, 0.1110353, 0.0, 0.9938165));
+        sensor2world.rotate(Eigen::Quaternionf(0.0, 0.2010779, 0.0, 0.9795752));
 
         // Use the inverse of the of lidar2ground transformed used furher up the pipeline
         // If we dont do this the points dont align with the image.
-        Eigen::Affine3f transformation_matrix = lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
+        Eigen::Affine3f transformation_matrix  = Eigen::Affine3f::Identity();
+        Eigen::Affine3f transformation_matrix2 = lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
 
         /**
          * @todo this is awful make elegant
@@ -137,7 +132,7 @@ private:
         std::vector<pcl::PointCloud<pcl::PointXYZ> > clouds;
         for(auto det: lidar_track->detections) {
             pcl::PointCloud<pcl::PointXYZ> cloud = center_size2points(det.bbox);
-            pcl::transformPointCloud(cloud, cloud, transformation_matrix);
+            pcl::transformPointCloud(cloud, cloud, transformation_matrix2);
             clouds.push_back(cloud);
 
             // Convert the cloud to a vector of cv::Point3f objects
@@ -207,7 +202,7 @@ private:
         // Get 8 vertices relative to each other
         float x_len = bbox.size.x / 2.0;
         float y_len = bbox.size.y / 2.0;
-        float z_len = 1.0;
+        float z_len = bbox.size.z / 2.0;
 
         pcl::PointCloud<pcl::PointXYZ> cloud;
 
@@ -223,10 +218,9 @@ private:
         cloud.points.push_back(pcl::PointXYZ(+x_len, +y_len, +z_len));
 
         geometry_msgs::msg::Pose pose;
-        pose.position = bbox.center.position;
+        pose = bbox.center;
         // RCLCPP_INFO(
-        //     this->get_logger(), "%f, %f, %f", bbox.center.orientation.x, bbox.center.orientation.y,
-        //     bbox.center.orientation.z);
+        //     this->get_logger(), "%f, %f", pose.position.z, pose.orientation.z);
 
         // Orient the cube
         Eigen::Affine3f transform = pose2Transform(pose);
@@ -255,8 +249,8 @@ private:
     {
         Eigen::Affine3f output = Eigen::Affine3f::Identity();
 
-        output.rotate(Eigen::Quaternionf(pose.orientation.x, pose.orientation.y, pose.orientation.z,
-          pose.orientation.w));
+        output.rotate(Eigen::Quaternionf(pose.orientation.w, pose.orientation.x, pose.orientation.y,
+          pose.orientation.z));
         output.translation() << pose.position.x, pose.position.y, pose.position.z;
         return output;
     }
