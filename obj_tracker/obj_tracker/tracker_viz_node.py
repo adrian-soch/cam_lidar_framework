@@ -61,17 +61,9 @@ class DetectorNode(Node):
             marker.type = Marker.CUBE
             marker.action = Marker.ADD
             marker.pose.position = pos
-            marker.scale.x = size.x
-            marker.scale.y = size.y
+            marker.scale = size
 
             marker.pose.orientation = quat
-
-            # Fixed height based on length
-            if size.x > 6 or size.y > 6:
-                marker.scale.z = 3.2
-            else:
-                marker.scale.z = 2.0
-            marker.pose.position.z = marker.scale.z/2.0
 
             marker.color.a = 0.6
             marker.color.r = r

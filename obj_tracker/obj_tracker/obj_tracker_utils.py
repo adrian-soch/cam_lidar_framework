@@ -42,8 +42,16 @@ def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
             det.bbox.center.position.y = trk[1]
             det.bbox.size.x = x_len
             det.bbox.size.y = y_len
+
+            # Fixed height based on length
+            if det.bbox.size.x > 6 or det.bbox.size.y > 6:
+                det.bbox.size.z = 3.2
+            else:
+                det.bbox.size.z = 2.0
+            det.bbox.center.position.z = det.bbox.size.z/2.0
             
             q = quaternion_from_euler(0, 0, trk[4])
+
             det.bbox.center.orientation.x = q[0]
             det.bbox.center.orientation.y = q[1]
             det.bbox.center.orientation.z = q[2]
