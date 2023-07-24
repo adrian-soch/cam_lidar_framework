@@ -115,6 +115,7 @@ private:
         Eigen::Affine3f lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
         Eigen::Affine3f lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
             lidarData2lidarSensor_translation);
+        Eigen::Affine3f cam_mat = param2Transform(camera_matrix_rotation, camera_matrix_translation);
 
         Eigen::Affine3f sensor2world = Eigen::Affine3f::Identity();
         sensor2world.translation() << 0.0, 0.0, 12.0;
@@ -122,62 +123,36 @@ private:
 
         // Use the inverse of the of lidar2ground transformed used furher up the pipeline
         // If we dont do this the points dont align with the image.
-        Eigen::Affine3f transformation_matrix  = Eigen::Affine3f::Identity();
-        Eigen::Affine3f transformation_matrix2 = lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
+        // Eigen::Affine3f transformation_matrix = cam_mat * lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
+        Eigen::Affine3f transformation_matrix = cam_mat * lidar2cam * sensor2world.inverse();
 
-        /**
-         * @todo this is awful make elegant
-         */
-        std::vector<cv::Point3f> points3d;
         std::vector<pcl::PointCloud<pcl::PointXYZ> > clouds;
         for(auto det: lidar_track->detections) {
             pcl::PointCloud<pcl::PointXYZ> cloud = center_size2points(det.bbox);
-            pcl::transformPointCloud(cloud, cloud, transformation_matrix2);
             clouds.push_back(cloud);
+        }
 
-            // Convert the cloud to a vector of cv::Point3f objects
+        pcl::PointCloud<pcl::PointXYZ> final_cloud;
+        for(auto c: clouds) {
+            final_cloud += c;
+        }
 
-            for(size_t i = 0; i < cloud.size(); i++) {
-                // Get the point from the cloud
-                pcl::PointXYZ p = cloud.points[i];
+        // Transform the 3xN matrix
+        pcl::transformPointCloud(final_cloud, final_cloud, transformation_matrix);
 
-                // Create a cv::Point3f object from the point
-                cv::Point3f p3d(p.x, p.y, p.z);
-                points3d.push_back(p3d);
+        for(size_t i = 0; i < final_cloud.size(); i++) {
+            pcl::PointXYZ p = final_cloud.points[i];
+
+            if(abs(p.z) < 0.000001) {
+                continue;
             }
+
+            cv::Point2f p2d(p.x / p.z, p.y / p.z);
+
+            cv::circle(cv_ptr->image, p2d, 6, CV_RGB(255, 0, 0), -1);
+            RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f", p.x, p.y);
         }
 
-        // Create an output vector of cv::Point2f objects
-        std::vector<cv::Point2f> points2d;
-
-        // Convert rotation matrix to cv::mat rot vector
-        cv::Mat R_cv, rvec;
-        Eigen::Matrix3f R = transformation_matrix.rotation();
-        eigen2cv(R, R_cv); // convert to cv::mat
-        cv::Rodrigues(R_cv, rvec);
-
-        // Convert eigen translation vec to cv::mat
-        cv::Mat tvec;
-        Eigen::Vector3f trans = transformation_matrix.translation();
-        eigen2cv(trans, tvec);
-
-        // Convert cam_matrix to cv::mat
-        cv::Mat cam_mat(3, 3, CV_64F, camera_matrix_rotation.data());
-
-        // Create empty camera distortion coeff
-        std::vector<float> dist_coeff;
-
-        // Project the 3D points to 2D using OpenCV
-        cv::projectPoints(points3d, rvec, tvec, cam_mat, dist_coeff, points2d);
-
-        // Loop over the output vector and draw the projected points on the image
-        for(size_t i = 0; i < points2d.size(); i++) {
-            // Get the point from the vector
-            cv::Point2f p = points2d[i];
-
-            cv::circle(cv_ptr->image, p, 6, CV_RGB(255, 0, 0), -1);
-            // RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f", p.x, p.y);
-        }
 
         // Convert the OpenCV image to a ROS image message using cv_bridge
         sensor_msgs::msg::Image::SharedPtr processed_msg = cv_ptr->toImageMsg();
@@ -185,11 +160,6 @@ private:
 
         // Publish the processed image
         pub_->publish(*processed_msg);
-
-        pcl::PointCloud<pcl::PointXYZ> final_cloud;
-        for(auto c: clouds) {
-            final_cloud += c;
-        }
 
         sensor_msgs::msg::PointCloud2::SharedPtr pc2_cloud(new sensor_msgs::msg::PointCloud2);
         pcl::toROSMsg(final_cloud, *pc2_cloud);
