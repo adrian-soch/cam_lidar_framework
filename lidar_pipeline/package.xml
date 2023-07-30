@@ -5,9 +5,8 @@
   <description>
      The lidar_pipeline package
   </description>
-  <author email="cgomez@swri.org">cgomez</author>
-  <author email="tiffany.cappellari@swri.org">tcappellari</author>
-  <maintainer email="tiffany.cappellari@swri.org">tcappellari</maintainer>
+  <author email="sochania@mcmaster.ca">asochaniwsky</author>
+  <maintainer email="sochania@mcmaster.ca">asochaniwsky</maintainer>
   <license>BSD</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
