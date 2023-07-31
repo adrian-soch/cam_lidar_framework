@@ -36,8 +36,10 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
     }
 
-    sensor_msgs::msg::PointCloud2 transformed_cloud;
-    pcl_ros::transformPointCloud(world_frame, stransform, *recent_cloud, transformed_cloud);
+    sensor_msgs::msg::PointCloud2 transformed_cloud = *recent_cloud;
+
+    // sensor_msgs::msg::PointCloud2 transformed_cloud;
+    // pcl_ros::transformPointCloud(world_frame, stransform, *recent_cloud, transformed_cloud);
 
     /* ========================================
     * CONVERT PointCloud2 ROS->PCL

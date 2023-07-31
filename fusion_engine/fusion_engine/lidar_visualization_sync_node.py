@@ -127,7 +127,6 @@ class LidarNode(Node):
         # from dataFrame -> sensorFrame -> cameraFrame
         #       (3*4) @ (4*4) @ (4*N) = (3*N)
         temp = self.camera_mat @ self.l2c_mat @  self.ld2ls_mat @ xyz1.T
-        print(self.camera_mat @ self.l2c_mat @  self.ld2ls_mat)
 
         '''
         Project pc to img

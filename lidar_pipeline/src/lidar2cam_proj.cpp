@@ -23,10 +23,6 @@
 #include <pcl/common/transforms.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <opencv2/calib3d.hpp>
-#include <opencv2/core/eigen.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
 #include <cv_bridge/cv_bridge.h>
 
 using namespace message_filters;
@@ -85,14 +81,24 @@ public:
 
         // Register a callback for the synchronized messages
         sync_->registerCallback(&Lidar2CameraProjector::callback, this);
+
+        lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
+        lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
+            lidarData2lidarSensor_translation);
+        cam_mat = param2Transform(camera_matrix_rotation, camera_matrix_translation);
+
+        sensor2world = Eigen::Affine3f::Identity();
+        sensor2world.translation() << 0.0, 0.0, 12.0;
+        sensor2world.rotate(Eigen::Quaternionf(0.9795752, 0.0, 0.2010779, 0.0));
     }
 
 private:
     void callback(const sensor_msgs::msg::Image::ConstSharedPtr & image,
       const vision_msgs::msg::Detection3DArray::ConstSharedPtr  & lidar_track)
     {
-        RCLCPP_INFO(this->get_logger(), "Received an image and a detection");
+        auto start = std::chrono::high_resolution_clock::now();
 
+        RCLCPP_INFO(this->get_logger(), "Received an image and a detection");
 
         cv_bridge::CvImagePtr cv_ptr;
         try
@@ -105,26 +111,11 @@ private:
             return;
         }
 
-        /**
-         * @brief Now that converted 3dbbox points match the processed input(with lag)
-         *  We need the 3dbbox to match the original input (before cam2ground) [DONE]
-         *
-         * We need to perform the projection calcs manually
-         */
-
-        Eigen::Affine3f lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
-        Eigen::Affine3f lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
-            lidarData2lidarSensor_translation);
-        Eigen::Affine3f cam_mat = param2Transform(camera_matrix_rotation, camera_matrix_translation);
-
-        Eigen::Affine3f sensor2world = Eigen::Affine3f::Identity();
-        sensor2world.translation() << 0.0, 0.0, 12.0;
-        sensor2world.rotate(Eigen::Quaternionf(0.0, 0.2010779, 0.0, 0.9795752));
-
         // Use the inverse of the of lidar2ground transformed used furher up the pipeline
         // If we dont do this the points dont align with the image.
-        // Eigen::Affine3f transformation_matrix = cam_mat * lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
-        Eigen::Affine3f transformation_matrix = cam_mat * lidar2cam * sensor2world.inverse();
+        Eigen::Affine3f proj_matrix = cam_mat * lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
+        // Eigen::Affine3f transformation_matrix = sensor2world.inverse(); // USE THIS FOR EXTERNAL PROJECTION CODE
+
 
         std::vector<pcl::PointCloud<pcl::PointXYZ> > clouds;
         for(auto det: lidar_track->detections) {
@@ -132,27 +123,23 @@ private:
             clouds.push_back(cloud);
         }
 
-        pcl::PointCloud<pcl::PointXYZ> final_cloud;
+        pcl::PointCloud<pcl::PointXYZ> final_cloud, proj_cloud;
         for(auto c: clouds) {
             final_cloud += c;
         }
+        proj_cloud = final_cloud;
 
         // Transform the 3xN matrix
-        pcl::transformPointCloud(final_cloud, final_cloud, transformation_matrix);
+        // pcl::transformPointCloud(final_cloud, final_cloud, transformation_matrix);
+        pcl::transformPointCloud(proj_cloud, proj_cloud, proj_matrix);
 
-        for(size_t i = 0; i < final_cloud.size(); i++) {
-            pcl::PointXYZ p = final_cloud.points[i];
 
-            if(abs(p.z) < 0.000001) {
-                continue;
-            }
-
+        for(size_t i = 0; i < proj_cloud.size(); i++) {
+            pcl::PointXYZ p = proj_cloud.points[i];
             cv::Point2f p2d(p.x / p.z, p.y / p.z);
-
             cv::circle(cv_ptr->image, p2d, 6, CV_RGB(255, 0, 0), -1);
-            RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f", p.x, p.y);
+            // RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f", p2d.x, p2d.y);
         }
-
 
         // Convert the OpenCV image to a ROS image message using cv_bridge
         sensor_msgs::msg::Image::SharedPtr processed_msg = cv_ptr->toImageMsg();
@@ -165,6 +152,10 @@ private:
         pcl::toROSMsg(final_cloud, *pc2_cloud);
         pc2_cloud->header = lidar_track->header;
         pc_pub_->publish(*pc2_cloud);
+
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+        RCLCPP_INFO(get_logger(), "Time (msec): %ld", t_ms.count());
     } // callback
 
     pcl::PointCloud<pcl::PointXYZ> center_size2points(vision_msgs::msg::BoundingBox3D bbox)
@@ -189,8 +180,6 @@ private:
 
         geometry_msgs::msg::Pose pose;
         pose = bbox.center;
-        // RCLCPP_INFO(
-        //     this->get_logger(), "%f, %f", pose.position.z, pose.orientation.z);
 
         // Orient the cube
         Eigen::Affine3f transform = pose2Transform(pose);
@@ -203,11 +192,8 @@ private:
     {
         Eigen::Affine3f output = Eigen::Affine3f::Identity();
 
-        // Reshape/map vector to a 3x3 Eigen rotation matrix
-        Eigen::Map<Eigen::Matrix3d> matrix(rot.data(), 3, 3);
-        Eigen::Matrix3f matrix_f = matrix.cast<float>();
-
-        output.linear() = matrix_f;
+        // Set rotational component
+        output.linear() << rot[0], rot[1], rot[2], rot[3], rot[4], rot[5], rot[6], rot[7], rot[8];
 
         // Set the translation component
         output.translation() << trans[0], trans[1], trans[2];
@@ -231,6 +217,8 @@ private:
     std::string lidar_track_topic;
     std::string cam_track_topic;
     std::string cam_result_topic;
+
+    Eigen::Affine3f lidar2cam, lidarData2lidarSensor, cam_mat, sensor2world;
 
     std::vector<double> lidar2cam_translation;
     std::vector<double> lidar2cam_rotation;
