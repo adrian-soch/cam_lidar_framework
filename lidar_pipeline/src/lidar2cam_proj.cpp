@@ -17,6 +17,7 @@
 
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <vision_msgs/msg/detection2_d_array.hpp>
 #include <vision_msgs/msg/detection3_d_array.hpp>
 
 #include <pcl/common/common.h>
@@ -71,8 +72,8 @@ public:
         sub_detection_ = std::make_shared<Subscriber<vision_msgs::msg::Detection3DArray> >(this, lidar_track_topic);
 
         // Create publisher
-        pub_    = this->create_publisher<sensor_msgs::msg::Image>("image_proc/projected_dets", 1);
-        pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("lidar_proc/projected_dets_debug", 1);
+        pub_      = this->create_publisher<sensor_msgs::msg::Image>("image_proc/projected_dets", 1);
+        proj_pub_ = this->create_publisher<vision_msgs::msg::Detection2DArray>("image_proc/lidar_track_2D", 1);
 
         // Create a sync policy using the approximate time synchronizer
         sync_ = std::make_shared<Synchronizer<sync_policies::ApproximateTime<sensor_msgs::msg::Image,
@@ -130,15 +131,13 @@ private:
         proj_cloud = final_cloud;
 
         // Transform the 3xN matrix
-        // pcl::transformPointCloud(final_cloud, final_cloud, transformation_matrix);
         pcl::transformPointCloud(proj_cloud, proj_cloud, proj_matrix);
 
-
+        // Project to 2D, divide x, y by z
         for(size_t i = 0; i < proj_cloud.size(); i++) {
             pcl::PointXYZ p = proj_cloud.points[i];
             cv::Point2f p2d(p.x / p.z, p.y / p.z);
             cv::circle(cv_ptr->image, p2d, 6, CV_RGB(255, 0, 0), -1);
-            // RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f", p2d.x, p2d.y);
         }
 
         // Convert the OpenCV image to a ROS image message using cv_bridge
@@ -147,11 +146,7 @@ private:
 
         // Publish the processed image
         pub_->publish(*processed_msg);
-
-        sensor_msgs::msg::PointCloud2::SharedPtr pc2_cloud(new sensor_msgs::msg::PointCloud2);
-        pcl::toROSMsg(final_cloud, *pc2_cloud);
-        pc2_cloud->header = lidar_track->header;
-        pc_pub_->publish(*pc2_cloud);
+        // proj_pub_->publish();
 
         auto stop = std::chrono::high_resolution_clock::now();
         auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
@@ -233,7 +228,7 @@ private:
       vision_msgs::msg::Detection3DArray> > > sync_;
 
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pc_pub_;
+    rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr proj_pub_;
 };
 
 int main(int argc, char** argv)

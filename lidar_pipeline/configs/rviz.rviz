@@ -3,9 +3,10 @@ Panels:
     Help Height: 138
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /Global Options1
       Splitter Ratio: 0.4651404917240143
-    Tree Height: 681
+    Tree Height: 892
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -60,13 +61,13 @@ Visualization Manager:
       Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 3804
+      Max Intensity: 3407
       Min Color: 0; 0; 0
       Min Intensity: 1
       Name: OG Data
       Position Transformer: XYZ
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 6
       Size (m): 0.009999999776482582
       Style: Points
       Topic:
@@ -108,9 +109,9 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 1912
+      Max Intensity: 516
       Min Color: 0; 0; 0
-      Min Intensity: 4
+      Min Intensity: 6
       Name: Stat Cluster
       Position Transformer: XYZ
       Selectable: true
@@ -139,7 +140,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 500
@@ -148,7 +149,7 @@ Visualization Manager:
       Name: Crop Cluster
       Position Transformer: XYZ
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 4
       Size (m): 0.009999999776482582
       Style: Points
       Topic:
@@ -160,7 +161,7 @@ Visualization Manager:
         Value: /clouds/crop_cluster
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -171,18 +172,18 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz_default_plugins/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: Intensity
+      Color Transformer: FlatColor
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 3667
+      Max Intensity: 3287
       Min Color: 0; 0; 0
-      Min Intensity: 2
+      Min Intensity: 5
       Name: Voxel Cluster
       Position Transformer: XYZ
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 1
       Size (m): 0.75
       Style: Points
       Topic:
@@ -194,19 +195,19 @@ Visualization Manager:
         Value: /clouds/voxel_cluster
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/MarkerArray
-      Enabled: true
+      Enabled: false
       Name: Oriented BBox
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /lidar_proc/obboxes
-      Value: true
+      Value: false
     - Class: rviz_default_plugins/MarkerArray
       Enabled: false
       Name: Range Cylinder
@@ -246,9 +247,9 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 1912
+      Max Intensity: 516
       Min Color: 0; 0; 0
-      Min Intensity: 4
+      Min Intensity: 6
       Name: Plane Cluster
       Position Transformer: XYZ
       Selectable: true
@@ -363,7 +364,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 91.41773223876953
+      Distance: 104.8276138305664
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -378,10 +379,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5197961926460266
+      Pitch: 0.7547956109046936
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.7404425144195557
+      Yaw: 2.520439386367798
     Saved: ~
 Window Geometry:
   3D Detection Projection:
@@ -390,12 +391,12 @@ Window Geometry:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 2032
+  Height: 2432
   Hide Left Dock: false
   Hide Right Dock: true
   OG Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000580000006eefc020000000bfb0000001200530065006c0065006300740069006f006e00000001e10000009b000000b000fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000006e000003a10000018200fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000010004f004700200049006d00610067006500000002fa000004620000004a00fffffffb0000002000430061006d00200054007200610063006b00200052006500730075006c007400000003b4000003a80000004a00fffffffb0000002e0033004400200044006500740065006300740069006f006e002000500072006f006a0065006300740069006f006e010000041b000003410000004a00ffffff000000010000015f000006eefc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000006e000006ee0000013200fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000e840000005afc0100000002fb0000000800540069006d0065010000000000000e840000057100fffffffb0000000800540069006d00650100000000000004500000000000000000000008f8000006ee00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000005800000087efc020000000bfb0000001200530065006c0065006300740069006f006e00000001e10000009b000000b000fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000006e000004740000018200fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000010004f004700200049006d00610067006500000002fa000004620000004a00fffffffb0000002000430061006d00200054007200610063006b00200052006500730075006c007400000003b4000003a80000004a00fffffffb0000002e0033004400200044006500740065006300740069006f006e002000500072006f006a0065006300740069006f006e01000004ee000003fe0000004a00ffffff000000010000015f000006eefc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000006e000006ee0000013200fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000f840000005afc0100000002fb0000000800540069006d0065010000000000000f840000057100fffffffb0000000800540069006d00650100000000000004500000000000000000000009f80000087e00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -404,6 +405,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: true
-  Width: 3716
-  X: 594
-  Y: 159
+  Width: 3972
+  X: 124
+  Y: 54

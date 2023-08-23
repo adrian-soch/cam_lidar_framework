@@ -113,9 +113,8 @@ def generate_launch_description():
     
     # Items above will only be launched if they are present in this list
     return LaunchDescription([
-        s_transform2,
         lidar_tracker,
-        # lidar2image_node,
+        lidar2image_node,
         perception_node,
         execute_camera_processor,
         s_transform,
