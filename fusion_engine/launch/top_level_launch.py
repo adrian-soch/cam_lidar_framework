@@ -33,15 +33,11 @@ def generate_launch_description():
     # Run the camera processing script in the correct folder
     #   becuase there are many includes and colcon build doesnt like
     #   running it as a fomrmal package
-    execute_camera_processor = ExecuteProcess(
-        cmd=[[
-            'python3 ./camera_processing_node.py'
-        ]],
-        cwd=[ABS_PATH_TO_FUSION_ENGINE],
-        shell=True,
-        name='camera_processor',
-        emulate_tty=True
-    )
+    execute_camera_processor = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory(PACKAGE),
+            'cam_processor_launch.py')])
+        )
 
     # Play the rosbag in the supplied folder
     rosbag_play = ExecuteProcess(
@@ -57,7 +53,7 @@ def generate_launch_description():
     # Items above will only be launched if they are present in this list
     return LaunchDescription([
         rviz_node,
-        # execute_camera_processor,
+        execute_camera_processor,
         rosbag_play
         # ouster_lidar
    ])

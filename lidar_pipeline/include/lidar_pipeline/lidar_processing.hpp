@@ -4,9 +4,9 @@
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
  * @version 0.1
  * @date 2023-03-05
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
 #ifndef LIDAR_PROCESSING_HPP_
@@ -17,33 +17,30 @@
 #include <iostream>
 
 #include "rclcpp/rclcpp.hpp"
-#include <rclcpp/qos.hpp>
-#include <std_msgs/msg/color_rgba.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <visualization_msgs/msg/marker.hpp>
-#include <visualization_msgs/msg/marker_array.hpp>
+#include <builtin_interfaces/msg/time.hpp>
 #include <geometry_msgs/msg/point.hpp>
+#include <rclcpp/qos.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <std_msgs/msg/color_rgba.hpp>
+#include <tf2/transform_datatypes.h>
 #include <vision_msgs/msg/bounding_box3_d.hpp>
 #include <vision_msgs/msg/detection3_d.hpp>
 #include <vision_msgs/msg/detection3_d_array.hpp>
 #include <vision_msgs/msg/object_hypothesis_with_pose.hpp>
-#include <tf2/transform_datatypes.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <builtin_interfaces/msg/time.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 
 #include <pcl/features/moment_of_inertia_estimation.h>
 
-#include <pcl_ros/transforms.hpp>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl_ros/transforms.hpp>
 
 #include <tf2/convert.h>
-#include <tf2_eigen/tf2_eigen.h>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2_eigen/tf2_eigen.h>
 
 namespace lidar_pipeline
 {
-
 class LidarProcessing : public rclcpp::Node
 {
 public:
@@ -56,16 +53,16 @@ public:
         RCLCPP_INFO(this->get_logger(), "Setting up publishers");
 
         voxel_grid_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/voxel_cluster", 1);
-        crop_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/crop_cluster", 1);
-        plane_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/plane_cluster", 1);
-        stat_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/stat_cluster", 1);
+        crop_pub_       = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/crop_cluster", 1);
+        plane_pub_      = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/plane_cluster", 1);
+        stat_pub_       = this->create_publisher<sensor_msgs::msg::PointCloud2>("clouds/stat_cluster", 1);
 
-        marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("lidar_proc/aabboxes", 1);
-        marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/obboxes", 1);
+        marker_pub_             = this->create_publisher<visualization_msgs::msg::Marker>("lidar_proc/aabboxes", 1);
+        marker_array_pub_       = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/obboxes", 1);
         range_marker_array_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("lidar_proc/ranges", 1);
 
         aa_detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/aa_detections", 1);
-        o_detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/o_detections", 1);
+        o_detection_pub_  = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/o_detections", 1);
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -83,11 +80,11 @@ public:
         this->declare_parameter("cluster_tol", 1.35);
         this->declare_parameter("cluster_min_size", 2);
         this->declare_parameter("cluster_max_size", 2000);
-        this->declare_parameter<std::vector<double>>("lidar2world_transform.translation", {0.0});
-        this->declare_parameter<std::vector<double>>("lidar2world_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
-        this->declare_parameter<std::vector<double>>("crop_box_transform.translation", {0.0});
-        this->declare_parameter<std::vector<double>>("crop_box_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
-        this->declare_parameter<std::vector<double>>("crop_box_transform.size", {1.0, 1.0, 1.0});
+        this->declare_parameter<std::vector<double> >("lidar2world_transform.translation", { 0.0 });
+        this->declare_parameter<std::vector<double> >("lidar2world_transform.quaternion", { 1.0, 0.0, 0.0, 0.0 });
+        this->declare_parameter<std::vector<double> >("crop_box_transform.translation", { 0.0 });
+        this->declare_parameter<std::vector<double> >("crop_box_transform.quaternion", { 1.0, 0.0, 0.0, 0.0 });
+        this->declare_parameter<std::vector<double> >("crop_box_transform.size", { 1.0, 1.0, 1.0 });
 
         // Get values from cmd line or YAML
         this->get_parameter("cloud_topic", cloud_topic);
@@ -111,24 +108,17 @@ public:
         RCLCPP_INFO(this->get_logger(), "Setting up subscriber");
 
         cloud_subscriber_ =
-            this->create_subscription<sensor_msgs::msg::PointCloud2>(
-                cloud_topic, 1, std::bind(&LidarProcessing::cloud_callback, this, std::placeholders::_1));
-
-        /*
-         * SET UP TF
-         */
-        tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-        br = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+          this->create_subscription<sensor_msgs::msg::PointCloud2>(
+            cloud_topic, 1, std::bind(&LidarProcessing::cloud_callback, this, std::placeholders::_1));
     }
 
 private:
-    struct CubePoints{
+    struct CubePoints {
         std::vector<Eigen::Vector4f> max_pts;
         std::vector<Eigen::Vector4f> min_pts;
     };
 
-    enum Axis {X, Y, Z};
+    enum Axis { X, Y, Z };
 
     /*
      * Sub and Pub
@@ -169,105 +159,107 @@ private:
     // Create cloud operation object
     Operations<pcl::PointXYZI> cloud_ops;
 
-    /*
-     * TF
-     */
-    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
-    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-    std::unique_ptr<tf2_ros::TransformBroadcaster> br;
-
-
     /**
-     * @brief Executed when a point cloud is received. Must execute faster 
+     * @brief Executed when a point cloud is received. Must execute faster
      *          than the pointcloud publishing period. (Typically 100ms)
-     * 
-     * @param recent_cloud 
+     *
+     * @param recent_cloud
      */
-    void cloud_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr recent_cloud);
+    void
+    cloud_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr recent_cloud);
 
     /**
      * @brief Get axis aligned bounding box object
-     * 
-     * @tparam PointT 
-     * @param cloud_cluster 
-     * @return vision_msgs::msg::BoundingBox3D 
+     *
+     * @tparam PointT
+     * @param cloud_cluster
+     * @return vision_msgs::msg::BoundingBox3D
      */
-    template <typename PointT>
-    vision_msgs::msg::BoundingBox3D getAxisAlignedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
+    template<typename PointT>
+    vision_msgs::msg::BoundingBox3D
+    getAxisAlignedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
 
     /**
      * @brief Get the Oriented Bouding Box object
-     * 
-     * @tparam PointT 
-     * @param cloud_cluster 
-     * @return vision_msgs::msg::BoundingBox3D 
+     *
+     * @tparam PointT
+     * @param cloud_cluster
+     * @return vision_msgs::msg::BoundingBox3D
      */
-    template <typename PointT>
-    vision_msgs::msg::BoundingBox3D getOrientedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
+    template<typename PointT>
+    vision_msgs::msg::BoundingBox3D
+    getOrientedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
 
     /**
      * @brief Simple bbounding box dimension based classier
-     * 
-     * @param bb 
-     * @return std::string 
+     *
+     * @param bb
+     * @return std::string
      */
-    std::string simpleClassifier(const vision_msgs::msg::BoundingBox3D bb);
+    std::string
+    simpleClassifier(const vision_msgs::msg::BoundingBox3D bb);
 
     /**
      * @brief Get the Bbox Color R G B A object
-     * 
-     * @param id 
-     * @param out 
+     *
+     * @param id
+     * @param out
      */
-    void getBboxColorRGBA(const std::string id, std_msgs::msg::ColorRGBA *out);
+    void
+    getBboxColorRGBA(const std::string id, std_msgs::msg::ColorRGBA* out);
 
     /**
      * @brief Publish a pointcloud
-     * 
-     * @param publisher 
-     * @param point_cloud 
+     *
+     * @param publisher
+     * @param point_cloud
      */
-    template <typename PointT>
-    void publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
-            const pcl::PointCloud<PointT> &point_cloud);
+    template<typename PointT>
+    void
+    publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
+      const pcl::PointCloud<PointT>                                               &point_cloud);
 
-    void publish3DBBox(rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr publisher,
-        const std::vector<geometry_msgs::msg::Point>& line_list);
+    void
+    publish3DBBox(rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr publisher,
+      const std::vector<geometry_msgs::msg::Point>                              & line_list);
 
     /**
      * @brief Publish the 3D boubnding box as a cube list marker array
-     * 
-     * @param publisher 
-     * @param bboxes 
+     *
+     * @param publisher
+     * @param bboxes
      */
-    void publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher,
-        const std::vector<vision_msgs::msg::Detection3D>& bboxes);
+    void
+    publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher,
+      const std::vector<vision_msgs::msg::Detection3D>                                  & bboxes);
 
     /**
      * @brief Publish 3D object detections
-     * 
-     * @param publisher 
-     * @param detections 
+     *
+     * @param publisher
+     * @param detections
      */
-    void publishDetections(rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr publisher,
-        const std::vector<vision_msgs::msg::Detection3D>& detections);
+    void
+    publishDetections(rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr publisher,
+      const std::vector<vision_msgs::msg::Detection3D>                                 & detections);
 
     /**
      * @brief Convert 3D min/max points into a set of points representing vertices of a cube
      *          the vertices are in pairs that create each line segment of a 3D box
-     * 
-     * @param max_min_pts 
-     * @return std::vector<geometry_msgs::msg::Point> 
+     *
+     * @param max_min_pts
+     * @return std::vector<geometry_msgs::msg::Point>
      */
-    std::vector<geometry_msgs::msg::Point> minMax2lines(CubePoints &max_min_pts);
+    std::vector<geometry_msgs::msg::Point>
+    minMax2lines(CubePoints &max_min_pts);
 
     /**
      * @brief Publish range markers with respect to the sensor position
-     * 
-     * @param publisher 
+     *
+     * @param publisher
      */
-    void publishDistanceMarkers(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher);
+    void
+    publishDistanceMarkers(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher);
 };
-
 } // end namespace perceptions_node
-#endif
+#endif // ifndef LIDAR_PROCESSING_HPP_

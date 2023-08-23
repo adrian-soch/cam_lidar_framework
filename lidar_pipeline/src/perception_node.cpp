@@ -11,7 +11,7 @@
 
 #include "lidar_pipeline/lidar_processing.hpp"
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<lidar_pipeline::LidarProcessing>();

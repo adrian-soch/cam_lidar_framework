@@ -17,6 +17,8 @@ import rclpy
 from camera_processing import vision_track
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from vision_msgs.msg import ObjectHypothesisWithPose
+from vision_msgs.msg import Detection2D, Detection2DArray
 
 from cv_bridge import CvBridge
 
@@ -40,7 +42,8 @@ class ImageSubscriber(Node):
         self.get_logger().info('Image subscriber created.')
 
         # Create Publisher to output annotated results
-        self.publisher_ = self.create_publisher(Image, 'image2', 5)
+        self.result_pub_ = self.create_publisher(Image, 'image_proc/result', 5)
+        self.track_pub_ = self.create_publisher(Detection2DArray, 'image_proc/tracks', 5)
 
         # Used to convert between ROS and OpenCV images
         self.br = CvBridge()
@@ -59,15 +62,49 @@ class ImageSubscriber(Node):
 
         out_img = cv2.flip(current_frame, -1)
 
-        _, out_img = self.tracker.update(current_frame, return_image=True)
+        tracks, out_img = self.tracker.update(current_frame, return_image=True)
 
+        # Pub track results
+        track_msg_arr = createDetection2DArr(tracks, msg.header)
+        self.track_pub_.publish(track_msg_arr)
+
+        # Pub visual results
         out_msg = self.br.cv2_to_imgmsg(out_img)
         out_msg.header = msg.header
-
-        self.publisher_.publish(out_msg)
+        self.result_pub_.publish(out_msg)
 
         t5 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info(str(t5-t1))
+
+def createDetection2DArr(tracks, header) -> Detection2DArray:
+    """Convert tracker output to message for publishing
+
+    Args:
+        tracks (ndarray): Array of the form [[x1,y1,x2,y2,id], [x1,y1,x2,y2,id], ...]
+
+    Returns:
+        Detection2DArray
+    """
+    out = Detection2DArray()
+    out.header = header
+
+    for trk in tracks:
+        det = Detection2D()
+
+        result = ObjectHypothesisWithPose()
+        result.hypothesis.score = trk[4]
+        det.results.append(result)
+
+        x_len = trk[2] - trk[0]
+        y_len = trk[3] - trk[1]
+
+        det.bbox.center.x = x_len/2.0 + trk[0]
+        det.bbox.center.y = y_len/2.0 + trk[1]
+        det.bbox.size_x = x_len
+        det.bbox.size_y = y_len
+
+        out.detections.append(det)  
+    return out
         
 if __name__ == '__main__':
     # Initialize the rclpy library

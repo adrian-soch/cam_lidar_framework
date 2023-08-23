@@ -33,13 +33,19 @@ from numpy.lib.recfunctions import structured_to_unstructured, unstructured_to_s
 Constants
 ###################################################
 '''
-CAM_CAL_PATH = '/home/adrian/dev/ros2_ws/src/fusion_engine/config/1280x720_ost.yaml'
-TRANSFORM_PATH = '/home/adrian/dev/ros2_ws/src/fusion_engine/config/transforms.yaml'
+CAM_CAL_PATH = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/fusion_engine/config/1920x1080_ost.yaml'
+TRANSFORM_PATH = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/fusion_engine/config/transforms.yaml'
 MULTI_THREAD_EXEC = False # Set to true to use multithreaded executor
 USE_SENSOR_QOS = True # Set to true to use sensor QoS (ie not rosbag)
 PUB_PC2 = False
 PUB_IMG = True
 SHOW_IMG = False
+INCLUDES_INTENSITY = False
+IS_FLIPPED = False
+
+'''
+TODO: Check if the 36mm shift is causing the misalignmeent (only needs 180 shift for the dat to sesnsor conversion)
+'''
 
 class LidarNode(Node):
     """
@@ -65,13 +71,13 @@ class LidarNode(Node):
 
         callback_group = ReentrantCallbackGroup()
         self.subscription = self.create_subscription(
-            PointCloud2,'points',
+            PointCloud2,'lidar_proc/projected_dets_debug',
             self.lidar_callback,QOS,
             callback_group=callback_group)
         self.subscription  # prevent unused variable warning
 
         self.im_subscription = self.create_subscription(
-            Image,'image',
+            Image,'image_proc/result',
             self.image_callback,QOS,
             callback_group=callback_group)
         self.im_subscription  # prevent unused variable warning
@@ -98,7 +104,10 @@ class LidarNode(Node):
 
         # Only retain x, y, z, intensity
         pc = pc.reshape(pc.size)
-        pc = pc[['x','y','z', 'intensity']]
+        if INCLUDES_INTENSITY:
+            pc = pc[['x','y','z', 'intensity']]
+        else:
+            pc = pc[['x','y','z']]
 
         # Convert to unstructured so we can operate easier
         pc = structured_to_unstructured(pc)
@@ -128,8 +137,8 @@ class LidarNode(Node):
             
             # Take pc from queue
             if self.PC_Queue.empty() or self.IMG_Queue.empty():
-                print('Queue empty')
-                time.sleep(0.005)
+                # print('Queue empty')
+                time.sleep(0.01)
                 continue
 
             [pc, pc_header] = self.PC_Queue.get()
@@ -139,7 +148,8 @@ class LidarNode(Node):
             Process img
             ###################################################
             '''
-            img = cv2.flip(img, -1)
+            if IS_FLIPPED:
+                img = cv2.flip(img, -1)
             newcameramtx, roi = cv2.getOptimalNewCameraMatrix(self.camera_mat, self.dist, (img.shape[1],img.shape[0]), 1, (img.shape[1],img.shape[0]))
             img = cv2.undistort(img, self.camera_mat, self.dist, newcameramtx)
 
@@ -200,12 +210,15 @@ class LidarNode(Node):
             ###################################################
             '''
             if PUB_PC2:
-                # Put intensity back
                 temp = temp.T
-                temp = np.hstack([temp, pc[:, 3:]])
+                if INCLUDES_INTENSITY:
+                    # Put intensity back
+                    temp = np.hstack([temp, pc[:, 3:]])
 
-                # Restructure so we can convert back to ros2 pc2
-                pc = unstructured_to_structured(temp, dtype=np.dtype([('x', '<f4'), ('y', '<f4'), ('z', '<f4'), ('intensity', '<f4')]))
+                    # Restructure so we can convert back to ros2 pc2
+                    pc = unstructured_to_structured(temp, dtype=np.dtype([('x', '<f4'), ('y', '<f4'), ('z', '<f4'), ('intensity', '<f4')]))
+                else:
+                    pc = unstructured_to_structured(temp, dtype=np.dtype([('x', '<f4'), ('y', '<f4'), ('z', '<f4')]))
                 msg2 = ros2_numpy.msgify(PointCloud2, pc)
                 
                 # Set the same header as original msg

@@ -19,4 +19,4 @@ perception_node:
       quaternion: [0.8127148, 0.0, 0.0, -0.5826618]
 
       # [x, y, z] in meters
-      size: [16.0, 80.0, 5.5]
+      size: [16.0, 80.0, 5.0]

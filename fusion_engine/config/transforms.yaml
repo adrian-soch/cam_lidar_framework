@@ -6,7 +6,7 @@ cam2ground_extrinsic:
 
 lidar2cam_extrinsic:
   rotation: [0, 1, 0, 
-             0, 0, -1, 
+             0, 0, -1,
              -1, 0, 0]
   translation: [0.00, 0.0508, 0.0502]
 
@@ -15,4 +15,3 @@ lidarData2lidarSensor_extrinsic:
             0, -1, 0,
             0, 0, 1]
   translation: [0, 0, 0.03618]
-

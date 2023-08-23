@@ -153,10 +153,10 @@ class VisionTracker():
             det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # xyxy
 
             # Print results
-            s = ''
-            for c in det[:, -1].unique():
-                n = (det[:, -1] == c).sum()  # detections per class
-                s += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "  # add to string
+            # s = ''
+            # for c in det[:, -1].unique():
+            #     n = (det[:, -1] == c).sum()  # detections per class
+            #     s += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
             # pass detections to tracker
             outputs = self.tracker.update(det.cpu(), im0)

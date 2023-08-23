@@ -214,3 +214,5 @@ cython_debug/
 *.cubin
 *.fatbin
 
+# ignore compressed files
+*.tar*
