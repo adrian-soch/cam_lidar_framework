@@ -47,15 +47,16 @@ private:
         std::vector<std::string> pointcloud_files = get_files_in_folder(pointcloud_folder_);
 
         // Check if there are any files to publish
-        if(image_files.empty() || pointcloud_files.empty()) {
+        if((image_files.empty() || pointcloud_files.empty())
+        || image_files.size() != pointcloud_files.size()) {
             RCLCPP_ERROR(this->get_logger(), "No files found in the folders");
             return;
         }
 
-        // Increment the file index and wrap around if necessary
+        // Increment the file index and exit if complete
         file_index_++;
         if(file_index_ >= image_files.size() || file_index_ >= pointcloud_files.size()) {
-            file_index_ = 0;
+            exit(EXIT_SUCCESS);
         }
 
         // Load the image file using OpenCV and convert it to a ROS message
