@@ -17,15 +17,35 @@ class ParamMarkerNode(Node):
         self.declare_parameter('frame_id', 'map')
 
         # Height, width, length [meters]
-        self.declare_parameter('marker_size', [1.0, 1.0, 1.0])
+        self.declare_parameters(
+            namespace='size',
+            parameters=[
+                ('w', 1.0),
+                ('l', 1.0),
+                ('h', 1.0)
+        ])
+
 
         # X, Y, X [meters]
-        self.declare_parameter('marker_position',
-                               [0.0, 0.0, 0.0])
+        self.declare_parameters(
+            namespace='position',
+            parameters=[
+                ('x', 0.0),
+                ('y', 0.0),
+                ('z', 0.0)
+        ])
 
         # R, P, Y (degrees)
-        self.declare_parameter('marker_orientation',
-                               [0.0, 0.0, 0.0])
+        self.declare_parameters(
+            namespace='orientation',
+            parameters=[
+                ('roll', 0.0),
+                ('pitch', 0.0),
+                ('yaw', 0.0)
+        ])
+        
+
+        
         self.timer = self.create_timer(
             self.refresh_period, self.timer_callback)
         self.get_logger().info('ParamMarkerNode initialized')
@@ -34,12 +54,12 @@ class ParamMarkerNode(Node):
 
         # get the updated parameters from the node
         frame_id_param = self.get_parameter('frame_id')
-        marker_orientation_param = self.get_parameter('marker_orientation')
-        marker_size_param = self.get_parameter('marker_size')
-        marker_position_param = self.get_parameter('marker_position')
+        w, l, h = self.get_parameters(['size.w', 'size.l', 'size.h'])
+        x, y, z = self.get_parameters(['position.x', 'position.y', 'position.z'])
+        roll, pitch, yaw = self.get_parameters(['orientation.roll', 'orientation.pitch', 'orientation.yaw'])
 
         q = quaternion_from_euler(
-            marker_orientation_param.value[0], marker_orientation_param.value[1], marker_orientation_param.value[2])
+            roll.value, pitch.value, yaw.value)
 
         marker = Marker()
         marker.header.frame_id = frame_id_param.value
@@ -53,12 +73,12 @@ class ParamMarkerNode(Node):
         marker.color.g = 1.0
         marker.color.b = 0.5
         marker.color.a = 0.4
-        marker.scale.x = marker_size_param.value[0]
-        marker.scale.y = marker_size_param.value[1]
-        marker.scale.z = marker_size_param.value[2]
-        marker.pose.position.x = marker_position_param.value[0]
-        marker.pose.position.y = marker_position_param.value[1]
-        marker.pose.position.z = marker_position_param.value[2]
+        marker.scale.x = w.value
+        marker.scale.y = l.value
+        marker.scale.z = h.value
+        marker.pose.position.x = x.value
+        marker.pose.position.y = y.value
+        marker.pose.position.z = z.value
         marker.pose.orientation.x = q[1]
         marker.pose.orientation.y = q[2]
         marker.pose.orientation.z = q[3]
@@ -75,6 +95,10 @@ def quaternion_from_euler(roll, pitch, yaw):
     quat = [w, x, y, z]
     Bellow should be replaced when porting for ROS 2 Python tf_conversions is done.
     """
+    roll = math.radians(roll)
+    pitch = math.radians(pitch)
+    yaw = math.radians(yaw)
+    
     cy = math.cos(yaw * 0.5)
     sy = math.sin(yaw * 0.5)
     cp = math.cos(pitch * 0.5)
