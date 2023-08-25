@@ -20,6 +20,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(pcl_ros REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
@@ -56,8 +57,6 @@ target_include_directories(file2image_cloud PUBLIC
   $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(file2image_cloud pcl_ros rclcpp sensor_msgs OpenCV cv_bridge)
 
-
-
 install(TARGETS
     pc2_to_pcd
     msg_to_image
@@ -70,6 +69,15 @@ install(TARGETS
 install(DIRECTORY
     launch
     DESTINATION share/${PROJECT_NAME}
+)
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+ 
+# Install Python executables
+install(PROGRAMS
+  ${PROJECT_NAME}/roi_visualizer_node.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
