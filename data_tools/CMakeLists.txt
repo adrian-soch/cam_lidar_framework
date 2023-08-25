@@ -50,19 +50,27 @@ target_include_directories(image_cloud2file PUBLIC
   $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(image_cloud2file pcl_ros rclcpp sensor_msgs OpenCV cv_bridge)
 
+add_executable(file2image_cloud src/synced_file2image_cloud_msgs.cpp)
+target_include_directories(file2image_cloud PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(file2image_cloud pcl_ros rclcpp sensor_msgs OpenCV cv_bridge)
+
+
+
 install(TARGETS
     pc2_to_pcd
     msg_to_image
     pcd2xyzi
     image_cloud2file
+    file2image_cloud
     DESTINATION lib/${PROJECT_NAME}
 )
 
-# install(DIRECTORY
-#     launch
-#     configs
-#     DESTINATION share/${PROJECT_NAME}
-# )
+install(DIRECTORY
+    launch
+    DESTINATION share/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -71,7 +79,7 @@ if(BUILD_TESTING)
   #set(ament_cmake_copyright_FOUND TRUE)
   # the following line skips cpplint (only works in a git repo)
   # uncomment the line when this package is not in a git repo
-  #set(ament_cmake_cpplint_FOUND TRUE)
+  # set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 
