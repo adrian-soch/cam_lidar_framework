@@ -15,6 +15,7 @@ from vision_msgs.msg import Detection3D, Detection3DArray
 
 from tf_transformations import quaternion_from_euler
 
+
 def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
     """Convert tracker output to message for publishing
 
@@ -49,7 +50,7 @@ def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
             else:
                 det.bbox.size.z = 2.0
             det.bbox.center.position.z = det.bbox.size.z/2.0
-            
+
             q = quaternion_from_euler(0, 0, trk[4])
 
             det.bbox.center.orientation.x = q[0]
@@ -73,7 +74,7 @@ def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
             det.bbox.size.x = x_len
             det.bbox.size.y = y_len
 
-            out.detections.append(det)  
+            out.detections.append(det)
     return out
 
 
@@ -92,7 +93,7 @@ def detection3DArray2Numpy(detection_list, isOBB):
         return np.empty((0, 5))
 
     # Pre-allocate numpy array
-    out_arr = np.empty(shape=(len(detection_list),5), dtype=float)
+    out_arr = np.empty(shape=(len(detection_list), 5), dtype=float)
 
     idx = 0
 
@@ -101,9 +102,9 @@ def detection3DArray2Numpy(detection_list, isOBB):
             area = det.bbox.size.y*det.bbox.size.x
             angle = euler_from_quaternion(det.bbox.center.orientation)
             out_arr[idx] = [det.bbox.center.position.x, det.bbox.center.position.y,
-                                    area,
-                                    det.bbox.size.y/det.bbox.size.x,
-                                    angle]
+                            area,
+                            det.bbox.size.y/det.bbox.size.x,
+                            angle]
             idx += 1
     else:
         for det in detection_list:
@@ -119,24 +120,25 @@ def detection3DArray2Numpy(detection_list, isOBB):
 
     return out_arr
 
+
 def euler_from_quaternion(q):
-        """
-        Convert a quaternion into euler angles (roll, pitch, yaw)
-        roll is rotation around x in radians (counterclockwise)
-        pitch is rotation around y in radians (counterclockwise)
-        yaw is rotation around z in radians (counterclockwise)
-        """
-        # t0 = +2.0 * (q.w * q.x + q.y * q.z)
-        # t1 = +1.0 - 2.0 * (q.x * q.x + q.y * q.y)
-        # roll_x = np.atan2(t0, t1)
-     
-        # t2 = +2.0 * (q.w * q.y - q.z * q.x)
-        # t2 = +1.0 if t2 > +1.0 else t2
-        # t2 = -1.0 if t2 < -1.0 else t2
-        # pitch_y = np.asin(t2)
-     
-        t3 = +2.0 * (q.w * q.z + q.x * q.y)
-        t4 = +1.0 - 2.0 * (q.y * q.y + q.z * q.z)
-        yaw_z = np.arctan2(t3, t4)
-     
-        return yaw_z # in radians
+    """
+    Convert a quaternion into euler angles (roll, pitch, yaw)
+    roll is rotation around x in radians (counterclockwise)
+    pitch is rotation around y in radians (counterclockwise)
+    yaw is rotation around z in radians (counterclockwise)
+    """
+    # t0 = +2.0 * (q.w * q.x + q.y * q.z)
+    # t1 = +1.0 - 2.0 * (q.x * q.x + q.y * q.y)
+    # roll_x = np.atan2(t0, t1)
+
+    # t2 = +2.0 * (q.w * q.y - q.z * q.x)
+    # t2 = +1.0 if t2 > +1.0 else t2
+    # t2 = -1.0 if t2 < -1.0 else t2
+    # pitch_y = np.asin(t2)
+
+    t3 = +2.0 * (q.w * q.z + q.x * q.y)
+    t4 = +1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+    yaw_z = np.arctan2(t3, t4)
+
+    return yaw_z  # in radians

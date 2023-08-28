@@ -24,24 +24,28 @@ from rclpy.duration import Duration
 from vision_msgs.msg import Detection3DArray
 from visualization_msgs.msg import Marker, MarkerArray
 
+
 class ObjectTracker(Node):
 
     def __init__(self):
         super().__init__('object_tracker')
 
         # Get the topic name from the ROS parameter server
-        self.world_frame = self.declare_parameter('world_frame', 'map').get_parameter_value().string_value
+        self.world_frame = self.declare_parameter(
+            'world_frame', 'map').get_parameter_value().string_value
 
         # Current default is aa_detections for axis algined and o_detections for oriented detections
-        detection_topic = self.declare_parameter('detection_topic', '/lidar_proc/o_detections').get_parameter_value().string_value
-        self.isOBB = self.declare_parameter('isOBB', True).get_parameter_value().bool_value
+        detection_topic = self.declare_parameter(
+            'detection_topic', '/lidar_proc/o_detections').get_parameter_value().string_value
+        self.isOBB = self.declare_parameter(
+            'isOBB', True).get_parameter_value().bool_value
 
         if self.isOBB:
             from .sort import sort_rotated_bbox as s
         else:
             from .sort import sort as s
 
-        #create instance of SORT
+        # create instance of SORT
         self.tracker = s.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
 
         self.subscription = self.create_subscription(
@@ -51,8 +55,10 @@ class ObjectTracker(Node):
             5)
         self.subscription  # prevent unused variable warning
 
-        self.track_publisher_ = self.create_publisher(Detection3DArray, 'lidar_proc/tracks', 2)
-        self.marker_publisher_ = self.create_publisher(MarkerArray, 'lidar_proc/track_markers', 2)      
+        self.track_publisher_ = self.create_publisher(
+            Detection3DArray, 'lidar_proc/tracks', 2)
+        self.marker_publisher_ = self.create_publisher(
+            MarkerArray, 'lidar_proc/track_markers', 2)
 
     def callback(self, msg):
         """Takes new detections and updates the tracker.
@@ -64,7 +70,7 @@ class ObjectTracker(Node):
         t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
         detections = detection3DArray2Numpy(msg.detections, self.isOBB)
-        
+
         # update SORT with detections
         track_ids = self.tracker.update(detections)
 
@@ -77,8 +83,8 @@ class ObjectTracker(Node):
         self.marker_publisher_.publish(m_arr)
 
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-        self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(len(m_arr.markers), (t2-t1)*1000))
-
+        self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(
+            len(m_arr.markers), (t2-t1)*1000))
 
     def track2MarkerArray(self, track_ids, stamp, isOBB) -> MarkerArray:
         """
@@ -97,7 +103,7 @@ class ObjectTracker(Node):
             marker.header.frame_id = self.world_frame
             marker.type = Marker.TEXT_VIEW_FACING
             marker.action = Marker.ADD
-            marker.scale.z = 0.8 # height of `A` in meters
+            marker.scale.z = 0.8  # height of `A` in meters
 
             if isOBB:
                 id_str = str(int(trk[5]))
@@ -119,6 +125,7 @@ class ObjectTracker(Node):
 
         return m_arr
 
+
 def main(args=None):
     rclpy.init(args=args)
     object_tracker = ObjectTracker()
@@ -126,6 +133,7 @@ def main(args=None):
 
     object_tracker.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

@@ -10,20 +10,24 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 import random
 
+
 class DetectorNode(Node):
     def __init__(self):
         super().__init__('detector_node')
 
         # Get the topic name from the ROS parameter server
-        topic_name = self.declare_parameter('topic_name', '/lidar_proc/tracks').get_parameter_value().string_value
+        topic_name = self.declare_parameter(
+            'topic_name', '/lidar_proc/tracks').get_parameter_value().string_value
 
         # Subscribe to the detection messages
         self.subscription = self.create_subscription(
             Detection3DArray, topic_name, self.detection_callback, 5)
 
         # Publish the marker messages
-        self.bbox_publisher = self.create_publisher(MarkerArray, 'lidar_proc/tracker_bboxs', 5)
-        self.tracklet_publisher = self.create_publisher(MarkerArray, '/lidar_proc/tracklets', 5)
+        self.bbox_publisher = self.create_publisher(
+            MarkerArray, 'lidar_proc/tracker_bboxs', 5)
+        self.tracklet_publisher = self.create_publisher(
+            MarkerArray, '/lidar_proc/tracklets', 5)
 
         self.get_logger().info('Starting Tracker BBox Visualization')
 
@@ -44,7 +48,7 @@ class DetectorNode(Node):
             # Get a colour based on the track ID
             # set the seed value so the same colour is applied
             # to the same track each time
-            random.seed(trk_id) 
+            random.seed(trk_id)
             r = random.random()
             g = random.random()
             b = random.random()
@@ -70,7 +74,7 @@ class DetectorNode(Node):
             marker.color.g = g
             marker.color.b = b
             marker.lifetime = Duration(seconds=0.1).to_msg()
-            
+
             # Create a sphere marker for the track
             tracklet = Marker()
             tracklet.id = self.tracklet_idx
@@ -104,6 +108,7 @@ def main(args=None):
     rclpy.spin(detector_node)
     detector_node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
