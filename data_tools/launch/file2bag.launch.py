@@ -16,6 +16,7 @@ ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
 folder_name = ABS_PATH_TO_ROSBAGS + '/' + current_time + '_file2bag'
 
+
 def generate_launch_description():
 
     file2msg = Node(
@@ -31,9 +32,9 @@ def generate_launch_description():
     )
 
     recorder = ExecuteProcess(
-            cmd=['ros2', 'bag', 'record', '/points', '/images', '-o', folder_name],
-            output='screen'
-        )
+        cmd=['ros2', 'bag', 'record', '/points', '/images', '-o', folder_name],
+        output='screen'
+    )
 
     # Items above will only be launched if they are present in this list
     return LaunchDescription([
