@@ -15,7 +15,7 @@ with open(file_name, "r") as f:
 # Shift frame numbers to start at 1
 shift = int(lines[0].split(",")[0])
 
-if(shift > 1):
+if (shift > 1):
     shift -= 1
 else:
     shift += 1
@@ -39,7 +39,6 @@ file_name = os.path.join(path, file)
 with open(file_name, "w") as f:
     # Write the modified list of lines back to the file
     f.writelines(lines)
-
 
     # Initialize a counter for the increasing integers
 counter = 1
