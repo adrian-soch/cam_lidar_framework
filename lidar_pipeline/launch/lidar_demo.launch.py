@@ -23,53 +23,56 @@ ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 BAG_NAME = 'may10_2023/q7_2_may10_2023'
 
 share_dir = get_package_share_directory('lidar_pipeline')
-pipeline_params = os.path.join(share_dir, 'configs', 'lidar_pipeline_config.yaml')
+pipeline_params = os.path.join(
+    share_dir, 'configs', 'lidar_pipeline_config.yaml')
 data_dependant_params = os.path.join(share_dir, 'configs', 'may10_config.yaml')
+
 
 def generate_launch_description():
 
     perception_node = Node(
-            package='lidar_pipeline',
-            executable='perception_node',
-            name='perception_node',
-            output='screen',
-            parameters=[
+        package='lidar_pipeline',
+        executable='perception_node',
+        name='perception_node',
+        output='screen',
+        parameters=[
                 pipeline_params,
                 data_dependant_params
-            ]
+        ]
     )
 
     s_transform = Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
+        package='tf2_ros',
+        executable='static_transform_publisher',
 
-            #params from visual inspection
-            # To make the road paralell with the XY plane/rviz2 grid
-            arguments = ['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
-        )
+        # params from visual inspection
+        # To make the road paralell with the XY plane/rviz2 grid
+        arguments=['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
+    )
 
     s_transform2 = Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
+        package='tf2_ros',
+        executable='static_transform_publisher',
 
-            #params from visual inspection
-            # To make the road paralell with the XY plane/rviz2 grid
-            arguments = ['0', '0', '0', '3.1416', '0', '0', 'map', 'laser_sensor_frame']
-        )
+        # params from visual inspection
+        # To make the road paralell with the XY plane/rviz2 grid
+        arguments=['0', '0', '0', '3.1416', '0',
+                   '0', 'map', 'laser_sensor_frame']
+    )
 
     lidar_tracker = Node(
-            package='obj_tracker',
-            executable='object_tracker',
-            name='lidar_obj_tracker',
-            output='screen',
-        )
-    
+        package='obj_tracker',
+        executable='object_tracker',
+        name='lidar_obj_tracker',
+        output='screen',
+    )
+
     lidar_tracker_viz = Node(
-            package='obj_tracker',
-            executable='tracker_bbox_viz',
-            name='tracker_bbox_viz',
-            output='screen',
-        )
+        package='obj_tracker',
+        executable='tracker_bbox_viz',
+        name='tracker_bbox_viz',
+        output='screen',
+    )
 
     rosbag_play = ExecuteProcess(
         cmd=[[
@@ -90,7 +93,7 @@ def generate_launch_description():
         name='rviz2',
         arguments=['-d', rviz_config_file]
     )
-    
+
     # Items above will only be launched if they are present in this list
     return LaunchDescription([
         s_transform2,
@@ -100,4 +103,4 @@ def generate_launch_description():
         lidar_tracker_viz,
         rosbag_play,
         rviz_node
-   ])
+    ])
