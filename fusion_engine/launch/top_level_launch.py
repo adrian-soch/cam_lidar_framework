@@ -12,6 +12,7 @@ ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags'
 
 PACKAGE = 'fusion_engine'
 
+
 def generate_launch_description():
 
     # Add the LiDAR launch file to this launch
@@ -19,7 +20,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory(PACKAGE),
             'ouster_driver_launch.py')])
-        )
+    )
 
     # Start rviz with the desired configuration file
     rviz_node = Node(
@@ -37,7 +38,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory(PACKAGE),
             'cam_processor_launch.py')])
-        )
+    )
 
     # Play the rosbag in the supplied folder
     rosbag_play = ExecuteProcess(
@@ -56,4 +57,4 @@ def generate_launch_description():
         execute_camera_processor,
         rosbag_play
         # ouster_lidar
-   ])
+    ])

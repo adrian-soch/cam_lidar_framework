@@ -21,10 +21,12 @@ USE_SENSOR_SUB_QOS = False
 USE_SENSOR_PUB_QOS = False
 FRONT_VIEW_ONLY = False
 
+
 class LidarSubscriber(Node):
     """
     Create a LidarSubscriber class, which is a subclass of the Node class.
     """
+
     def __init__(self):
         super().__init__('lidar_processor')
 
@@ -43,9 +45,10 @@ class LidarSubscriber(Node):
         if USE_SENSOR_PUB_QOS:
             QOS_P = qos.qos_profile_sensor_data
         else:
-            QOS_P = 5            
+            QOS_P = 5
 
-        self.pc2_publisher_ = self.create_publisher(PointCloud2, 'points2', QOS_P)
+        self.pc2_publisher_ = self.create_publisher(
+            PointCloud2, 'points2', QOS_P)
 
         self.get_logger().info('Subscriber and Publisher started.')
 
@@ -55,7 +58,7 @@ class LidarSubscriber(Node):
 
         # Only retain x, y, z, intensity
         pc = pc.reshape(pc.size)
-        pc = pc[['x','y','z', 'intensity']]
+        pc = pc[['x', 'y', 'z', 'intensity']]
 
         # Convert to unstructured so we can operate easier
         pc = structured_to_unstructured(pc)
@@ -63,11 +66,10 @@ class LidarSubscriber(Node):
         if FRONT_VIEW_ONLY:
             # Remove points behind lidar (in lidar frame this is x-axis)
             # This also removes (0,0,0) points, because they start with x=-0.0
-            pc = pc[np.logical_not(pc[:,0] <= 0)]
-
+            pc = pc[np.logical_not(pc[:, 0] <= 0)]
 
         # Voxel filter to remove # of points?
-        
+
         # Remove large planes
 
         # Background point removal
@@ -79,9 +81,10 @@ class LidarSubscriber(Node):
         ###################################################
         '''
         # Restructure so we can convert back to ros2 pc2
-        pc = unstructured_to_structured(pc, dtype=np.dtype([('x', '<f4'), ('y', '<f4'), ('z', '<f4'), ('intensity', '<f4')]))
+        pc = unstructured_to_structured(pc, dtype=np.dtype(
+            [('x', '<f4'), ('y', '<f4'), ('z', '<f4'), ('intensity', '<f4')]))
         msg2 = ros2_numpy.msgify(PointCloud2, pc)
-        
+
         # Set the same header as original msg
         msg2.header = msg.header
         self.pc2_publisher_.publish(msg2)
