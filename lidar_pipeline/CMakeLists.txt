@@ -47,10 +47,18 @@ target_include_directories(projection_node PUBLIC
 
 ament_target_dependencies(projection_node rclcpp sensor_msgs vision_msgs message_filters pcl_ros OpenCV cv_bridge)
 
+add_executable(transform_explorer_node src/transform_explorer_node.cpp)
+target_include_directories(transform_explorer_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+ament_target_dependencies(transform_explorer_node rclcpp tf2_ros tf2 tf2_eigen sensor_msgs pcl_ros)
+
 
 install(TARGETS
     perception_node
     projection_node
+    transform_explorer_node
     DESTINATION lib/${PROJECT_NAME}
 )
 
