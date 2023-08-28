@@ -20,23 +20,25 @@ from sensor_msgs.msg import Image
 
 from cv_bridge import CvBridge
 
+
 class ImageSubscriber(Node):
     """
     Create an ImageSubscriber class, which is a subclass of the Node class.
     """
+
     def __init__(self):
         """
         Class constructor to set up the node
         """
         super().__init__('camera_processor')
-            
+
         # Create Subscriber with callback
         self.subscription = self.create_subscription(
-            Image, 
-            'image', 
+            Image,
+            'image',
             self.camera_callback,
             5)
-        self.subscription # prevent unused variable warning
+        self.subscription  # prevent unused variable warning
         self.get_logger().info('Image subscriber created.')
 
         # Create Publisher to output annotated results
@@ -47,7 +49,7 @@ class ImageSubscriber(Node):
 
         self.tracker = vision_track_yolov7.VisionTracker()
         self.get_logger().info('Vision Tracker created.')
-   
+
     def camera_callback(self, msg):
         """
         Callback function.
@@ -68,7 +70,8 @@ class ImageSubscriber(Node):
 
         t5 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info(str(t5-t1))
-        
+
+
 if __name__ == '__main__':
     # Initialize the rclpy library
     rclpy.init(args=None)

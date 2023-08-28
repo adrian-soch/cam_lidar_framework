@@ -56,9 +56,11 @@ import json
 import argparse
 from datetime import datetime
 
+
 class Object:
     """Contains the unique name and geometry of the object
     """
+
     def __init__(self, key, classtitle, geometry):
         self.key = key
         self.classtitle = classtitle
@@ -68,16 +70,19 @@ class Object:
 class Geometry:
     """Contains the geometry of the 3D bounding box
     """
+
     def __init__(self, geometryType, position, rotation, dimensions):
         self.geometryType = geometryType
         self.position = position
         self.rotation = rotation
         self.dimensions = dimensions
 
+
 class MotEntry:
     """Contains the values and helper functions for the detections in MOT Challenge format
         See comment at the top of the file for more details.
     """
+
     def __init__(self, frame, id=None, bb_left=None, bb_top=None, bb_width=None, bb_height=None, conf=-1):
         self.frame = frame
         self.id = id
@@ -94,7 +99,7 @@ class MotEntry:
         return "{},{},{:.4f},{:.4f},{:.4f},{:.4f},{},{},{},{}".format(
             self.frame, self.id, self.bb_left, self.bb_top, self.bb_width, self.bb_height,
             self.conf, self.x, self.y, self.z)
-    
+
     def geometry2bbox(self, geometry):
 
         self.bb_width = geometry.dimensions['y']
@@ -105,6 +110,7 @@ class MotEntry:
         self.bb_left = geometry.position['y']
         # X value
         self.bb_top = geometry.position['x']
+
 
 def getSortedFileList(folder_path, file_pattern):
     """Return all the files that match the regular expression pattern in sorted order
@@ -127,6 +133,7 @@ def getSortedFileList(folder_path, file_pattern):
 
     return files
 
+
 def add_key(key, key_dict) -> int:
     """Given a key, create a new entry if its previously unseen and return its ID.
     If the object is not new to the dictionary then provide the existing ID.
@@ -141,7 +148,7 @@ def add_key(key, key_dict) -> int:
     if key in key_dict:
         return key_dict[key]
     else:
-        key_dict[key] = len(key_dict) + 1 # id's are indexed starting at 1
+        key_dict[key] = len(key_dict) + 1  # id's are indexed starting at 1
         return key_dict[key]
 
 
@@ -157,9 +164,9 @@ def main(folder_path, output_name):
 
     file_pattern = r"\d{6}\.pcd\.json"
     files = getSortedFileList(folder_path, file_pattern=file_pattern)
-    
+
     # Print the sorted list of files
-    frame_count = 0 # frame id is indexed starting at 1
+    frame_count = 0  # frame id is indexed starting at 1
     for f in files:
         frame_count += 1
         filepath = os.path.join(folder_path, f)
@@ -189,9 +196,12 @@ def main(folder_path, output_name):
                 if obj.geometry is not None:
                     print("Geometry:")
                     print(f"\tType: {obj.geometry.geometryType}")
-                    print(f"\tPosition: ({obj.geometry.position['x']}, {obj.geometry.position['y']}, {obj.geometry.position['z']})")
-                    print(f"\tRotation: ({obj.geometry.rotation['x']}, {obj.geometry.rotation['y']}, {obj.geometry.rotation['z']})")
-                    print(f"\tDimensions: ({obj.geometry.dimensions['x']}, {obj.geometry.dimensions['y']}, {obj.geometry.dimensions['z']})")
+                    print(
+                        f"\tPosition: ({obj.geometry.position['x']}, {obj.geometry.position['y']}, {obj.geometry.position['z']})")
+                    print(
+                        f"\tRotation: ({obj.geometry.rotation['x']}, {obj.geometry.rotation['y']}, {obj.geometry.rotation['z']})")
+                    print(
+                        f"\tDimensions: ({obj.geometry.dimensions['x']}, {obj.geometry.dimensions['y']}, {obj.geometry.dimensions['z']})")
 
                     # Get unique object ID
                     entry = MotEntry(frame=frame_count)
@@ -199,14 +209,15 @@ def main(folder_path, output_name):
 
                     # Set the rest of the values
                     entry.geometry2bbox(obj.geometry)
-                
+
                     f.write(entry.toStr() + "\n")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process a file")
-    parser.add_argument("--path",'-p', help="Path to the folder with supervisorly files",
+    parser.add_argument("--path", '-p', help="Path to the folder with supervisorly files",
                         default='/home/adrian/dev/metrics/label')
-    parser.add_argument("--output_name",'-o', help="Name of output file.",
+    parser.add_argument("--output_name", '-o', help="Name of output file.",
                         default='custom_MOT_labels.txt')
     args = parser.parse_args()
     main(args.path, args.output_name)

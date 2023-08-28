@@ -11,10 +11,12 @@ from vision_msgs.msg import Detection3DArray
 
 FOLDER_PATH = '/home/adrian/dev/metrics/SORT_Results'
 
+
 class MotEntry:
     """Contains the values and helper functions for the detections in MOT Challenge format
         See comment at the top of the file for more details.
     """
+
     def __init__(self, frame, id=None, bb_left=None, bb_top=None, bb_width=None, bb_height=None, conf=-1):
         self.frame = frame
         self.id = id
@@ -31,7 +33,8 @@ class MotEntry:
         return "{},{},{:.4f},{:.4f},{:.4f},{:.4f},{},{},{},{}".format(
             self.frame, self.id, self.bb_left, self.bb_top, self.bb_width, self.bb_height,
             self.conf, self.x, self.y, self.z)
-    
+
+
 def create_folder_path(file_path):
     """
     Creates the folders in the given file path if they don't already exist.
@@ -40,17 +43,19 @@ def create_folder_path(file_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
+
 class DetectorNode(Node):
     def __init__(self):
         super().__init__('detector_node')
 
         # Get the topic name from the ROS parameter server
-        topic_name = self.declare_parameter('topic_name', '/lidar_proc/tracks').get_parameter_value().string_value
+        topic_name = self.declare_parameter(
+            'topic_name', '/lidar_proc/tracks').get_parameter_value().string_value
 
         # Subscribe to the detection messages
         self.subscription = self.create_subscription(
             Detection3DArray, topic_name, self.detection_callback, 5)
-        
+
         # Get the current date and time
         now = datetime.now()
         time = now.strftime("%Y-%m-%d_%H-%M-%S")
@@ -93,6 +98,7 @@ def main(args=None):
     rclpy.spin(detector_node)
     detector_node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

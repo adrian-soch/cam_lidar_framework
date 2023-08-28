@@ -39,8 +39,8 @@ def generate_launch_description():
     # Acquire the driver config file
     params_declare = DeclareLaunchArgument('config_file',
                                            default_value=os.path.join(
-                                                share_dir, 'ouster_driver_config.yaml'),
-                                                description='FPath to the ROS2 config file to use.')
+                                               share_dir, 'ouster_driver_config.yaml'),
+                                           description='FPath to the ROS2 config file to use.')
 
     driver_node = LifecycleNode(package='ros2_ouster',
                                 executable='ouster_driver',
@@ -77,8 +77,9 @@ def generate_launch_description():
         OnShutdown(
             on_shutdown=[
                 EmitEvent(event=ChangeState(
-                  lifecycle_node_matcher=matches_node_name(node_name=node_name),
-                  transition_id=lifecycle_msgs.msg.Transition.TRANSITION_ACTIVE_SHUTDOWN,
+                    lifecycle_node_matcher=matches_node_name(
+                        node_name=node_name),
+                    transition_id=lifecycle_msgs.msg.Transition.TRANSITION_ACTIVE_SHUTDOWN,
                 )),
                 LogInfo(
                     msg="[LifecycleLaunch] Ouster driver node is exiting."),

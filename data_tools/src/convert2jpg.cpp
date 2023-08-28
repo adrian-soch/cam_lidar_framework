@@ -1,15 +1,15 @@
 #include <chrono>
-#include <memory>
-#include <string>
-#include <sstream>
-#include <iomanip>
 #include <filesystem>
+#include <iomanip>
+#include <memory>
+#include <sstream>
+#include <string>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
-#include <opencv2/opencv.hpp>
 #include "cv_bridge/cv_bridge.h"
+#include <opencv2/opencv.hpp>
 
 
 class ImageSaver : public rclcpp::Node
@@ -20,10 +20,11 @@ public:
     {
         // Create folder
         std::filesystem::path path = file_path_;
+
         std::filesystem::create_directories(path);
 
         subscription_ = create_subscription<sensor_msgs::msg::Image>(
-        topic_name, 10, std::bind(&ImageSaver::imageCallback, this, std::placeholders::_1));
+            topic_name, 10, std::bind(&ImageSaver::imageCallback, this, std::placeholders::_1));
         RCLCPP_INFO(this->get_logger(), "Subscribed to topic '%s'", topic_name.c_str());
     }
 
@@ -50,7 +51,7 @@ private:
     }
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
-    int count_ {0};
+    int count_ { 0 };
     std::string file_path_;
 
     cv_bridge::CvImagePtr im_prt;
@@ -60,14 +61,13 @@ int main(int argc, char** argv)
 {
     // Initialize the ROS 2 node
     rclcpp::init(argc, argv);
-    if (argc != 3)
-    {
+    if(argc != 3) {
         RCLCPP_ERROR(rclcpp::get_logger("image_saver"), "Usage: %s <topic_name> <file_path>", argv[0]);
         return 1;
     }
 
     std::string topic_name = argv[1];
-    std::string file_path = argv[2];
+    std::string file_path  = argv[2];
 
     auto node = std::make_shared<ImageSaver>(topic_name, file_path);
 
