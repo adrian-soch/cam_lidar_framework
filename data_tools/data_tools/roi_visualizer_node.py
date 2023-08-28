@@ -10,10 +10,15 @@ import math
 
 class ParamMarkerNode(Node):
     def __init__(self):
+        '''
+        Initalize the node and declare ROS paramters
+        '''
+
+        # Automatically append the namesapse before all ROS objects
         super().__init__('param_marker_node', namespace='lidar_proc')
-        self.refresh_period = 0.25
         self.marker_pub = self.create_publisher(Marker, 'marker', 10)
 
+        # Name of frame_id
         self.declare_parameter('frame_id', 'map')
 
         # Height, width, length [meters]
@@ -23,8 +28,7 @@ class ParamMarkerNode(Node):
                 ('w', 1.0),
                 ('l', 1.0),
                 ('h', 1.0)
-        ])
-
+            ])
 
         # X, Y, X [meters]
         self.declare_parameters(
@@ -33,21 +37,21 @@ class ParamMarkerNode(Node):
                 ('x', 0.0),
                 ('y', 0.0),
                 ('z', 0.0)
-        ])
+            ])
 
-        # R, P, Y (degrees)
+        # R, P, Y [degrees]
         self.declare_parameters(
             namespace='orientation',
             parameters=[
                 ('roll', 0.0),
                 ('pitch', 0.0),
                 ('yaw', 0.0)
-        ])
-        
+            ])
 
-        
+        self.refresh_period = 0.25
         self.timer = self.create_timer(
             self.refresh_period, self.timer_callback)
+
         self.get_logger().info('ParamMarkerNode initialized')
 
     def timer_callback(self):
@@ -55,8 +59,10 @@ class ParamMarkerNode(Node):
         # get the updated parameters from the node
         frame_id_param = self.get_parameter('frame_id')
         w, l, h = self.get_parameters(['size.w', 'size.l', 'size.h'])
-        x, y, z = self.get_parameters(['position.x', 'position.y', 'position.z'])
-        roll, pitch, yaw = self.get_parameters(['orientation.roll', 'orientation.pitch', 'orientation.yaw'])
+        x, y, z = self.get_parameters(
+            ['position.x', 'position.y', 'position.z'])
+        roll, pitch, yaw = self.get_parameters(
+            ['orientation.roll', 'orientation.pitch', 'orientation.yaw'])
 
         q = quaternion_from_euler(
             roll.value, pitch.value, yaw.value)
@@ -98,7 +104,7 @@ def quaternion_from_euler(roll, pitch, yaw):
     roll = math.radians(roll)
     pitch = math.radians(pitch)
     yaw = math.radians(yaw)
-    
+
     cy = math.cos(yaw * 0.5)
     sy = math.sin(yaw * 0.5)
     cp = math.cos(pitch * 0.5)
