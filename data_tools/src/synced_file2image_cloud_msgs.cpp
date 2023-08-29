@@ -46,6 +46,8 @@ private:
         std::vector<std::string> image_files      = get_files_in_folder(image_folder_);
         std::vector<std::string> pointcloud_files = get_files_in_folder(pointcloud_folder_);
 
+        RCLCPP_INFO(get_logger(), "Remaining files: %ld", image_files.size()-file_index_);
+
         // Check if there are any files to publish
         if((image_files.empty() || pointcloud_files.empty()) ||
           image_files.size() != pointcloud_files.size())

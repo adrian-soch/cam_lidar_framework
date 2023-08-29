@@ -149,6 +149,12 @@ private:
         transform.rotate(Eigen::Quaternionf(quat.getW(), quat.getX(),
           quat.getY(), quat.getZ()));
 
+        RCLCPP_INFO(get_logger(), "Orientation (W, X, Y, Z): [%f, %f, %f, %f]", quat.getW(), quat.getX(),
+          quat.getY(), quat.getZ());
+        RCLCPP_INFO(get_logger(), "Translation (X, Y, Z): [%f, %f, %f]\n", t_params.at("x").get<double>(), t_params.at(
+              "y").get<double>(),
+          t_params.at("z").get<double>());
+
         return transform;
     }
 };

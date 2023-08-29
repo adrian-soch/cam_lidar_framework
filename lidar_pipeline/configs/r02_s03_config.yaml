@@ -1,0 +1,22 @@
+# These parameters are dependant on the sensor location
+# Note: For converting angles use https://www.andre-gaschler.com/rotationconverter/
+perception_node:
+  ros__parameters:
+
+    # Transformation from sensor to world frame
+    lidar2world_transform:
+      # [x,y,z] in meters
+      translation: [0.0, 0.0, 8.8]
+
+      # [w,x,y,z] normalized quaternion
+      quaternion: [0.999950, 0.000000, 0.010000, 0.000000]
+
+    crop_box_transform:
+      # [x,y,z] in meters
+      translation: [22.0, -5.0, 0.0]
+
+      # [w,x,y,z] normalized quaternion
+      quaternion: [0.9990482215818578, 0.0, 0.0, 0.043619387365336]
+
+      # [x, y, z] in meters
+      size: [30.0, 75.0, 5.0]

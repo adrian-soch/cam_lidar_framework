@@ -13,8 +13,12 @@ from launch.actions import ExecuteProcess
 from launch import LaunchDescription
 
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
+IMAGE_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/images/s110_camera_basler_south1_8mm'
+PCD_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_south'
+
 current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
-folder_name = ABS_PATH_TO_ROSBAGS + '/' + current_time + '_file2bag'
+folder_name = ABS_PATH_TO_ROSBAGS + '/' + \
+    current_time + '_' + PCD_FOLDER.split('/')[-3]
 
 
 def generate_launch_description():
@@ -26,8 +30,8 @@ def generate_launch_description():
         output='screen',
         parameters=[
                 {'publish_rate': 2.5},
-                {'image_folder': '/home/adrian/dev/a9_dataset_r02_s03/images/s110_camera_basler_south1_8mm'},
-                {'pointcloud_folder': '/home/adrian/dev/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_south'},
+                {'image_folder': IMAGE_FOLDER},
+                {'pointcloud_folder': PCD_FOLDER},
         ]
     )
 
