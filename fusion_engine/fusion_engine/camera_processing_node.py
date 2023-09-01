@@ -93,6 +93,9 @@ def createDetection2DArr(tracks, header) -> Detection2DArray:
     out.header = header
 
     for trk in tracks:
+        if trk is None:
+            continue
+
         det = Detection2D()
 
         result = ObjectHypothesisWithPose()
@@ -108,6 +111,7 @@ def createDetection2DArr(tracks, header) -> Detection2DArray:
         det.bbox.size_y = y_len
 
         out.detections.append(det)
+
     return out
 
 

@@ -36,7 +36,7 @@ def generate_launch_description():
     )
 
     recorder = ExecuteProcess(
-        cmd=['ros2', 'bag', 'record', '/points', '/images', '-o', folder_name],
+        cmd=['ros2', 'bag', 'record', '/points', '/image', '-o', folder_name],
         output='screen'
     )
 

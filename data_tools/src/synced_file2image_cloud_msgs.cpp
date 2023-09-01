@@ -13,7 +13,7 @@ public:
     ImagePointCloudPublisher() : Node("image_pointcloud_publisher")
     {
         // Create publishers for image and point cloud
-        image_pub_      = this->create_publisher<sensor_msgs::msg::Image>("images", 10);
+        image_pub_      = this->create_publisher<sensor_msgs::msg::Image>("image", 10);
         pointcloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points", 10);
 
         // Get the folder paths for image and point cloud files

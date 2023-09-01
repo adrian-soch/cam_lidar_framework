@@ -69,14 +69,14 @@ class VisionTracker():
         yolo_weights=WEIGHTS / 'yolov5n.pt'  # model.pt path(s)
         reid_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt'  # model.pt path
 
-        self.flip_x = True # Flip image about x-axis (about the horizon)
+        self.flip_x = False # Flip image
         self.imgsz=(640, 640)  # inference size (height, width)
         self.tracking_method='ocsort' # ocsort or strongsort
         self.conf_thres=0.25  # confidence threshold
         self.iou_thres=0.45  # NMS IOU threshold
         self.max_det=255  # maximum detections per image
         self.device='cpu'  # cuda device, i.e. 0 or 0,1,2,3 or cpu
-        self.show_vid=True  # show results
+        self.show_vid=False  # show results
         self.classes=[0, 1, 2, 3, 5, 7]  # filter by class: --class 0, or --class 0 2 3
         self.half=False  # use FP16 half-precision inference (GPU ONLY)
         dnn=False  # use OpenCV DNN for ONNX inference
@@ -175,7 +175,8 @@ class VisionTracker():
                         label = f'{id} {self.names[c]} {conf:.2f}'
                         annotator.box_label(bboxes, label, color=colors(c, True))
         else:
-            self.tracker.update(np.empty((0, 5)), im0)
+            empty_tensor = torch.empty((0, 6))
+            self.tracker.update(empty_tensor, im0)
             # if self.tracking_method == 'strongsort':
             #     self.tracker.increment_ages()
             # LOGGER.info('No detections')
@@ -184,7 +185,8 @@ class VisionTracker():
         if self.show_vid or return_image:
             # Stream results
             im0 = annotator.result()
-        elif self.show_vid:
+            
+        if self.show_vid:
             cv2.imshow('Detection+Tracker output', im0)
             cv2.waitKey(1)  # 1 millisecond
 
