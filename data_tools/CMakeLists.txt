@@ -26,6 +26,7 @@ find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(jsoncpp REQUIRED)
 
 add_executable(pc2_to_pcd src/convert2pcd.cpp)
 target_include_directories(pc2_to_pcd PUBLIC
@@ -57,12 +58,22 @@ target_include_directories(file2image_cloud PUBLIC
   $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(file2image_cloud pcl_ros rclcpp sensor_msgs OpenCV cv_bridge)
 
+add_executable(extractor src/pcd2classifier_features.cpp)
+target_include_directories(extractor PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(extractor pcl_ros rclcpp sensor_msgs OpenCV jsoncpp)
+target_link_libraries(extractor
+  jsoncpp # Link the jsoncpp library
+)
+
 install(TARGETS
     pc2_to_pcd
     msg_to_image
     pcd2xyzi
     image_cloud2file
     file2image_cloud
+    extractor
     DESTINATION lib/${PROJECT_NAME}
 )
 
