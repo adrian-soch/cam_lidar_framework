@@ -24,12 +24,12 @@ ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 # BAG_NAME = 'dec7_2022/roofTestDaylight_2_FHD_qosOverrride_true/'
 # BAG_NAME = 'may10_2023/q6_2_may10_2023'
 # BAG_NAME = 'may10_2023/q7_2_may10_2023'
-BAG_NAME = '2023-08-30_13-58-46_a9_dataset_r02_s03'
+BAG_NAME = '2023-09-05_16-22-52_a9_dataset_r02_s04_camSouth2_LidarSouth'
 
 share_dir = get_package_share_directory('lidar_pipeline')
 pipeline_params = os.path.join(
     share_dir, 'configs', 'lidar_pipeline_config.yaml')
-data_dependant_params = os.path.join(share_dir, 'configs', 'r02_s03_config.yaml')
+data_dependant_params = os.path.join(share_dir, 'configs', 'r02_s04_cam2South_lidarSouth_config.yaml')
 transform_params = os.path.join(share_dir, 'configs', 'transforms.yaml')
 
 
