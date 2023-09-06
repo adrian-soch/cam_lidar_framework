@@ -1,13 +1,16 @@
 /**
  * @file pcd2classifier_features.cpp
  * @author Adrian Sochaniwsky
- * @brief
  */
 
+#include <ctime>
 #include <dirent.h>
+#include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <jsoncpp/json/json.h>
+#include <string>
 
 #include <opencv2/highgui/highgui.hpp>
 
@@ -15,6 +18,26 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+
+
+std::string generate_filename()
+{
+    // get the current time as a struct tm
+    std::time_t t = std::time(nullptr);
+    std::tm* tm   = std::localtime(&t);
+    // create a string stream to format the time
+    std::stringstream ss;
+
+    // write the year, month, day, hour, minute, and second to the stream
+    ss << tm->tm_year + 1900 << "-"
+       << tm->tm_mon + 1 << "-"
+       << tm->tm_mday << "_"
+       << tm->tm_hour << "-"
+       << tm->tm_min << "-"
+       << tm->tm_sec;
+    // return the string representation of the stream
+    return ss.str();
+}
 
 class FeatureExtractor : public rclcpp::Node
 {
@@ -29,8 +52,10 @@ public:
         // Get the folder paths for ground_truths and point cloud files
         this->declare_parameter<std::string>("gt_folder", "");
         this->declare_parameter<std::string>("pointcloud_folder", "");
+        this->declare_parameter<std::string>("path", "");
         this->get_parameter("gt_folder", gt_folder);
         this->get_parameter("pointcloud_folder", pointcloud_folder);
+        this->get_parameter("path", path_);
 
         // Get the frame id for image and point cloud messages
         this->declare_parameter<std::string>("frame_id", "map");
@@ -47,6 +72,10 @@ public:
             return;
         }
 
+        // Create the folder
+        std::filesystem::path path = path_;
+        std::filesystem::create_directories(path);
+
         cv::namedWindow("Keyboard Input", cv::WINDOW_NORMAL);
 
         RCLCPP_INFO(get_logger(), "Starting worker thread...");
@@ -59,7 +88,7 @@ public:
     }
 
 private:
-    enum actions { STORE = 0, IGNORE };
+    enum actions { STORE = 0, IGNORE, SHUTDOWN };
     enum geometry { X = 0, Y, Z, QX, QY, QZ, QW, W, L, H };
 
     typedef struct {
@@ -75,6 +104,8 @@ private:
 
     void worker_thread()
     {
+        std::string file_path = path_ + "/" + generate_filename() + "_features.csv";
+
         while(true) {
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -129,10 +160,19 @@ private:
                 int action = user_input_handler();
 
                 if(STORE == action) {
-                    // same to csv
+                    road_users.push_back(road_user);
+                } else if(IGNORE == action) {
+                    // do nothing
+                } else if(SHUTDOWN == action) {
+                    // Save what we have before shutdown
+                    write_csv(road_users, file_path);
+                    rclcpp::shutdown();
+                    exit(EXIT_SUCCESS);
                 }
             }
 
+            // Savey save the csv file
+            write_csv(road_users, file_path);
 
             auto stop = std::chrono::high_resolution_clock::now();
             auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
@@ -150,7 +190,7 @@ private:
             + pow(data["cuboid"]["val"][Z].asDouble(), 2.0));
 
         Json::Value num = data["cuboid"]["attributes"]["num"];
-        int num_points;
+        int num_points  = -1;
 
         for(Json::Value::ArrayIndex i = 0; i < num.size(); i++) {
             // Check if the name is occlusion_level
@@ -236,27 +276,26 @@ private:
         if(key != -1) {
             switch(key) {
                 case 27: // Escape
-                    rclcpp::shutdown();
-                    exit(EXIT_SUCCESS);
+                    out = SHUTDOWN;
                     break;
 
                 case 13: // Enter
-                    out = 1;
+                    out = STORE;
                     break;
 
                 case 8:
-                    out = 2;
+                    out = IGNORE;
                     break;
 
                 default:
-                    out = 0;
+                    out = IGNORE;
                     break;
             }
         }
         return out;
     }
 
-    Json::Value read_json_file(std::string filepath)
+    Json::Value read_json_file(std::string& filepath)
     {
         // Create an input file stream object
         std::ifstream ifs(filepath);
@@ -284,11 +323,50 @@ private:
         return data;
     }
 
+    void write_csv(std::vector<Road_User_t>& vec, std::string& filename)
+    {
+        // check if the file already exists
+        std::ifstream infile(filename);
+        bool file_exists = infile.good();
+
+        infile.close();
+
+        // Create an output file stream object
+        std::ofstream file(filename, std::ios::app);
+
+        // Check if the file is opened successfully
+        if(file.is_open()) {
+            // set the precision of the file stream to 6 decimal places
+            file << std::setprecision(6);
+
+            if(false == file_exists) {
+                file << "name,type,num_points,length,width,height,dist2sensor,occlusion_level\n";
+            }
+
+            // Loop through the vector elements
+            for(auto entry : vec) {
+                // Write the element to the file, followed by a comma
+                file << entry.name << ","
+                     << entry.type << ","
+                     << entry.num_points << ","
+                     << entry.length << ","
+                     << entry.width << ","
+                     << entry.height << ","
+                     << entry.dist2sensor << ","
+                     << entry.occlusion_level << "\n";
+            }
+            file.close();
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Error: Cannot open/write to csv file.");
+        }
+    } // write_csv
+
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_pub_;
 
     std::vector<std::string> gt_files_;
     std::vector<std::string> pointcloud_files_;
     std::string frame_id_;
+    std::string path_;
     size_t file_index_ = 0;
 }; // worker_thread
 
