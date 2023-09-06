@@ -46,6 +46,9 @@ public:
     {
         pointcloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points", 10);
 
+        this->declare_parameter<bool>("interactive", false);
+        this->get_parameter("interactive", interactive_);
+
         std::string gt_folder;
         std::string pointcloud_folder;
 
@@ -144,7 +147,9 @@ private:
 
                 // Print data
                 RCLCPP_INFO(
-                    get_logger(), "Name: %s \nType: %s \nNumPoints: %d \nL: %f\nW: %f \nH: %f \nDist2Sensor: %f \nOcc: %s\n",
+                    get_logger(), "File %ld/%ld. Name: %s \nType: %s \nNumPoints: %d \nL: %f\nW: %f \nH: %f \nDist2Sensor: %f \nOcc: %s\n",
+                    file_index_,
+                    gt_files_.size(),
                     road_user.name.c_str(),
                     road_user.type.c_str(), road_user.num_points, road_user.length, road_user.width,
                     road_user.height, road_user.dist2sensor, road_user.occlusion_level.c_str());
@@ -156,18 +161,22 @@ private:
                 // Publish segmented object
                 // publish_pointcloud(cloud);
 
-                // Wait for input from operator
-                int action = user_input_handler();
+                if(true == interactive_) {
+                    // Wait for input from operator
+                    int action = user_input_handler();
 
-                if(STORE == action) {
+                    if(STORE == action) {
+                        road_users.push_back(road_user);
+                    } else if(IGNORE == action) {
+                        // do nothing
+                    } else if(SHUTDOWN == action) {
+                        // Save what we have before shutdown
+                        write_csv(road_users, file_path);
+                        rclcpp::shutdown();
+                        exit(EXIT_SUCCESS);
+                    }
+                } else {
                     road_users.push_back(road_user);
-                } else if(IGNORE == action) {
-                    // do nothing
-                } else if(SHUTDOWN == action) {
-                    // Save what we have before shutdown
-                    write_csv(road_users, file_path);
-                    rclcpp::shutdown();
-                    exit(EXIT_SUCCESS);
                 }
             }
 
@@ -190,7 +199,7 @@ private:
             + pow(data["cuboid"]["val"][Z].asDouble(), 2.0));
 
         Json::Value num = data["cuboid"]["attributes"]["num"];
-        int num_points  = -1;
+        int num_points { -1 };
 
         for(Json::Value::ArrayIndex i = 0; i < num.size(); i++) {
             // Check if the name is occlusion_level
@@ -363,11 +372,12 @@ private:
 
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_pub_;
 
+    bool interactive_ { false };
     std::vector<std::string> gt_files_;
     std::vector<std::string> pointcloud_files_;
     std::string frame_id_;
     std::string path_;
-    size_t file_index_ = 0;
+    size_t file_index_ { 0 };
 }; // worker_thread
 
 int main(int argc, char** argv)
