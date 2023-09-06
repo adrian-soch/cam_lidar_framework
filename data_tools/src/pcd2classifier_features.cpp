@@ -7,7 +7,7 @@
 #include <dirent.h>
 #include <fstream>
 #include <iostream>
-#include <jsoncpp/json/json.h> // You need to install the jsoncpp library
+#include <jsoncpp/json/json.h>
 
 #include <opencv2/highgui/highgui.hpp>
 
@@ -59,7 +59,20 @@ public:
     }
 
 private:
-    typedef enum actions { STORE = 0, IGNORE };
+    enum actions { STORE = 0, IGNORE };
+    enum geometry { X = 0, Y, Z, QX, QY, QZ, QW, W, L, H };
+
+    typedef struct {
+        std::string name;
+        std::string type;
+        int         num_points;
+        double      length;
+        double      width;
+        double      height;
+        double      dist2sensor;
+        std::string occlusion_level;
+    } Road_User_t;
+
     void worker_thread()
     {
         while(true) {
@@ -82,34 +95,91 @@ private:
             // Read in json data
             Json::Value gt_data = read_json_file(gt_files_[file_index_]);
 
-            // Loop through the objects
-            /**
-             * @todo
-             * 
-             * find objects and their 3D coordinates
-             * Use simalr technique to cropbox
-             * return the resulatnt cloud
-             * publish for RVIZ manual check
-             * calculate features
-             * check for user OK/STORE
-             * save to csv
-             */
+            // All label objects are inside the "frame" key
+            Json::Value frame = gt_data["openlabel"]["frames"];
+            std::vector<std::string> keys = frame.getMemberNames();
 
-            // Wait for input from operator
-            int action = user_input_handler();
+            // Get the frame number to access the objects
+            std::string frame_num = keys[0];
+            Json::Value objects   = frame[frame_num]["objects"];
 
-            if(STORE == action){
-                // same to csv
+            // Parse all "objects"
+            std::vector<Road_User_t> road_users;
+            for(Json::Value::const_iterator it = objects.begin(); it != objects.end(); ++it) {
+                // RCLCPP_INFO(get_logger(), "%s", (*it).toStyledString().c_str());
+
+                Road_User_t road_user;
+                get_features(&road_user, it);
+
+                // Print data
+                RCLCPP_INFO(
+                    get_logger(), "Name: %s \nType: %s \nNumPoints: %d \nL: %f\nW: %f \nH: %f \nDist2Sensor: %f \nOcc: %s\n",
+                    road_user.name.c_str(),
+                    road_user.type.c_str(), road_user.num_points, road_user.length, road_user.width,
+                    road_user.height, road_user.dist2sensor, road_user.occlusion_level.c_str());
+
+
+                // Segment the pointcloud to just include the object
+                // @TODO
+
+                // Publish segmented object
+                // publish_pointcloud(cloud);
+
+                // Wait for input from operator
+                int action = user_input_handler();
+
+                if(STORE == action) {
+                    // same to csv
+                }
             }
 
-            // Publish segmented object
-            publish_pointcloud(cloud);
 
             auto stop = std::chrono::high_resolution_clock::now();
             auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
             RCLCPP_INFO(get_logger(), "Time to publish cloud and image (msec): %ld", t_ms.count());
         }
     } // worker_thread
+
+    void get_features(Road_User_t* road_user, Json::Value::const_iterator it)
+    {
+        std::vector<std::string> keys = (*it).getMemberNames();
+        Json::Value data = (*it)["object_data"];
+
+        double dist2sensor = sqrt(pow(data["cuboid"]["val"][X].asDouble(), 2.0)
+            + pow(data["cuboid"]["val"][Y].asDouble(), 2.0)
+            + pow(data["cuboid"]["val"][Z].asDouble(), 2.0));
+
+        Json::Value num = data["cuboid"]["attributes"]["num"];
+        int num_points;
+
+        for(Json::Value::ArrayIndex i = 0; i < num.size(); i++) {
+            // Check if the name is occlusion_level
+            if(num[i]["name"].asString() == "num_points") {
+                num_points = num[i]["val"].asInt();
+                break;
+            }
+        }
+
+        Json::Value text = data["cuboid"]["attributes"]["text"];
+        std::string occlusion;
+        for(Json::Value::ArrayIndex i = 0; i < text.size(); i++) {
+            // Check if the name is occlusion_level
+            if(text[i]["name"].asString() == "occlusion_level") {
+                // Get the value of the val key as a string
+                occlusion = text[i]["val"].asString();
+                break;
+            }
+        }
+
+        road_user->name            = data["name"].asString();
+        road_user->type            = data["type"].asString();
+        road_user->num_points      = num_points;
+        road_user->length          = data["cuboid"]["val"][L].asDouble();
+        road_user->width           = data["cuboid"]["val"][W].asDouble();
+        road_user->height          = data["cuboid"]["val"][H].asDouble();
+        road_user->dist2sensor     = dist2sensor;
+        road_user->occlusion_level = occlusion;
+    } // get_features
 
     void publish_pointcloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr)
     {
@@ -191,24 +261,27 @@ private:
         // Create an input file stream object
         std::ifstream ifs(filepath);
 
+        Json::Value data;
+
         // Check if the file stream is open and valid
         if(ifs.is_open() && ifs.good()) {
             // Create a json reader object
             Json::Reader reader;
-            Json::Value data;
 
             // Parse the json file and store the result in data
             bool success = reader.parse(ifs, data);
 
             // Check if the parsing was successful
             if(!success) {
-                RCLCPP_ERROR(this->get_logger(), "%s", reader.getFormattedErrorMessages());
+                RCLCPP_ERROR(this->get_logger(), "%s", reader.getFormattedErrorMessages().c_str());
             }
 
             ifs.close();
         } else {
             RCLCPP_ERROR(this->get_logger(), "Error: Cannot open or read the file.");
         }
+
+        return data;
     }
 
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_pub_;
@@ -217,7 +290,7 @@ private:
     std::vector<std::string> pointcloud_files_;
     std::string frame_id_;
     size_t file_index_ = 0;
-};
+}; // worker_thread
 
 int main(int argc, char** argv)
 {
