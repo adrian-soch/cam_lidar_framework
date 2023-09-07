@@ -200,11 +200,12 @@ private:
          * VOXEL GRID
          * ========================================*/
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(cloud));
-        // pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_voxel_filtered(new pcl::PointCloud<pcl::PointXYZI>());
-        // pcl::VoxelGrid<pcl::PointXYZI> voxel_filter;
-        // voxel_filter.setInputCloud(cloud_ptr);
-        // voxel_filter.setLeafSize(voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
-        // voxel_filter.filter(*cloud_voxel_filtered);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_voxel_filtered(new pcl::PointCloud<pcl::PointXYZI>());
+        pcl::VoxelGrid<pcl::PointXYZI> voxel_filter;
+        voxel_filter.setInputCloud(cloud_ptr);
+        voxel_filter.setLeafSize(voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
+        voxel_filter.setKeepOrganized(true);
+        voxel_filter.filter(*cloud_voxel_filtered);
 
         /* ========================================
          * CROPBOX
