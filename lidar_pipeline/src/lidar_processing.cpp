@@ -14,6 +14,8 @@
 
 #include "lidar_pipeline/lidar_processing.hpp"
 
+#include "pipeline_interfaces/srv/classifier.hpp"
+
 #define AABB_ENABLE 0
 
 namespace lidar_pipeline
@@ -115,23 +117,23 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
         // Init and fill detection_array
         vision_msgs::msg::Detection3D detection;
-        vision_msgs::msg::BoundingBox3D o_bbox  = getOrientedBoudingBox(*cloud_cluster);
-        vision_msgs::msg::BoundingBox3D aa_bbox = getAxisAlignedBoudingBox(*cloud_cluster);
+        vision_msgs::msg::BoundingBox3D o_bbox = getOrientedBoudingBox(*cloud_cluster);
+
 
         // Basic Size based classifier
-        std::string id = simpleClassifier(o_bbox);
-        id = "car"; // Hardcode until classifier is better
-        if(!id.empty()) {
-            detection.header.stamp = recent_cloud->header.stamp;
-            detection.bbox         = o_bbox;
-            detection.id = id;
+        std::string id = classify(o_bbox, cloud_cluster);
+        detection.header.stamp = recent_cloud->header.stamp;
+        detection.bbox         = o_bbox;
+        detection.id = id;
 
-            // Minimum volume, and remove detections with a size 0 component
-            float volume = o_bbox.size.x * o_bbox.size.y * o_bbox.size.z;
-            if(volume > 0.0002) {
-                o_detection_array.push_back(detection);
-            }
+        // Minimum volume, and remove detections with a size 0 component
+        float volume = o_bbox.size.x * o_bbox.size.y * o_bbox.size.z;
+        if(volume > 0.0002) {
+            o_detection_array.push_back(detection);
+        }
 
+        if(AABB_ENABLE) {
+            vision_msgs::msg::BoundingBox3D aa_bbox = getAxisAlignedBoudingBox(*cloud_cluster);
             // Reuse detection for axis aligned detection
             detection.bbox = aa_bbox;
             aa_detection_array.push_back(detection);
@@ -252,53 +254,41 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
     return bbox;
 } // LidarProcessing::getOrientedBoudingBox
 
-std::string LidarProcessing::simpleClassifier(const vision_msgs::msg::BoundingBox3D bbox)
+std::string LidarProcessing::classify(const vision_msgs::msg::BoundingBox3D bbox,
+  pcl::PointCloud<pcl::PointXYZI>::Ptr                                      cloud_cluster)
 {
-    std::string out;
+    // cloud_cluster->points.size();
 
-    // check size from small to large
-    double cluster_vol = bbox.size.x * bbox.size.y * bbox.size.z;
+    /**
+     * @todo ADD SERVICE CALL
+     * 
+     */
 
-    double min_human_vol = 0.5 * 0.5 * 0.5;
-    double max_human_vol = 2.2 * 0.7 * 0.4;
+    int result = 2;
 
-    double min_car_vol = 1.5 * 1.5 * 3;
-    double max_car_vol = 2.5 * 2 * 6;
-
-    double min_truck_vol = 2.5 * 2 * 6.5;
-    double max_truck_vol = 3 * 3 * 15;
-
-    if(cluster_vol <= max_human_vol && cluster_vol >= min_human_vol) {
-        out = "pedestrian";
-    } else if(cluster_vol <= max_car_vol && cluster_vol >= min_car_vol) {
-        out = "car";
-    } else if(cluster_vol <= max_truck_vol && cluster_vol >= min_truck_vol) {
-        out = "truck";
-    }
-
-    return out;
+    return classes[result];
 }
 
 void LidarProcessing::getBboxColorRGBA(const std::string id, std_msgs::msg::ColorRGBA* out)
 {
     // take in the id number
     // return colour via pointer based on id/object class
-    if(id == "pedestrian") {
+    if(id == "PEDESTRIAN") {
         out->r = 1.f;
         out->g = 0.f;
         out->b = 0.f;
-    } else if(id == "car") {
+    } else if(id == "CAR") {
         out->r = 0.f;
         out->g = 1.f;
         out->b = 0.f;
-    } else if(id == "truck") {
+    } else if(id == "TRUCK") {
         out->r = 0.f;
         out->g = 0.f;
         out->b = 1.f;
     } else {
-        out->r = 0.f;
-        out->g = 0.f;
-        out->b = 0.f;
+        out->r = 0.2f;
+        out->g = 0.2f;
+        out->b = 0.2f;
     }
 }
 

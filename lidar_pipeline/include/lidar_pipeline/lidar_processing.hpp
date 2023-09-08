@@ -117,8 +117,9 @@ private:
         std::vector<Eigen::Vector4f> max_pts;
         std::vector<Eigen::Vector4f> min_pts;
     };
-
     enum Axis { X, Y, Z };
+    const std::string classes[9] =
+    { "BICYCLE", "BUS", "CAR", "EMERGENCY_VEHICLE", "MOTORCYCLE", "PEDESTRIAN", "TRAILER", "TRUCK", "VAN" };
 
     /*
      * Sub and Pub
@@ -197,7 +198,7 @@ private:
      * @return std::string
      */
     std::string
-    simpleClassifier(const vision_msgs::msg::BoundingBox3D bb);
+    classify(const vision_msgs::msg::BoundingBox3D bb, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster);
 
     /**
      * @brief Get the Bbox Color R G B A object

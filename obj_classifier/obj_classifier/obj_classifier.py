@@ -36,10 +36,6 @@ class Obj_Classifier(Node):
 
         return response
 
-    def string_to_feature(self, input_string):
-        # TODO: implement this function to convert the input string to a feature vector
-        pass
-
 
 def main(args=None):
     rclpy.init(args=args)
