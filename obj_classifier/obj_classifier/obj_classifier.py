@@ -4,6 +4,8 @@ from rclpy.node import Node
 from pipeline_interfaces.srv import Classifier
 from joblib import load
 
+import time
+
 
 class Obj_Classifier(Node):
 
@@ -21,6 +23,9 @@ class Obj_Classifier(Node):
         self.svm = load(model_path + '/svm.joblib')
 
     def svm_inference_callback(self, request, response):
+
+        start = time.time()
+
         feature_vector = np.array(request.request).reshape(1, -1)
 
         feature_vector = self.scaler.transform(feature_vector)
@@ -29,10 +34,11 @@ class Obj_Classifier(Node):
         # Predict the class of the feature vector using the SVM model
         predicted_class = self.svm.predict(feature_vector)
 
-        print(f'{predicted_class}\n')
-
         # Set the response data to the predicted class
         response.result = int(predicted_class)
+
+        end = time.time()
+        self.get_logger().info(f'Class is {predicted_class}. Time {end-start}')
 
         return response
 

@@ -11,11 +11,18 @@
 
 #include "lidar_pipeline/lidar_processing.hpp"
 
+#include "rclcpp/executors/multi_threaded_executor.hpp"
+
 int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<lidar_pipeline::LidarProcessing>();
-    rclcpp::spin(node);
+
+    auto exec = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+    exec->add_node(node);
+    exec->spin();
+
+
     rclcpp::shutdown();
     return 0;
 }

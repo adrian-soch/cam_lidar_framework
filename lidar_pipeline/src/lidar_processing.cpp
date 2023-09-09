@@ -91,6 +91,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     std::vector<vision_msgs::msg::Detection3D> aa_detection_array, o_detection_array;
     CubePoints max_min_pts;
 
+    auto loop_start = std::chrono::high_resolution_clock::now();
     for(const auto &cluster : cluster_indices) {
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZI> );
 
@@ -117,17 +118,21 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         vision_msgs::msg::Detection3D detection;
         vision_msgs::msg::BoundingBox3D o_bbox = getOrientedBoudingBox(*cloud_cluster);
 
-
         // Basic Size based classifier
-        std::string id = classify(o_bbox, cloud_cluster);
+        std::string id = "TEMP"; // classify(o_bbox, cloud_cluster);
         detection.header.stamp = recent_cloud->header.stamp;
         detection.bbox         = o_bbox;
         detection.id = id;
+
+        // RCLCPP_INFO(get_logger(), "ID is: %s", id.c_str());
 
         // Minimum volume, and remove detections with a size 0 component
         float volume = o_bbox.size.x * o_bbox.size.y * o_bbox.size.z;
         if(volume > 0.0002) {
             o_detection_array.push_back(detection);
+        } else
+        {
+            RCLCPP_INFO(get_logger(), "One side is = 0m, num_points: : %d", cloud_cluster->points.size());
         }
 
         if(AABB_ENABLE) {
@@ -137,6 +142,9 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
             aa_detection_array.push_back(detection);
         }
     }
+    auto loop_stop = std::chrono::high_resolution_clock::now();
+    auto loop_t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(loop_stop - loop_start);
+    RCLCPP_INFO(get_logger(), "Loop Time (msec): %ld", loop_t_ms.count());
 
     if(AABB_ENABLE) {
         std::vector<geometry_msgs::msg::Point> line_list = minMax2lines(max_min_pts);
@@ -271,13 +279,15 @@ std::string LidarProcessing::classify(const vision_msgs::msg::BoundingBox3D bbox
 
     auto result_future = client_->async_send_request(request);
 
-    if(rclcpp::spin_until_future_complete(this->get_node_base_interface(), result_future, std::chrono::milliseconds(10)) ==
+    if(rclcpp::spin_until_future_complete(this->get_node_base_interface(), result_future,
+      std::chrono::milliseconds(200)) ==
       rclcpp::FutureReturnCode::SUCCESS)
     {
         int result = result_future.get()->result;
         output = classes[result];
+        RCLCPP_INFO(get_logger(), "Result: %d. Class: %s", result, output.c_str());
     } else {
-        std::cout << "Failed to call service" << std::endl;
+        RCLCPP_INFO(get_logger(), "Failed to call service");
     }
 
     return output;

@@ -68,7 +68,7 @@ public:
         /*
          * SET UP SERVICE
          */
-        client_ = this->create_client<pipeline_interfaces::srv::Classifier>("classifier");
+        client_ = this->create_client<pipeline_interfaces::srv::Classifier>("svm_inference");
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -85,7 +85,7 @@ public:
         this->declare_parameter("plane_dist_thresh", 0.35);
         this->declare_parameter("cluster_tol", 1.35);
         this->declare_parameter("cluster_min_size", 2);
-        this->declare_parameter("cluster_max_size", 2000);
+        this->declare_parameter("cluster_max_size", 10000);
         this->declare_parameter<std::vector<double> >("lidar2world_transform.translation", { 0.0 });
         this->declare_parameter<std::vector<double> >("lidar2world_transform.quaternion", { 1.0, 0.0, 0.0, 0.0 });
         this->declare_parameter<std::vector<double> >("crop_box_transform.translation", { 0.0 });
@@ -201,10 +201,11 @@ private:
     getOrientedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
 
     /**
-     * @brief Simple bbounding box dimension based classier
-     *
-     * @param bb
-     * @return std::string
+     * @brief Calls classifier service and returns ID
+     * 
+     * @param bb 
+     * @param cloud_cluster 
+     * @return std::string 
      */
     std::string
     classify(const vision_msgs::msg::BoundingBox3D bb, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster);
