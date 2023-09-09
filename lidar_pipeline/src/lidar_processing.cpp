@@ -14,8 +14,6 @@
 
 #include "lidar_pipeline/lidar_processing.hpp"
 
-#include "pipeline_interfaces/srv/classifier.hpp"
-
 #define AABB_ENABLE 0
 
 namespace lidar_pipeline
@@ -257,16 +255,32 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
 std::string LidarProcessing::classify(const vision_msgs::msg::BoundingBox3D bbox,
   pcl::PointCloud<pcl::PointXYZI>::Ptr                                      cloud_cluster)
 {
-    // cloud_cluster->points.size();
+    std::string output = "UNKNOWN";
 
-    /**
-     * @todo ADD SERVICE CALL
-     * 
-     */
+    float dist = sqrt(pow(bbox.center.position.x, 2)
+        + pow(bbox.center.position.x, 2)
+        + pow(bbox.center.position.x, 2));
 
-    int result = 2;
+    std::vector<float> data =
+    { float(cloud_cluster->points.size()), float(bbox.size.x), float(bbox.size.y), float(bbox.size.z), dist,
+      float(bbox.size.x / bbox.size.z),    float(bbox.size.y / bbox.size.z) };
 
-    return classes[result];
+    auto request = std::make_shared<pipeline_interfaces::srv::Classifier::Request>();
+
+    request->request = data;
+
+    auto result_future = client_->async_send_request(request);
+
+    if(rclcpp::spin_until_future_complete(this->get_node_base_interface(), result_future, std::chrono::milliseconds(10)) ==
+      rclcpp::FutureReturnCode::SUCCESS)
+    {
+        int result = result_future.get()->result;
+        output = classes[result];
+    } else {
+        std::cout << "Failed to call service" << std::endl;
+    }
+
+    return output;
 }
 
 void LidarProcessing::getBboxColorRGBA(const std::string id, std_msgs::msg::ColorRGBA* out)

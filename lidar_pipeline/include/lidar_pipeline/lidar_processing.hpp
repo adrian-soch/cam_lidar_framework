@@ -13,6 +13,7 @@
 #define LIDAR_PROCESSING_HPP_
 
 #include "lidar_pipeline/point_cloud_utils.hpp"
+#include "pipeline_interfaces/srv/classifier.hpp"
 
 #include <iostream>
 
@@ -63,6 +64,11 @@ public:
 
         aa_detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/aa_detections", 1);
         o_detection_pub_  = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/o_detections", 1);
+
+        /*
+         * SET UP SERVICE
+         */
+        client_ = this->create_client<pipeline_interfaces::srv::Classifier>("classifier");
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -125,6 +131,7 @@ private:
      * Sub and Pub
      */
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_subscriber_;
+
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr voxel_grid_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr crop_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr plane_pub_;
@@ -136,6 +143,8 @@ private:
 
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr aa_detection_pub_;
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr o_detection_pub_;
+
+    rclcpp::Client<pipeline_interfaces::srv::Classifier>::SharedPtr client_;
 
     /*
      * Parameters
