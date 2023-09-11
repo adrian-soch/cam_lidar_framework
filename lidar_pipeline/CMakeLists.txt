@@ -32,14 +32,13 @@ find_package(PCL REQUIRED)
 find_package(message_filters)
 find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(pipeline_interfaces REQUIRED)
 
 add_executable(perception_node src/perception_node.cpp src/lidar_processing.cpp)
 target_include_directories(perception_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(perception_node rclcpp tf2_ros tf2 tf2_eigen sensor_msgs visualization_msgs vision_msgs geometry_msgs pcl_ros pipeline_interfaces)
+ament_target_dependencies(perception_node rclcpp tf2_ros tf2 tf2_eigen sensor_msgs visualization_msgs vision_msgs geometry_msgs pcl_ros)
 
 add_executable(projection_node src/lidar2cam_proj.cpp)
 target_include_directories(projection_node PUBLIC
