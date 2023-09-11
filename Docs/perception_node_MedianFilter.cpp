@@ -4,17 +4,20 @@
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
  * @version 0.1
  * @date 2023-01-12
+ * 
+ * #######################################################
+ * #######################################################
+ * #######################################################
+ * #######################################################
+ * 
+ * @note
+ * - Voxel grid filter does not preserve the organized pointcloud!
+ * - OpenMP Helps paralellize the computations really easily
  *
- * @todo
- *      - Use circular buffer (#include <boost/circular_buffer.hpp>)
- *      - if structured cloud is maintained can we allocate all memory at compile time?
- *      - paralellize the median computation
- *      - downsampling that maintains structuredness (voxel does not)
- *      - create functions and clean up callback
- *      - create .hpp and .cpp to make easier reading
- *      - Use IPC by running this node in a container with the Ouster Node
- *
- * @copyright Copyright (c) 2023
+ * #######################################################
+ * #######################################################
+ * #######################################################
+ * #######################################################
  *
  */
 
@@ -200,12 +203,11 @@ private:
          * VOXEL GRID
          * ========================================*/
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(cloud));
-        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_voxel_filtered(new pcl::PointCloud<pcl::PointXYZI>());
-        pcl::VoxelGrid<pcl::PointXYZI> voxel_filter;
-        voxel_filter.setInputCloud(cloud_ptr);
-        voxel_filter.setLeafSize(voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
-        voxel_filter.setKeepOrganized(true);
-        voxel_filter.filter(*cloud_voxel_filtered);
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_voxel_filtered(new pcl::PointCloud<pcl::PointXYZI>());
+        // pcl::VoxelGrid<pcl::PointXYZI> voxel_filter;
+        // voxel_filter.setInputCloud(cloud_ptr);
+        // voxel_filter.setLeafSize(voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
+        // voxel_filter.filter(*cloud_voxel_filtered);
 
         /* ========================================
          * CROPBOX
