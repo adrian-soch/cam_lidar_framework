@@ -2,43 +2,25 @@
  * @file perception_node.hpp
  * @brief Process LiDAR pointcloud data
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
- * @version 0.1
- * @date 2023-03-05
  *
  * @copyright Copyright (c) 2023
- *
  */
 
 #ifndef LIDAR_PROCESSING_HPP_
 #define LIDAR_PROCESSING_HPP_
 
-#include "lidar_pipeline/point_cloud_utils.hpp"
-#include "pipeline_interfaces/srv/classifier.hpp"
-
-#include <iostream>
-
-#include "rclcpp/rclcpp.hpp"
+// Messag Includes
 #include <builtin_interfaces/msg/time.hpp>
 #include <geometry_msgs/msg/point.hpp>
-#include <rclcpp/qos.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <std_msgs/msg/color_rgba.hpp>
-#include <tf2/transform_datatypes.h>
 #include <vision_msgs/msg/bounding_box3_d.hpp>
 #include <vision_msgs/msg/detection3_d.hpp>
 #include <vision_msgs/msg/detection3_d_array.hpp>
-#include <vision_msgs/msg/object_hypothesis_with_pose.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
-#include <pcl/features/moment_of_inertia_estimation.h>
-
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl_ros/transforms.hpp>
-
-#include <tf2/convert.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2_eigen/tf2_eigen.h>
+// Application specific headers
+#include "lidar_pipeline/point_cloud_utils.hpp"
 
 namespace lidar_pipeline
 {
@@ -64,11 +46,6 @@ public:
 
         aa_detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/aa_detections", 1);
         o_detection_pub_  = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/o_detections", 1);
-
-        /*
-         * SET UP SERVICE
-         */
-        client_ = this->create_client<pipeline_interfaces::srv::Classifier>("svm_inference");
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -124,8 +101,6 @@ private:
         std::vector<Eigen::Vector4f> min_pts;
     };
     enum Axis { X, Y, Z };
-    const std::string classes[9] =
-    { "BICYCLE", "BUS", "CAR", "EMERGENCY_VEHICLE", "MOTORCYCLE", "PEDESTRIAN", "TRAILER", "TRUCK", "VAN" };
 
     /*
      * Sub and Pub
@@ -143,8 +118,6 @@ private:
 
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr aa_detection_pub_;
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr o_detection_pub_;
-
-    rclcpp::Client<pipeline_interfaces::srv::Classifier>::SharedPtr client_;
 
     /*
      * Parameters
@@ -164,6 +137,7 @@ private:
     std::vector<double> crop_box_quat;
     std::vector<double> crop_box_size;
 
+    // For assigning the same stamp in message headers
     builtin_interfaces::msg::Time stamp_;
 
     // Create cloud operation object
@@ -202,10 +176,10 @@ private:
 
     /**
      * @brief Calls classifier service and returns ID
-     * 
-     * @param bb 
-     * @param cloud_cluster 
-     * @return std::string 
+     *
+     * @param bb
+     * @param cloud_cluster
+     * @return std::string
      */
     std::string
     classify(const vision_msgs::msg::BoundingBox3D bb, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster);

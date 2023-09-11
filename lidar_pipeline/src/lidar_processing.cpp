@@ -2,16 +2,17 @@
  * @file lidar_processing.cpp
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
  * @brief
- * @version 0.1
- * @date 2023-03-23
  * @todo
- *      - SVM classifier (train on stanford data, test with real data)
- *      - Test on different data (check for runtime issues)
  *      - Use IPC by running this node in a container with the Ouster Node ?
  * @copyright Copyright (c) 2023
- *
  */
 
+// PCL Includes
+#include <pcl/features/moment_of_inertia_estimation.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl_ros/transforms.hpp>
+
+// Application Specific Includes
 #include "lidar_pipeline/lidar_processing.hpp"
 
 #define AABB_ENABLE 0
@@ -91,7 +92,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     std::vector<vision_msgs::msg::Detection3D> aa_detection_array, o_detection_array;
     CubePoints max_min_pts;
 
-    auto loop_start = std::chrono::high_resolution_clock::now();
     for(const auto &cluster : cluster_indices) {
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZI> );
 
@@ -118,21 +118,14 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         vision_msgs::msg::Detection3D detection;
         vision_msgs::msg::BoundingBox3D o_bbox = getOrientedBoudingBox(*cloud_cluster);
 
-        // Basic Size based classifier
-        std::string id = "TEMP"; // classify(o_bbox, cloud_cluster);
         detection.header.stamp = recent_cloud->header.stamp;
         detection.bbox         = o_bbox;
-        detection.id = id;
-
-        // RCLCPP_INFO(get_logger(), "ID is: %s", id.c_str());
+        detection.id = "UNKNOWN";
 
         // Minimum volume, and remove detections with a size 0 component
         float volume = o_bbox.size.x * o_bbox.size.y * o_bbox.size.z;
         if(volume > 0.0002) {
             o_detection_array.push_back(detection);
-        } else
-        {
-            RCLCPP_INFO(get_logger(), "One side is = 0m, num_points: : %d", cloud_cluster->points.size());
         }
 
         if(AABB_ENABLE) {
@@ -142,9 +135,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
             aa_detection_array.push_back(detection);
         }
     }
-    auto loop_stop = std::chrono::high_resolution_clock::now();
-    auto loop_t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(loop_stop - loop_start);
-    RCLCPP_INFO(get_logger(), "Loop Time (msec): %ld", loop_t_ms.count());
 
     if(AABB_ENABLE) {
         std::vector<geometry_msgs::msg::Point> line_list = minMax2lines(max_min_pts);
@@ -260,62 +250,6 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
     return bbox;
 } // LidarProcessing::getOrientedBoudingBox
 
-std::string LidarProcessing::classify(const vision_msgs::msg::BoundingBox3D bbox,
-  pcl::PointCloud<pcl::PointXYZI>::Ptr                                      cloud_cluster)
-{
-    std::string output = "UNKNOWN";
-
-    float dist = sqrt(pow(bbox.center.position.x, 2)
-        + pow(bbox.center.position.x, 2)
-        + pow(bbox.center.position.x, 2));
-
-    std::vector<float> data =
-    { float(cloud_cluster->points.size()), float(bbox.size.x), float(bbox.size.y), float(bbox.size.z), dist,
-      float(bbox.size.x / bbox.size.z),    float(bbox.size.y / bbox.size.z) };
-
-    auto request = std::make_shared<pipeline_interfaces::srv::Classifier::Request>();
-
-    request->request = data;
-
-    auto result_future = client_->async_send_request(request);
-
-    if(rclcpp::spin_until_future_complete(this->get_node_base_interface(), result_future,
-      std::chrono::milliseconds(200)) ==
-      rclcpp::FutureReturnCode::SUCCESS)
-    {
-        int result = result_future.get()->result;
-        output = classes[result];
-        RCLCPP_INFO(get_logger(), "Result: %d. Class: %s", result, output.c_str());
-    } else {
-        RCLCPP_INFO(get_logger(), "Failed to call service");
-    }
-
-    return output;
-}
-
-void LidarProcessing::getBboxColorRGBA(const std::string id, std_msgs::msg::ColorRGBA* out)
-{
-    // take in the id number
-    // return colour via pointer based on id/object class
-    if(id == "PEDESTRIAN") {
-        out->r = 1.f;
-        out->g = 0.f;
-        out->b = 0.f;
-    } else if(id == "CAR") {
-        out->r = 0.f;
-        out->g = 1.f;
-        out->b = 0.f;
-    } else if(id == "TRUCK") {
-        out->r = 0.f;
-        out->g = 0.f;
-        out->b = 1.f;
-    } else {
-        out->r = 0.2f;
-        out->g = 0.2f;
-        out->b = 0.2f;
-    }
-}
-
 template<typename PointT>
 void LidarProcessing::publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
   const pcl::PointCloud<PointT>                                                                     &point_cloud)
@@ -369,8 +303,9 @@ void LidarProcessing::publish3DBBoxOBB(rclcpp::Publisher<visualization_msgs::msg
         marker.lifetime = rclcpp::Duration::from_seconds(0.1);
 
         std_msgs::msg::ColorRGBA rgba;
-        getBboxColorRGBA(c.id, &rgba);
-        marker.color   = rgba;
+        marker.color.r = 0.2;
+        marker.color.g = 0.8;
+        marker.color.b = 0.2;
         marker.color.a = 0.4; // Set alpha so we can see underlying points
 
         marker_array.markers.push_back(marker);

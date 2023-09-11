@@ -11,6 +11,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
+#include <cv_bridge/cv_bridge.h>
+
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/synchronizer.h>
@@ -23,8 +25,6 @@
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
 #include <pcl_conversions/pcl_conversions.h>
-
-#include <cv_bridge/cv_bridge.h>
 
 using namespace message_filters;
 
@@ -98,8 +98,6 @@ private:
       const vision_msgs::msg::Detection3DArray::ConstSharedPtr  & lidar_track)
     {
         auto start = std::chrono::high_resolution_clock::now();
-
-        RCLCPP_INFO(this->get_logger(), "Received an image and a detection");
 
         cv_bridge::CvImagePtr cv_ptr;
         try
