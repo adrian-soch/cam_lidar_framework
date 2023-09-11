@@ -10,7 +10,7 @@
 #define LIDAR_PROCESSING_HPP_
 
 // Messag Includes
-#include <builtin_interfaces/msg/time.hpp>
+// #include <builtin_interfaces/msg/time.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <vision_msgs/msg/bounding_box3_d.hpp>
@@ -21,6 +21,7 @@
 
 // Application specific headers
 #include "lidar_pipeline/point_cloud_utils.hpp"
+#include "pipeline_interfaces/msg/point_cloud2_array.hpp"
 
 namespace lidar_pipeline
 {
@@ -46,6 +47,8 @@ public:
 
         aa_detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/aa_detections", 1);
         o_detection_pub_  = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/o_detections", 1);
+
+        pc_array_pub_ = this->create_publisher<pipeline_interfaces::msg::PointCloud2Array>("lidar_proc/obj_clouds", 1);
 
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
@@ -118,6 +121,9 @@ private:
 
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr aa_detection_pub_;
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr o_detection_pub_;
+
+
+    rclcpp::Publisher<pipeline_interfaces::msg::PointCloud2Array>::SharedPtr pc_array_pub_;
 
     /*
      * Parameters
@@ -245,6 +251,16 @@ private:
      */
     void
     publishDistanceMarkers(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher);
+
+    /**
+     * @brief Publish a vector of pointclouds as a custom pointcloudarray message
+     *
+     * @param clusters  std::vector of point cloud pointers
+     * @param publisher
+     */
+    void
+    publishPointCloudArray(rclcpp::Publisher<pipeline_interfaces::msg::PointCloud2Array>::SharedPtr publisher,
+      std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>                                             & clusters);
 };
 } // end namespace perceptions_node
 #endif // ifndef LIDAR_PROCESSING_HPP_

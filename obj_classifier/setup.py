@@ -23,8 +23,6 @@ setup(
     entry_points={
         'console_scripts': [
             'object_classifier = obj_classifier.obj_classifier:main',
-            'object_classifier_sub_test = obj_classifier.obj_classifier_subTest:main',
-            'tester = obj_classifier.test_caller:main'
         ],
     },
 )

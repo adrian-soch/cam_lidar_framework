@@ -156,6 +156,8 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
     this->publishDistanceMarkers(range_marker_array_pub_);
 
+    this->publishPointCloudArray(pc_array_pub_, clusters);
+
     auto stop = std::chrono::high_resolution_clock::now();
     auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     RCLCPP_INFO(get_logger(), "Time (msec): %ld", t_ms.count());
@@ -405,5 +407,24 @@ void LidarProcessing::publishDistanceMarkers(
         ranges.markers.push_back(marker);
     }
     publisher->publish(ranges);
+}
+
+void LidarProcessing::publishPointCloudArray(
+    rclcpp::Publisher<pipeline_interfaces::msg::PointCloud2Array>::SharedPtr publisher,
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>                        & clusters)
+{
+    pipeline_interfaces::msg::PointCloud2Array array_msg;
+
+    for(auto point_cloud : clusters) {
+        sensor_msgs::msg::PointCloud2::SharedPtr pc2_cloud(new sensor_msgs::msg::PointCloud2);
+        pcl::toROSMsg(*point_cloud, *pc2_cloud);
+        pc2_cloud->header.frame_id = world_frame;
+        pc2_cloud->header.stamp    = stamp_;
+        array_msg.pointclouds.push_back(*pc2_cloud);
+    }
+
+    array_msg.header.frame_id = world_frame;
+    array_msg.header.stamp    = stamp_;
+    publisher->publish(array_msg);
 }
 } // end namespace lidar_pipeline
