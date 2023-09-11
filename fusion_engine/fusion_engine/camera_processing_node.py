@@ -77,7 +77,7 @@ class ImageSubscriber(Node):
         self.result_pub_.publish(out_msg)
 
         t5 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-        self.get_logger().info(str(t5-t1))
+        self.get_logger().info(f'Time (msec): {(t5-t1)*1000:.1f}')
 
 
 def createDetection2DArr(tracks, header) -> Detection2DArray:
@@ -93,6 +93,9 @@ def createDetection2DArr(tracks, header) -> Detection2DArray:
     out.header = header
 
     for trk in tracks:
+        if trk is None:
+            continue
+
         det = Detection2D()
 
         result = ObjectHypothesisWithPose()
@@ -108,6 +111,7 @@ def createDetection2DArr(tracks, header) -> Detection2DArray:
         det.bbox.size_y = y_len
 
         out.detections.append(det)
+
     return out
 
 

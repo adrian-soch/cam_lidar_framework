@@ -94,6 +94,10 @@ class ParamMarkerNode(Node):
         # publish the marker message
         self.marker_pub.publish(marker)
 
+        self.get_logger().info(f'Size (W, L, H): [{w.value}, {l.value},{h.value}]')
+        self.get_logger().info(f'Translation (X, Y, Z): [{x.value}, {y.value}, {z.value}]')
+        self.get_logger().info(f'Orientation (W, X, Y, Z): [{q[0]}, {q[1]}, {q[2]}, {q[3]}]\n')
+
 
 def quaternion_from_euler(roll, pitch, yaw):
     """

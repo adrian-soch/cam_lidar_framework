@@ -13,7 +13,7 @@ public:
     ImagePointCloudPublisher() : Node("image_pointcloud_publisher")
     {
         // Create publishers for image and point cloud
-        image_pub_      = this->create_publisher<sensor_msgs::msg::Image>("images", 10);
+        image_pub_      = this->create_publisher<sensor_msgs::msg::Image>("image", 10);
         pointcloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("points", 10);
 
         // Get the folder paths for image and point cloud files
@@ -45,6 +45,8 @@ private:
 
         std::vector<std::string> image_files      = get_files_in_folder(image_folder_);
         std::vector<std::string> pointcloud_files = get_files_in_folder(pointcloud_folder_);
+
+        RCLCPP_INFO(get_logger(), "Remaining files: %ld", image_files.size()-file_index_);
 
         // Check if there are any files to publish
         if((image_files.empty() || pointcloud_files.empty()) ||

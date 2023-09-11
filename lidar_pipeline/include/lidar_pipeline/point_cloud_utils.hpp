@@ -2,17 +2,13 @@
  * @file point_cloud_utils.hpp
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
  * @brief Utility functions for point cloud operations
- * @version 0.1
- * @date 2023-03-23
- *
- * @copyright Copyright (c) 2023
- *
  */
 
 #ifndef POINT_CLOUD_UTILITIES_HPP_
 #define POINT_CLOUD_UTILITIES_HPP_
 
 #include <pcl/common/common.h>
+#include <pcl/common/transforms.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/extract_indices.h>
@@ -22,14 +18,13 @@
 
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/extract_clusters.h>
-#include <pcl/segmentation/sac_segmentation.h>
-
-#include <pcl/common/transforms.h>
 #include <pcl/segmentation/conditional_euclidean_clustering.h>
+#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/segmentation/region_growing.h>
+#include <pcl/segmentation/sac_segmentation.h>
 
+// Application specific headers
 #include "optics.hpp"
 
 template<typename PointT>
@@ -394,7 +389,7 @@ public:
 
         Optics::optics<PointT>(cloud_ptr, min_pts, reachability_thresh, indices_ptr_vector);
 
-        for(auto &indices_ptr : indices_ptr_vector) { // loop over each element
+        for(auto &indices_ptr : indices_ptr_vector) {            // loop over each element
             pcl::PointIndices indices = std::move(*indices_ptr); // access and move the value pointed by the shared pointer
             cluster_indices.push_back(indices);                  // add the value to the output vector
         }

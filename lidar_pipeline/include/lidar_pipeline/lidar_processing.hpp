@@ -2,42 +2,25 @@
  * @file perception_node.hpp
  * @brief Process LiDAR pointcloud data
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
- * @version 0.1
- * @date 2023-03-05
  *
  * @copyright Copyright (c) 2023
- *
  */
 
 #ifndef LIDAR_PROCESSING_HPP_
 #define LIDAR_PROCESSING_HPP_
 
-#include "lidar_pipeline/point_cloud_utils.hpp"
-
-#include <iostream>
-
-#include "rclcpp/rclcpp.hpp"
+// Messag Includes
 #include <builtin_interfaces/msg/time.hpp>
 #include <geometry_msgs/msg/point.hpp>
-#include <rclcpp/qos.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <std_msgs/msg/color_rgba.hpp>
-#include <tf2/transform_datatypes.h>
 #include <vision_msgs/msg/bounding_box3_d.hpp>
 #include <vision_msgs/msg/detection3_d.hpp>
 #include <vision_msgs/msg/detection3_d_array.hpp>
-#include <vision_msgs/msg/object_hypothesis_with_pose.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
-#include <pcl/features/moment_of_inertia_estimation.h>
-
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl_ros/transforms.hpp>
-
-#include <tf2/convert.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2_eigen/tf2_eigen.h>
+// Application specific headers
+#include "lidar_pipeline/point_cloud_utils.hpp"
 
 namespace lidar_pipeline
 {
@@ -79,7 +62,7 @@ public:
         this->declare_parameter("plane_dist_thresh", 0.35);
         this->declare_parameter("cluster_tol", 1.35);
         this->declare_parameter("cluster_min_size", 2);
-        this->declare_parameter("cluster_max_size", 2000);
+        this->declare_parameter("cluster_max_size", 10000);
         this->declare_parameter<std::vector<double> >("lidar2world_transform.translation", { 0.0 });
         this->declare_parameter<std::vector<double> >("lidar2world_transform.quaternion", { 1.0, 0.0, 0.0, 0.0 });
         this->declare_parameter<std::vector<double> >("crop_box_transform.translation", { 0.0 });
@@ -117,13 +100,13 @@ private:
         std::vector<Eigen::Vector4f> max_pts;
         std::vector<Eigen::Vector4f> min_pts;
     };
-
     enum Axis { X, Y, Z };
 
     /*
      * Sub and Pub
      */
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_subscriber_;
+
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr voxel_grid_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr crop_pub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr plane_pub_;
@@ -154,6 +137,7 @@ private:
     std::vector<double> crop_box_quat;
     std::vector<double> crop_box_size;
 
+    // For assigning the same stamp in message headers
     builtin_interfaces::msg::Time stamp_;
 
     // Create cloud operation object
@@ -191,13 +175,14 @@ private:
     getOrientedBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster);
 
     /**
-     * @brief Simple bbounding box dimension based classier
+     * @brief Calls classifier service and returns ID
      *
      * @param bb
+     * @param cloud_cluster
      * @return std::string
      */
     std::string
-    simpleClassifier(const vision_msgs::msg::BoundingBox3D bb);
+    classify(const vision_msgs::msg::BoundingBox3D bb, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster);
 
     /**
      * @brief Get the Bbox Color R G B A object
