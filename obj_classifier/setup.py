@@ -1,6 +1,4 @@
 from setuptools import setup
-import os
-from glob import glob
 
 package_name = 'obj_classifier'
 
@@ -23,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'object_classifier = obj_classifier.obj_classifier:main',
+            'classifier_validation = obj_classifier.classifier_validation:main',
         ],
     },
 )
