@@ -2,15 +2,12 @@
  * @file perception_node.hpp
  * @brief Process LiDAR pointcloud data
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
- *
- * @copyright Copyright (c) 2023
  */
 
 #ifndef LIDAR_PROCESSING_HPP_
 #define LIDAR_PROCESSING_HPP_
 
-// Messag Includes
-#include <builtin_interfaces/msg/time.hpp>
+// ROS Message Includes
 #include <geometry_msgs/msg/point.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <vision_msgs/msg/bounding_box3_d.hpp>
@@ -21,6 +18,7 @@
 
 // Application specific headers
 #include "lidar_pipeline/point_cloud_utils.hpp"
+#include "pipeline_interfaces/msg/point_cloud2_array.hpp"
 
 namespace lidar_pipeline
 {
@@ -47,6 +45,8 @@ public:
         aa_detection_pub_ = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/aa_detections", 1);
         o_detection_pub_  = this->create_publisher<vision_msgs::msg::Detection3DArray>("lidar_proc/o_detections", 1);
 
+        pc_array_pub_ = this->create_publisher<pipeline_interfaces::msg::PointCloud2Array>("lidar_proc/obj_clouds", 1);
+
         /*
          * SET UP PARAMETERS (COULD BE INPUT FROM LAUNCH FILE/TERMINAL)
          */
@@ -61,13 +61,13 @@ public:
         this->declare_parameter("plane_max_iter", 120);
         this->declare_parameter("plane_dist_thresh", 0.35);
         this->declare_parameter("cluster_tol", 1.35);
-        this->declare_parameter("cluster_min_size", 2);
+        this->declare_parameter("cluster_min_size", 3);
         this->declare_parameter("cluster_max_size", 10000);
         this->declare_parameter<std::vector<double> >("lidar2world_transform.translation", { 0.0 });
         this->declare_parameter<std::vector<double> >("lidar2world_transform.quaternion", { 1.0, 0.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("crop_box_transform.translation", { 0.0 });
-        this->declare_parameter<std::vector<double> >("crop_box_transform.quaternion", { 1.0, 0.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("crop_box_transform.size", { 1.0, 1.0, 1.0 });
+        this->declare_parameter<std::vector<double> >("crop_box_transform.translation", { -1. });
+        this->declare_parameter<std::vector<double> >("crop_box_transform.quaternion", { -1., -1., -1., -1. });
+        this->declare_parameter<std::vector<double> >("crop_box_transform.size", { -1., -1., -1. });
 
         // Get values from cmd line or YAML
         this->get_parameter("cloud_topic", cloud_topic);
@@ -81,9 +81,9 @@ public:
         this->get_parameter("cluster_max_size", cluster_max_size);
         this->get_parameter("lidar2world_transform.translation", lidar2world_translation);
         this->get_parameter("lidar2world_transform.quaternion", lidar2world_quat);
-        this->get_parameter("crop_box_transform.translation", crop_box_translation);
-        this->get_parameter("crop_box_transform.quaternion", crop_box_quat);
-        this->get_parameter("crop_box_transform.size", crop_box_size);
+        this->get_parameter("crop_box_transform.translation", crop_box_translation[0]);
+        this->get_parameter("crop_box_transform.quaternion", crop_box_quat[0]);
+        this->get_parameter("crop_box_transform.size", crop_box_size[0]);
 
         /*
          * SET UP SUBSCRIBER
@@ -119,6 +119,9 @@ private:
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr aa_detection_pub_;
     rclcpp::Publisher<vision_msgs::msg::Detection3DArray>::SharedPtr o_detection_pub_;
 
+
+    rclcpp::Publisher<pipeline_interfaces::msg::PointCloud2Array>::SharedPtr pc_array_pub_;
+
     /*
      * Parameters
      */
@@ -133,9 +136,9 @@ private:
     int cluster_max_size;
     std::vector<double> lidar2world_translation;
     std::vector<double> lidar2world_quat;
-    std::vector<double> crop_box_translation;
-    std::vector<double> crop_box_quat;
-    std::vector<double> crop_box_size;
+    std::vector<std::vector<double> > crop_box_translation{ { }, { } };
+    std::vector<std::vector<double> > crop_box_quat{ { }, { } };
+    std::vector<std::vector<double> > crop_box_size{ { }, { } };
 
     // For assigning the same stamp in message headers
     builtin_interfaces::msg::Time stamp_;
@@ -245,6 +248,16 @@ private:
      */
     void
     publishDistanceMarkers(rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisher);
+
+    /**
+     * @brief Publish a vector of pointclouds as a custom pointcloudarray message
+     *
+     * @param clusters  std::vector of point cloud pointers
+     * @param publisher
+     */
+    void
+    publishPointCloudArray(rclcpp::Publisher<pipeline_interfaces::msg::PointCloud2Array>::SharedPtr publisher,
+      std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr>                                             & clusters);
 };
 } // end namespace perceptions_node
 #endif // ifndef LIDAR_PROCESSING_HPP_

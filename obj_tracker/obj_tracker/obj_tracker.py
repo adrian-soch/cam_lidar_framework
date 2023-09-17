@@ -46,13 +46,13 @@ class ObjectTracker(Node):
             from .sort import sort as s
 
         # create instance of SORT
-        self.tracker = s.Sort(max_age=3, min_hits=3, iou_threshold=0.01)
+        self.tracker = s.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
 
         self.subscription = self.create_subscription(
             Detection3DArray,
             detection_topic,
             self.callback,
-            5)
+            1)
         self.subscription  # prevent unused variable warning
 
         self.track_publisher_ = self.create_publisher(

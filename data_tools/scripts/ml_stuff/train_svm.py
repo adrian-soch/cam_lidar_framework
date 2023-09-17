@@ -1,21 +1,4 @@
-'''
-TODO:
-- save parameters to yaml using `dir() function to list all the attributes of your SVM model object.`
-- create script to validate saving of paramters
-    ```
-    # Open and read the YAML file
-    with open('svm_model.yaml', 'r') as f:
-        params = yaml.load(f)
-
-    # Create a new SVM object with the same parameters as the original model
-    model = svm.SVC(**params)
-    ``` 
-
-- create server node that runs the svm and returns the class
-    - see if poles and static objects can be removed 
-'''
 import pandas as pd
-import numpy as np
 import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
