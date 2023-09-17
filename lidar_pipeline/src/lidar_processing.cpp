@@ -47,13 +47,20 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
      * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr crop_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*cloud_ptr));
 
+    /** 
+     * TODO make this a func
+     * 
+     * pass entire size array to function
+     * 
+     * add multi box cropping
+    */
     Eigen::Affine3f box_transform = Eigen::Affine3f::Identity();
-    box_transform.translation() << crop_box_translation[0], crop_box_translation[1], crop_box_translation[2];
-    box_transform.rotate(Eigen::Quaternionf(crop_box_quat[0], crop_box_quat[1],
-      crop_box_quat[2], crop_box_quat[3]));
+    box_transform.translation() << crop_box_translation[0][0], crop_box_translation[0][1], crop_box_translation[0][2];
+    box_transform.rotate(Eigen::Quaternionf(crop_box_quat[0][0], crop_box_quat[0][1],
+      crop_box_quat[0][2], crop_box_quat[0][3]));
 
     // Crop just the road using a prism
-    cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, crop_box_size[0], crop_box_size[1], crop_box_size[2]);
+    cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, crop_box_size[0][0], crop_box_size[0][1], crop_box_size[0][2]);
 
     /* ========================================
      * STATISTICAL OUTLIER REMOVAL
@@ -124,7 +131,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
         // Minimum volume, and remove detections with a size 0 component
         float volume = o_bbox.size.x * o_bbox.size.y * o_bbox.size.z;
-        if(volume > 0.0002) {
+        if(volume > 0.00002) {
             o_detection_array.push_back(detection);
         }
 
@@ -245,9 +252,9 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
     bbox.center.orientation.y = bboxQ.y();
     bbox.center.orientation.z = bboxQ.z();
     bbox.center.orientation.w = bboxQ.w();
-    bbox.size.x = size.x;
-    bbox.size.y = size.y;
-    bbox.size.z = size.z;
+    bbox.size.x = size.x + 0.005;
+    bbox.size.y = size.y + 0.005;
+    bbox.size.z = size.z + 0.001;
 
     return bbox;
 } // LidarProcessing::getOrientedBoudingBox
