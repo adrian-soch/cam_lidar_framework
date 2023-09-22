@@ -77,8 +77,11 @@ public:
 
         // Create a sync policy using the approximate time synchronizer
         sync_ = std::make_shared<Synchronizer<sync_policies::ApproximateTime<sensor_msgs::msg::Image,
-            vision_msgs::msg::Detection3DArray> > >(50);
+            vision_msgs::msg::Detection3DArray> > >(4);
         sync_->connectInput(*sub_image_, *sub_detection_);
+
+        std::chrono::milliseconds slop(60);
+        sync_->setMaxIntervalDuration(rclcpp::Duration(slop));
 
         // Register a callback for the synchronized messages
         sync_->registerCallback(&Lidar2CameraProjector::callback, this);
