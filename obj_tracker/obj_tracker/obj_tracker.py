@@ -36,7 +36,7 @@ class ObjectTracker(Node):
 
         # Current default is aa_detections for axis algined and o_detections for oriented detections
         detection_topic = self.declare_parameter(
-            'detection_topic', '/lidar_proc/o_detections').get_parameter_value().string_value
+            'detection_topic', '/lidar_proc/detections_with_class').get_parameter_value().string_value
         self.isOBB = self.declare_parameter(
             'isOBB', True).get_parameter_value().bool_value
 
@@ -46,7 +46,7 @@ class ObjectTracker(Node):
             from .sort import sort as s
 
         # create instance of SORT
-        self.tracker = s.Sort(max_age=5, min_hits=3, iou_threshold=0.01)
+        self.tracker = s.Sort(max_age=4, min_hits=3, iou_threshold=0.01)
 
         self.subscription = self.create_subscription(
             Detection3DArray,
