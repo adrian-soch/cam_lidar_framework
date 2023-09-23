@@ -33,6 +33,9 @@ class ImageSubscriber(Node):
         Class constructor to set up the node
         """
         super().__init__('camera_processor')
+        self.declare_parameter('flip_image', False)
+        self.flip_image = self.get_parameter(
+            'flip_image').get_parameter_value().bool_value
 
         # Create Subscriber with callback
         self.subscription = self.create_subscription(
@@ -63,7 +66,8 @@ class ImageSubscriber(Node):
         # Convert ROS Image message to OpenCV image
         current_frame = self.br.imgmsg_to_cv2(msg)
 
-        out_img = cv2.flip(current_frame, -1)
+        if self.flip_image is True:
+            current_frame = cv2.flip(current_frame, -1)
 
         tracks, out_img = self.tracker.update(current_frame, return_image=True)
 

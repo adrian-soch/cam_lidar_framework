@@ -17,14 +17,10 @@ def generate_launch_description():
         name='rtq_gui',
     )
 
-    # rviz_config_file = PathJoinSubstitution(
-    #     [FindPackageShare("lidar_pipeline"), "configs", "rviz.rviz"]
-    # )
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
         name='rviz2',
-        # arguments=['-d', rviz_config_file]
     )
 
     # Items above will only be launched if they are present in this list
