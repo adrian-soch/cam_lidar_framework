@@ -1,27 +1,25 @@
 import os
 
-from launch_ros.actions import Node
-from launch import LaunchDescription
-from launch.actions import ExecuteProcess
-from launch.substitutions import PathJoinSubstitution
-
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-
 from ament_index_python.packages import get_package_share_directory
 
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
-share_dir = get_package_share_directory('lidar_pipeline')
+from launch import LaunchDescription
+from launch.actions import ExecuteProcess
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import PathJoinSubstitution
+
+lidar_pipeline_share_dir = get_package_share_directory('lidar_pipeline')
 pipeline_params = os.path.join(
-    share_dir, 'configs', 'lidar_pipeline_config.yaml')
+    lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
 
 # Used to change playback rate of ros bag
 # A9 data bags were recoreded at 2.5Hz so they need a x4 speedup
 # if left as 1 then thre is no rate change
 BAG_PLAY_RATE = 1
 FLIP_IMAGE = False
-
 
 '''
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -33,13 +31,17 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_SELECTOR = 4
+BAG_SELECTOR = 5
 
+# Because of the yolov5 includes, its easier to just run this directly
+# in the terminal instead of a traditional node
 ABS_PATH_TO_FUSION_ENGINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/fusion_engine/fusion_engine'
+
 '''
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 '''
 # MARC Rooftop data without data syncronization
+# Fusion and projection will not work
 if BAG_SELECTOR == 0:
     FLIP_IMAGE = True
     BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
@@ -71,8 +73,8 @@ elif BAG_SELECTOR == 5:
     BAG_NAME = '2023-08-30_13-58-46_a9_dataset_r02_s03_camSouth1_LidarSouth'
     CONFIG_NAME = 'r02_s03_cam1South_lidarSouth_config.yaml'
 
-data_dependant_params = os.path.join(share_dir, 'configs', CONFIG_NAME)
-transform_params = os.path.join(share_dir, 'configs', 'transforms.yaml')
+data_dependant_params = os.path.join(
+    lidar_pipeline_share_dir, 'configs', CONFIG_NAME)
 
 
 def generate_launch_description():
@@ -83,8 +85,8 @@ def generate_launch_description():
         name='perception_node',
         output='screen',
         parameters=[
-                pipeline_params,
-                data_dependant_params
+            data_dependant_params,
+            pipeline_params,
         ]
     )
 
@@ -94,11 +96,13 @@ def generate_launch_description():
         name='projection_node',
         output='screen',
         parameters=[
-            transform_params
+            data_dependant_params,
         ]
     )
 
-    execute_camera_processor = ExecuteProcess(cmd=['python3 ./camera_processing_node.py' + ' --ros-args -p flip_image:=' + str(FLIP_IMAGE)],
+    execute_camera_processor = ExecuteProcess(
+        cmd=['python3 ./camera_processing_node.py' +
+             ' --ros-args -p flip_image:=' + str(FLIP_IMAGE)],
         cwd=[ABS_PATH_TO_FUSION_ENGINE],
         shell=True,
         name='camera_processor',
@@ -114,15 +118,16 @@ def generate_launch_description():
         arguments=['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
     )
 
-    s_transform2 = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
+    # --- UNUSED CURRENTLY ---
+    # s_transform2 = Node(
+    #     package='tf2_ros',
+    #     executable='static_transform_publisher',
 
-        # params from visual inspection
-        # To make the road paralell with the XY plane/rviz2 grid
-        arguments=['0', '0', '0', '3.1416', '0',
-                   '0', 'map', 'laser_sensor_frame']
-    )
+    #     # params from visual inspection
+    #     # To make the road paralell with the XY plane/rviz2 grid
+    #     arguments=['0', '0', '0', '3.1416', '0',
+    #                '0', 'map', 'laser_sensor_frame']
+    # )
 
     lidar_classifier = Node(
         package='obj_classifier',

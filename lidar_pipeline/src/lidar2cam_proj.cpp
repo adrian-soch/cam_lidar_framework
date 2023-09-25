@@ -54,17 +54,15 @@ public:
         this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.rotation", { -1.0, 0.0, 0.0,
                                                                                                     0.0, -1.0, 0.0,
                                                                                                     0.0, 0.0, 1.0 });
-        this->declare_parameter<std::vector<double> >("camera_matrix.translation", { 0.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("camera_matrix.rotation", { 1199.821557, 0.000000, 960.562236,
-                                                                                  0.000000, 1198.033465, 551.675808,
-                                                                                  0.000000, 0.000000, 1.000000 });
+        this->declare_parameter<std::vector<double> >("camera_matrix", { 1199.821557, 0.000000, 960.562236,
+                                                                         0.000000, 1198.033465, 551.675808,
+                                                                         0.000000, 0.000000, 1.000000 });
 
         this->get_parameter("lidar2cam_extrinsic.translation", lidar2cam_translation);
         this->get_parameter("lidar2cam_extrinsic.rotation", lidar2cam_rotation);
         this->get_parameter("lidarData2lidarSensor_extrinsic.translation", lidarData2lidarSensor_translation);
         this->get_parameter("lidarData2lidarSensor_extrinsic.rotation", lidarData2lidarSensor_rotation);
-        this->get_parameter("camera_matrix.translation", camera_matrix_translation);
-        this->get_parameter("camera_matrix.rotation", camera_matrix_rotation);
+        this->get_parameter("camera_matrix", camera_matrix_rotation);
 
 
         // Create subscribers for the two topics
@@ -103,6 +101,7 @@ private:
         auto start = std::chrono::high_resolution_clock::now();
 
         cv_bridge::CvImagePtr cv_ptr;
+
         try
         {
             cv_ptr = cv_bridge::toCvCopy(image);
@@ -220,7 +219,7 @@ private:
     std::vector<double> lidar2cam_rotation;
     std::vector<double> lidarData2lidarSensor_translation;
     std::vector<double> lidarData2lidarSensor_rotation;
-    std::vector<double> camera_matrix_translation;
+    std::vector<double> camera_matrix_translation { 0.0, 0.0, 0.0 };
     std::vector<double> camera_matrix_rotation;
 
     std::shared_ptr<Subscriber<sensor_msgs::msg::Image> > sub_image_;
