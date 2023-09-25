@@ -23,7 +23,7 @@ public:
         // Declare parameters and default values
         this->declare_parameter("cloud_topic", "/points");
         this->declare_parameter("world_frame", "map");
-        this->declare_parameter("voxel_leaf_size", 0.2);
+        this->declare_parameter("voxel_leaf_size", 0.12);
 
         this->get_parameter("cloud_topic", cloud_topic);
         this->get_parameter("world_frame", world_frame);
@@ -98,7 +98,7 @@ private:
          * VOXEL GRID
          * ========================================*/
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(cloud));
-        cloud_ops.voxel_grid_filter(cloud_ptr, voxel_leaf_size);
+        cloud_ops.voxel_grid_filter(cloud_ptr, voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
 
         /* ========================================
          * CROPBOX

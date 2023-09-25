@@ -40,7 +40,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
      * VOXEL GRID
      * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(cloud));
-    cloud_ops.voxel_grid_filter(cloud_ptr, voxel_leaf_size);
+    cloud_ops.voxel_grid_filter(cloud_ptr, voxel_leaf_size_x, voxel_leaf_size_y, voxel_leaf_size_z);
 
     /* ========================================
      * CROPBOX

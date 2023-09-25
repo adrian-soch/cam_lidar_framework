@@ -57,7 +57,9 @@ public:
         this->declare_parameter("cloud_topic", "/points");
         this->declare_parameter("world_frame", "map");
         this->declare_parameter("camera_frame", "laser_data_frame");
-        this->declare_parameter("voxel_leaf_size", 0.2);
+        this->declare_parameter("voxel_leaf_size_x", 0.16);
+        this->declare_parameter("voxel_leaf_size_y", 0.16);
+        this->declare_parameter("voxel_leaf_size_z", 0.24);
         this->declare_parameter("plane_max_iter", 120);
         this->declare_parameter("plane_dist_thresh", 0.35);
         this->declare_parameter("cluster_tol", 1.35);
@@ -73,7 +75,9 @@ public:
         this->get_parameter("cloud_topic", cloud_topic);
         this->get_parameter("world_frame", world_frame);
         this->get_parameter("camera_frame", camera_frame);
-        this->get_parameter("voxel_leaf_size", voxel_leaf_size);
+        this->get_parameter("voxel_leaf_size_x", voxel_leaf_size_x);
+        this->get_parameter("voxel_leaf_size_y", voxel_leaf_size_y);
+        this->get_parameter("voxel_leaf_size_z", voxel_leaf_size_z);
         this->get_parameter("plane_max_iter", plane_max_iter);
         this->get_parameter("plane_dist_thresh", plane_dist_thresh);
         this->get_parameter("cluster_tol", cluster_tol);
@@ -128,7 +132,7 @@ private:
     std::string cloud_topic;
     std::string world_frame;
     std::string camera_frame;
-    float voxel_leaf_size;
+    float voxel_leaf_size_x, voxel_leaf_size_y, voxel_leaf_size_z;
     int plane_max_iter;
     float plane_dist_thresh;
     float cluster_tol;
