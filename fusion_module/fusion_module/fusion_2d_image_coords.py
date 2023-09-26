@@ -10,18 +10,43 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
+from lap import lapjv
 import time
-
 import numpy as np
+
 import rclpy
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from rclpy.duration import Duration
 from rclpy.node import Node
-from rclpy.time import Time
 from sort import Sort
-from vision_msgs.msg import ObjectHypothesisWithPose
-from vision_msgs.msg import Detection2D, Detection2DArray
+from vision_msgs.msg import Detection2DArray
 from visualization_msgs.msg import Marker, MarkerArray
+
+from utils import createDetection2DArr, detection2DArray2Numpy
+
+
+def linear_assignment(cost_matrix):
+    _, x, y = lapjv(cost_matrix, extend_cost=True)
+    return np.array([[y[i], i] for i in x if i >= 0])
+
+
+def iou_batch(bb_test, bb_gt):
+    """
+    From SORT: Computes IOU between two bboxes in the form [x1,y1,x2,y2]
+    """
+    bb_gt = np.expand_dims(bb_gt, 0)
+    bb_test = np.expand_dims(bb_test, 1)
+
+    xx1 = np.maximum(bb_test[..., 0], bb_gt[..., 0])
+    yy1 = np.maximum(bb_test[..., 1], bb_gt[..., 1])
+    xx2 = np.minimum(bb_test[..., 2], bb_gt[..., 2])
+    yy2 = np.minimum(bb_test[..., 3], bb_gt[..., 3])
+    w = np.maximum(0., xx2 - xx1)
+    h = np.maximum(0., yy2 - yy1)
+    wh = w * h
+    out = wh / ((bb_test[..., 2] - bb_test[..., 0]) * (bb_test[..., 3] - bb_test[..., 1])
+                + (bb_gt[..., 2] - bb_gt[..., 0]) * (bb_gt[..., 3] - bb_gt[..., 1]) - wh)
+    return out
 
 
 class DetectionSyncNode(Node):
@@ -32,8 +57,10 @@ class DetectionSyncNode(Node):
         self.world_frame = self.declare_parameter(
             'world_frame', 'map').get_parameter_value().string_value
 
-        cam_track_topic = self.declare_parameter('cam_track_topic', '/image_proc/tracks').get_parameter_value().string_value
-        lidar2d_track_topic = self.declare_parameter('lidar2d_track_topic','image_proc/lidar_track_2D').get_parameter_value().string_value
+        cam_track_topic = self.declare_parameter(
+            'cam_track_topic', '/image_proc/tracks').get_parameter_value().string_value
+        lidar2d_track_topic = self.declare_parameter(
+            'lidar2d_track_topic', 'image_proc/lidar_track_2D').get_parameter_value().string_value
 
         # Create subscribers and the approximate syncronizer message filter
         cam_sub = Subscriber(self, Detection2DArray, cam_track_topic)
@@ -63,17 +90,18 @@ class DetectionSyncNode(Node):
         stamp = cam_2d_dets.header.stamp
 
         # Convert message arrays to numpy
-        cam_dets = self.detection2DArray2Numpy(cam_2d_dets.detections)
-        lidar_dets = self.detection2DArray2Numpy(lidar_2d_dets.detections)
+        cam_dets = detection2DArray2Numpy(cam_2d_dets.detections)
+        lidar_dets = detection2DArray2Numpy(lidar_2d_dets.detections)
 
         # Simple fusion with IoU based association
-        fused_detections =  cam_dets #self.fuse(cam_dets, lidar_dets)
+        fused_detections = self.fuse(
+            cam_arr=cam_dets, lidar_arr=lidar_dets, iou_threshold=0.3)
 
         # Update SORT with detections
         track_ids = self.tracker.update(fused_detections)
 
         # Create and Publish 3D Detections with Track IDs
-        track_msg_arr = self.createDetection2DArr(
+        track_msg_arr = createDetection2DArr(
             track_ids, cam_2d_dets.header)
         self.track_publisher_.publish(track_msg_arr)
 
@@ -81,38 +109,73 @@ class DetectionSyncNode(Node):
         m_arr = self.track2MarkerArray(track_ids, stamp)
         self.marker_publisher_.publish(m_arr)
 
+        # Get and publish the execution time
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(
             len(m_arr.markers), (t2-t1)*1000))
 
-    def fuse(self, dets1, dets2):
+    def fuse(self, cam_arr, lidar_arr, iou_threshold=0.3) -> np.ndarray:
+        """Perform late fusion between 2 sets of Axis-alogned bounding boxes from 2 different sensors
+
+        Args:
+            cam_arr (np.ndarray): Cam detection array
+            lidar_arr (np.ndarray): Lidar detection array
+            iou_threshold (float, optional): Threshold for IoU based association. Defaults to 0.3.
+
+        Returns:
+            np.ndarray: list of fused matches and unmatched detection from both sensors
+        """
         fused_dets = []
 
+        # Associate the 2 lists. For all matched detections just keep the camera detection.
+        # Keep all unmatched detections. This will use all camera detections
+        # including the longer distance and also use lidar detections in
+        # poor conditions the camera didnt get
+
+        # Get NxN matrix of IoU between detections
+        iou_matrix = iou_batch(cam_arr, lidar_arr)
+
+        # Find all matches
+        if min(iou_matrix.shape) > 0:
+            a = (iou_matrix > iou_threshold).astype(np.int32)
+            if a.sum(1).max() == 1 and a.sum(0).max() == 1:
+                matched_indices = np.stack(np.where(a), axis=1)
+            else:
+                matched_indices = linear_assignment(-iou_matrix)
+        else:
+            matched_indices = np.zeros(shape=(0, 2))
+
+        # Get unmached camera detections
+        unmatched_cam_dets = []
+        for d in range(len(cam_arr)):
+            if (d not in matched_indices[:, 0]):
+                unmatched_cam_dets.append(d)
+
+        # Get unmatched lidar detections
+        unmatched_lidar_dets = []
+        for d in range(len(lidar_arr)):
+            if (d not in matched_indices[:, 1]):
+                unmatched_lidar_dets.append(d)
+
+        # Filter out matched with low IOU
+        matches = []
+        for m in matched_indices:
+            if (iou_matrix[m[0], m[1]] < iou_threshold):
+                unmatched_cam_dets.append(m[0])
+                unmatched_lidar_dets.append(m[1])
+            else:
+                matches.append(m.reshape(1, 2))
+        if (len(matches) == 0):
+            matches = np.empty((0, 2), dtype=int)
+        else:
+            matches = np.concatenate(matches, axis=0)
+
+        '''
+        TODO Fix this addition, either concate or vstack?
+        '''
+        fused_dets = matches + unmatched_cam_dets + unmatched_lidar_dets
+
         return fused_dets
-
-    @staticmethod
-    def createDetection2DArr(tracks, header) -> Detection2DArray:
-
-        out = Detection2DArray()
-        out.header = header
-
-        for trk in tracks:
-            det = Detection2D()
-            result = ObjectHypothesisWithPose()
-            result.hypothesis.score = trk[4]
-            det.results.append(result)
-
-            x_len = trk[2] - trk[0]
-            y_len = trk[3] - trk[1]
-
-            det.bbox.center.x = x_len/2.0 + trk[0]
-            det.bbox.center.y = y_len/2.0 + trk[1]
-            det.bbox.size_x = x_len
-            det.bbox.size_y = y_len
-
-            out.detections.append(det)
-
-        return out
 
     def track2MarkerArray(self, track_ids, stamp) -> MarkerArray:
         m_arr = MarkerArray()
@@ -137,36 +200,7 @@ class DetectionSyncNode(Node):
             m_arr.markers.append(marker)
 
         return m_arr
-    
-    @staticmethod
-    def detection2DArray2Numpy(detection_list) -> np.ndarray:
-        """Convert vision_msgs/Detection2DArray to numpy array
 
-        Args:
-            detection_list (Detection2DArray): Detections
-
-        Returns:
-            np.ndarray:
-        """
-        # v = Detection2D()
-        # v.bbox.center.
-        if len(detection_list) <= 0:
-            return np.zeros((0, 5))
-
-        # Pre-allocate numpy array
-        out_arr = np.empty(shape=(len(detection_list), 5), dtype=float)
-
-        for i, det in enumerate(detection_list):
-            half_x = det.bbox.size_x/2
-            half_y = det.bbox.size_y/2
-            out_arr[i] = [
-                det.bbox.center.x - half_x,
-                det.bbox.center.y - half_y,
-                det.bbox.center.x + half_x,
-                det.bbox.center.y + half_y,
-                0.5]
-
-        return out_arr
 
 def main():
     rclpy.init()
