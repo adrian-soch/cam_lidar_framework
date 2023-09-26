@@ -19,12 +19,15 @@
 
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <vision_msgs/msg/detection2_d.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 #include <vision_msgs/msg/detection3_d_array.hpp>
 
 #include <pcl/common/common.h>
 #include <pcl/common/transforms.h>
 #include <pcl_conversions/pcl_conversions.h>
+
+#define DEBUG_MODE false
 
 using namespace message_filters;
 
@@ -115,15 +118,15 @@ private:
         // Use the inverse of the of lidar2ground transformed used furher up the pipeline
         // If we dont do this the points dont align with the image.
         Eigen::Affine3f proj_matrix = cam_mat * lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
-        // Eigen::Affine3f transformation_matrix = sensor2world.inverse(); // USE THIS FOR EXTERNAL PROJECTION CODE
 
-
+        // Convert BBoxes into pointclouds
         std::vector<pcl::PointCloud<pcl::PointXYZ> > clouds;
         for(auto det: lidar_track->detections) {
-            pcl::PointCloud<pcl::PointXYZ> cloud = center_size2points(det.bbox);
+            pcl::PointCloud<pcl::PointXYZ> cloud = center_size2points3D(det.bbox);
             clouds.push_back(cloud);
         }
 
+        // Combine all pointclouds
         pcl::PointCloud<pcl::PointXYZ> final_cloud, proj_cloud;
         for(auto c: clouds) {
             final_cloud += c;
@@ -133,11 +136,50 @@ private:
         // Transform the 3xN matrix
         pcl::transformPointCloud(proj_cloud, proj_cloud, proj_matrix);
 
+        // Create output message
+        vision_msgs::msg::Detection2DArray proj_dets;
+        proj_dets.header = lidar_track->header;
+
         // Project to 2D, divide x, y by z
+        // And add to 2D detection array
+        uint8_t counter = 0;
+        const uint8_t CUBE_ARRAY_SIZE = 8;
+        float x_points[CUBE_ARRAY_SIZE];
+        float y_points[CUBE_ARRAY_SIZE];
         for(size_t i = 0; i < proj_cloud.size(); i++) {
             pcl::PointXYZ p = proj_cloud.points[i];
-            cv::Point2f p2d(p.x / p.z, p.y / p.z);
-            cv::circle(cv_ptr->image, p2d, 6, CV_RGB(255, 0, 0), -1);
+
+            // Complete projection by dividing out z
+            const float x = p.x / p.z;
+            const float y = p.y / p.z;
+
+            // Every 8 points represents 8 points of a 3D BBox cube
+            // Convert the 8 points into 1 2D BBox
+            // If not yet all 8 points
+            x_points[counter] = x;
+            y_points[counter] = y;
+            counter++;
+
+            if(counter >= CUBE_ARRAY_SIZE) {
+                // After we have a set of 8
+                vision_msgs::msg::Detection2D det = points2Bbox2d(x_points, y_points, CUBE_ARRAY_SIZE);
+                proj_dets.detections.push_back(det);
+                counter = 0;
+
+                if(DEBUG_MODE) {
+                    cv::Point2f top(det.bbox.center.x - det.bbox.size_x / 2.0,
+                      det.bbox.center.y - det.bbox.size_y / 2.0);
+                    cv::Point2f bottom(det.bbox.center.x + det.bbox.size_x / 2.0,
+                      det.bbox.center.y + det.bbox.size_y / 2.0);
+                    cv::rectangle(cv_ptr->image, top, bottom, CV_RGB(40, 40, 210), 4);
+                }
+            }
+
+            if(DEBUG_MODE) {
+                // Draw each point on image
+                cv::Point2f p2d(x, y);
+                cv::circle(cv_ptr->image, p2d, 6, CV_RGB(255, 0, 0), -1);
+            }
         }
 
         // Convert the OpenCV image to a ROS image message using cv_bridge
@@ -146,14 +188,14 @@ private:
 
         // Publish the processed image
         pub_->publish(*processed_msg);
-        // proj_pub_->publish();
+        proj_pub_->publish(proj_dets);
 
         auto stop = std::chrono::high_resolution_clock::now();
         auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         RCLCPP_INFO(get_logger(), "Time (msec): %ld", t_ms.count());
     } // callback
 
-    pcl::PointCloud<pcl::PointXYZ> center_size2points(vision_msgs::msg::BoundingBox3D bbox)
+    pcl::PointCloud<pcl::PointXYZ> center_size2points3D(vision_msgs::msg::BoundingBox3D bbox)
     {
         // Get 8 vertices relative to each other
         float x_len = bbox.size.x / 2.0;
@@ -204,6 +246,26 @@ private:
           pose.orientation.z));
         output.translation() << pose.position.x, pose.position.y, pose.position.z;
         return output;
+    }
+
+    vision_msgs::msg::Detection2D points2Bbox2d(const float* x, const float* y, uint8_t size)
+    {
+        float x_max = *std::max_element(x, x + size);
+        float x_min = *std::min_element(x, x + size);
+
+        float y_max = *std::max_element(y, y + size);
+        float y_min = *std::min_element(y, y + size);
+        vision_msgs::msg::Detection2D det;
+
+        float x_len = abs(x_max - x_min);
+        float y_len = abs(y_max - y_min);
+
+        det.bbox.center.x = x_len / 2.0 + x_min;
+        det.bbox.center.y = y_len / 2.0 + y_min;
+        det.bbox.size_x   = x_len;
+        det.bbox.size_y   = y_len;
+
+        return det;
     }
 
     /*

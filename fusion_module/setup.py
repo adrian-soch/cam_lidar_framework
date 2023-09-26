@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'fusion_node = fusion_module.fusion_2d_image_coords:main',
         ],
     },
 )

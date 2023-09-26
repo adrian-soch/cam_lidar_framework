@@ -31,7 +31,7 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_SELECTOR = 5
+BAG_SELECTOR = 2
 
 # Because of the yolov5 includes, its easier to just run this directly
 # in the terminal instead of a traditional node
