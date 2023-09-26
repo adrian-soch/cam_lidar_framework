@@ -66,12 +66,12 @@ class VisionTracker():
         @return An instance of the VisionTracker class with the specified name
         """
 
-        yolo_weights=WEIGHTS / 'yolov5s.pt'  # model.pt path(s)
+        yolo_weights=WEIGHTS / 'yolov5n.pt'  # model.pt path(s)
         reid_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt'  # model.pt path
 
         self.imgsz=(640, 640)  # inference size (height, width)
         self.tracking_method='ocsort' # ocsort or strongsort
-        self.conf_thres=0.25  # confidence threshold
+        self.conf_thres=0.3  # confidence threshold
         self.iou_thres=0.45  # NMS IOU threshold
         self.max_det=128  # maximum detections per image
         self.device='0'  # cuda device, i.e. 0 or 0,1,2,3 or cpu
@@ -79,6 +79,9 @@ class VisionTracker():
         self.classes=[0, 1, 2, 3, 5, 7]  # filter by class: --class 0, or --class 0 2 3
         self.half=True  # use FP16 half-precision inference (GPU ONLY)
         dnn=False  # use OpenCV DNN for ONNX inference
+
+        if 'cpu' == self.device:
+            self.half = False
 
         # Load model
         self.device = select_device(self.device)

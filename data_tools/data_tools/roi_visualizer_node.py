@@ -64,7 +64,7 @@ class ParamMarkerNode(Node):
         roll, pitch, yaw = self.get_parameters(
             ['orientation.roll', 'orientation.pitch', 'orientation.yaw'])
 
-        q = quaternion_from_euler(
+        q = self.quaternion_from_euler(
             roll.value, pitch.value, yaw.value)
 
         marker = Marker()
@@ -98,31 +98,31 @@ class ParamMarkerNode(Node):
         self.get_logger().info(f'Translation (X, Y, Z): [{x.value}, {y.value}, {z.value}]')
         self.get_logger().info(f'Orientation (W, X, Y, Z): [{q[0]}, {q[1]}, {q[2]}, {q[3]}]\n')
 
+    @staticmethod
+    def quaternion_from_euler(roll, pitch, yaw):
+        """
+        Converts euler roll, pitch, yaw to quaternion (w in last place)
+        quat = [w, x, y, z]
+        Bellow should be replaced when porting for ROS 2 Python tf_conversions is done.
+        """
+        roll = math.radians(roll)
+        pitch = math.radians(pitch)
+        yaw = math.radians(yaw)
 
-def quaternion_from_euler(roll, pitch, yaw):
-    """
-    Converts euler roll, pitch, yaw to quaternion (w in last place)
-    quat = [w, x, y, z]
-    Bellow should be replaced when porting for ROS 2 Python tf_conversions is done.
-    """
-    roll = math.radians(roll)
-    pitch = math.radians(pitch)
-    yaw = math.radians(yaw)
+        cy = math.cos(yaw * 0.5)
+        sy = math.sin(yaw * 0.5)
+        cp = math.cos(pitch * 0.5)
+        sp = math.sin(pitch * 0.5)
+        cr = math.cos(roll * 0.5)
+        sr = math.sin(roll * 0.5)
 
-    cy = math.cos(yaw * 0.5)
-    sy = math.sin(yaw * 0.5)
-    cp = math.cos(pitch * 0.5)
-    sp = math.sin(pitch * 0.5)
-    cr = math.cos(roll * 0.5)
-    sr = math.sin(roll * 0.5)
+        q = [0] * 4
+        q[0] = cy * cp * cr + sy * sp * sr
+        q[1] = cy * cp * sr - sy * sp * cr
+        q[2] = sy * cp * sr + cy * sp * cr
+        q[3] = sy * cp * cr - cy * sp * sr
 
-    q = [0] * 4
-    q[0] = cy * cp * cr + sy * sp * sr
-    q[1] = cy * cp * sr - sy * sp * cr
-    q[2] = sy * cp * sr + cy * sp * cr
-    q[3] = sy * cp * cr - cy * sp * sr
-
-    return q
+        return q
 
 
 def main(args=None):
