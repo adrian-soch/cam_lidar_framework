@@ -95,27 +95,29 @@ class DetectionSyncNode(Node):
 
         # Simple fusion with IoU based association
         fused_detections = self.fuse(
-            cam_arr=cam_dets, lidar_arr=lidar_dets, iou_threshold=0.3)
+            cam_arr=cam_dets, lidar_arr=lidar_dets, iou_threshold=0.1)
 
         # Update SORT with detections
         track_ids = self.tracker.update(fused_detections)
 
-        # Create and Publish 3D Detections with Track IDs
+        # Create and Publish 2D Detections with Track IDs
         track_msg_arr = createDetection2DArr(
             track_ids, cam_2d_dets.header)
         self.track_publisher_.publish(track_msg_arr)
 
-        # Create and publish Text Marker Array
-        m_arr = self.track2MarkerArray(track_ids, stamp)
-        self.marker_publisher_.publish(m_arr)
 
         # Get and publish the execution time
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(
-            len(m_arr.markers), (t2-t1)*1000))
+            len(track_msg_arr.detections), (t2-t1)*1000))
 
     def fuse(self, cam_arr, lidar_arr, iou_threshold=0.3) -> np.ndarray:
         """Perform late fusion between 2 sets of Axis-alogned bounding boxes from 2 different sensors
+
+        Associate the 2 lists. For all matched detections just keep the camera detection.
+        Keep all unmatched detections. This will use all camera detections
+        including the longer distance and also use lidar detections in
+        poor conditions the camera didnt get
 
         Args:
             cam_arr (np.ndarray): Cam detection array
@@ -123,19 +125,13 @@ class DetectionSyncNode(Node):
             iou_threshold (float, optional): Threshold for IoU based association. Defaults to 0.3.
 
         Returns:
-            np.ndarray: list of fused matches and unmatched detection from both sensors
+            np.ndarray: list of fused filt_match_inds and unmatched detection from both sensors
         """
-        fused_dets = []
-
-        # Associate the 2 lists. For all matched detections just keep the camera detection.
-        # Keep all unmatched detections. This will use all camera detections
-        # including the longer distance and also use lidar detections in
-        # poor conditions the camera didnt get
 
         # Get NxN matrix of IoU between detections
         iou_matrix = iou_batch(cam_arr, lidar_arr)
 
-        # Find all matches
+        # Find all filt_match_inds
         if min(iou_matrix.shape) > 0:
             a = (iou_matrix > iou_threshold).astype(np.int32)
             if a.sum(1).max() == 1 and a.sum(0).max() == 1:
@@ -146,36 +142,43 @@ class DetectionSyncNode(Node):
             matched_indices = np.zeros(shape=(0, 2))
 
         # Get unmached camera detections
-        unmatched_cam_dets = []
+        unmatched_cam_dets_inds = []
         for d in range(len(cam_arr)):
             if (d not in matched_indices[:, 0]):
-                unmatched_cam_dets.append(d)
+                unmatched_cam_dets_inds.append(d)
 
         # Get unmatched lidar detections
-        unmatched_lidar_dets = []
+        unmatched_lidar_dets_inds = []
         for d in range(len(lidar_arr)):
             if (d not in matched_indices[:, 1]):
-                unmatched_lidar_dets.append(d)
+                unmatched_lidar_dets_inds.append(d)
 
         # Filter out matched with low IOU
-        matches = []
+        filt_match_inds = []
         for m in matched_indices:
             if (iou_matrix[m[0], m[1]] < iou_threshold):
-                unmatched_cam_dets.append(m[0])
-                unmatched_lidar_dets.append(m[1])
+                unmatched_cam_dets_inds.append(m[0])
+                unmatched_lidar_dets_inds.append(m[1])
             else:
-                matches.append(m.reshape(1, 2))
-        if (len(matches) == 0):
-            matches = np.empty((0, 2), dtype=int)
+                filt_match_inds.append(m.reshape(1, 2))
+        if (len(filt_match_inds) == 0):
+            filt_match_inds = np.empty((0, 2), dtype=int)
         else:
-            matches = np.concatenate(matches, axis=0)
+            filt_match_inds = np.concatenate(filt_match_inds, axis=0)
 
-        '''
-        TODO Fix this addition, either concate or vstack?
-        '''
-        fused_dets = matches + unmatched_cam_dets + unmatched_lidar_dets
+        fused_dets = []
+        for i in filt_match_inds:
+            fused_dets.append(cam_arr[i[0], :])
 
-        return fused_dets
+        unmatched_cam_dets = []
+        for i in unmatched_cam_dets_inds:
+            unmatched_cam_dets.append(cam_arr[i,:])
+
+        unmatched_lidar_dets = []
+        for i in unmatched_lidar_dets_inds:
+            unmatched_lidar_dets.append(lidar_arr[i,:])
+
+        return fused_dets + unmatched_cam_dets_inds + unmatched_lidar_dets_inds
 
     def track2MarkerArray(self, track_ids, stamp) -> MarkerArray:
         m_arr = MarkerArray()
