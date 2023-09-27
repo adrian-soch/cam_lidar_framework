@@ -42,7 +42,7 @@ class ImageSubscriber(Node):
             Image,
             'image',
             self.camera_callback,
-            5)
+            1)
         self.subscription  # prevent unused variable warning
         self.get_logger().info('Image subscriber created.')
 

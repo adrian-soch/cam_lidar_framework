@@ -10,44 +10,16 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
-from lap import lapjv
-import time
 import numpy as np
+import time
 
 import rclpy
 from message_filters import ApproximateTimeSynchronizer, Subscriber
-from rclpy.duration import Duration
 from rclpy.node import Node
-from sort import Sort
 from vision_msgs.msg import Detection2DArray
-from visualization_msgs.msg import Marker, MarkerArray
 
+from sort import Sort, iou_batch, linear_assignment
 from utils import createDetection2DArr, detection2DArray2Numpy
-
-
-def linear_assignment(cost_matrix):
-    _, x, y = lapjv(cost_matrix, extend_cost=True)
-    return np.array([[y[i], i] for i in x if i >= 0])
-
-
-def iou_batch(bb_test, bb_gt):
-    """
-    From SORT: Computes IOU between two bboxes in the form [x1,y1,x2,y2]
-    """
-    bb_gt = np.expand_dims(bb_gt, 0)
-    bb_test = np.expand_dims(bb_test, 1)
-
-    xx1 = np.maximum(bb_test[..., 0], bb_gt[..., 0])
-    yy1 = np.maximum(bb_test[..., 1], bb_gt[..., 1])
-    xx2 = np.minimum(bb_test[..., 2], bb_gt[..., 2])
-    yy2 = np.minimum(bb_test[..., 3], bb_gt[..., 3])
-    w = np.maximum(0., xx2 - xx1)
-    h = np.maximum(0., yy2 - yy1)
-    wh = w * h
-    out = wh / ((bb_test[..., 2] - bb_test[..., 0]) * (bb_test[..., 3] - bb_test[..., 1])
-                + (bb_gt[..., 2] - bb_gt[..., 0]) * (bb_gt[..., 3] - bb_gt[..., 1]) - wh)
-    return out
-
 
 class DetectionSyncNode(Node):
     def __init__(self):
@@ -66,7 +38,7 @@ class DetectionSyncNode(Node):
         cam_sub = Subscriber(self, Detection2DArray, cam_track_topic)
         lidar_sub = Subscriber(self, Detection2DArray, lidar2d_track_topic)
         sync = ApproximateTimeSynchronizer(
-            [cam_sub, lidar_sub], queue_size=3, slop=0.1)
+            [cam_sub, lidar_sub], queue_size=3, slop=0.65)
         sync.registerCallback(self.callback)
 
         # Create SORT instance for fused detections
@@ -75,8 +47,6 @@ class DetectionSyncNode(Node):
         # Create publisher
         self.track_publisher_ = self.create_publisher(
             Detection2DArray, 'image_proc/fusion_tracks', 2)
-        self.marker_publisher_ = self.create_publisher(
-            MarkerArray, 'lidar_proc/track_markers', 2)
 
     def callback(self, cam_2d_dets: Detection2DArray, lidar_2d_dets: Detection2DArray):
         """This callback will take the 2 sensors detection arrays and produce a final fused and tracked array
@@ -86,8 +56,6 @@ class DetectionSyncNode(Node):
             lidar_2d_dets (Detection2DArray): LiDAR detections/tracks
         """
         t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-
-        stamp = cam_2d_dets.header.stamp
 
         # Convert message arrays to numpy
         cam_dets = detection2DArray2Numpy(cam_2d_dets.detections)
@@ -104,7 +72,6 @@ class DetectionSyncNode(Node):
         track_msg_arr = createDetection2DArr(
             track_ids, cam_2d_dets.header)
         self.track_publisher_.publish(track_msg_arr)
-
 
         # Get and publish the execution time
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
@@ -172,37 +139,13 @@ class DetectionSyncNode(Node):
 
         unmatched_cam_dets = []
         for i in unmatched_cam_dets_inds:
-            unmatched_cam_dets.append(cam_arr[i,:])
+            unmatched_cam_dets.append(cam_arr[i, :])
 
         unmatched_lidar_dets = []
         for i in unmatched_lidar_dets_inds:
-            unmatched_lidar_dets.append(lidar_arr[i,:])
+            unmatched_lidar_dets.append(lidar_arr[i, :])
 
-        return fused_dets + unmatched_cam_dets_inds + unmatched_lidar_dets_inds
-
-    def track2MarkerArray(self, track_ids, stamp) -> MarkerArray:
-        m_arr = MarkerArray()
-        idx = 0
-        for trk in track_ids:
-            marker = Marker()
-            marker.id = idx
-            marker.header.stamp = stamp
-            marker.header.frame_id = self.world_frame
-            marker.type = Marker.TEXT_VIEW_FACING
-            marker.action = Marker.ADD
-            marker.scale.z = 0.8  # height of `A` in meters
-            marker.text = str(int(trk[4]))
-            marker.pose.position.x = trk[0]
-            marker.pose.position.y = trk[1]
-            marker.lifetime = Duration(seconds=0.1).to_msg()
-            marker.color.a = 1.0
-            marker.color.g = 0.8
-            marker.color.b = 0.6
-
-            idx += 1
-            m_arr.markers.append(marker)
-
-        return m_arr
+        return np.array(fused_dets + unmatched_cam_dets + unmatched_lidar_dets)
 
 
 def main():
