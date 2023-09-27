@@ -13,9 +13,6 @@
 
 #include <cv_bridge/cv_bridge.h>
 
-#include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <message_filters/synchronizer.h>
 
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -28,6 +25,12 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 #define DEBUG_MODE false
+
+#if DEBUG_MODE
+# include <message_filters/subscriber.h>
+# include <message_filters/sync_policies/approximate_time.h>
+# include <message_filters/synchronizer.h>
+#endif
 
 using namespace message_filters;
 
@@ -68,13 +71,18 @@ public:
         this->get_parameter("camera_matrix", camera_matrix_rotation);
 
 
-        // Create subscribers for the two topics
-        sub_image_     = std::make_shared<Subscriber<sensor_msgs::msg::Image> >(this, cam_result_topic);
-        sub_detection_ = std::make_shared<Subscriber<vision_msgs::msg::Detection3DArray> >(this, lidar_track_topic);
+        // Create subscriber
+        det_sub_ = this->create_subscription<vision_msgs::msg::Detection3DArray>(
+            lidar_track_topic, 1, std::bind(&Lidar2CameraProjector::callback, this, std::placeholders::_1));
 
         // Create publisher
-        pub_      = this->create_publisher<sensor_msgs::msg::Image>("image_proc/projected_dets", 1);
         proj_pub_ = this->create_publisher<vision_msgs::msg::Detection2DArray>("image_proc/lidar_track_2D", 1);
+
+        // Create synce sub with image to display points in debug mode
+        #if DEBUG_MODE
+        sub_detection_ = std::make_shared<Subscriber<vision_msgs::msg::Detection3DArray> >(this, lidar_track_topic);
+        sub_image_     = std::make_shared<Subscriber<sensor_msgs::msg::Image> >(this, cam_result_topic);
+        pub_ = this->create_publisher<sensor_msgs::msg::Image>("image_proc/projected_dets", 1);
 
         // Create a sync policy using the approximate time synchronizer
         sync_ = std::make_shared<Synchronizer<sync_policies::ApproximateTime<sensor_msgs::msg::Image,
@@ -86,6 +94,7 @@ public:
 
         // Register a callback for the synchronized messages
         sync_->registerCallback(&Lidar2CameraProjector::callback, this);
+        #endif // if DEBUG_MODE
 
         lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
         lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
@@ -98,11 +107,18 @@ public:
     }
 
 private:
-    void callback(const sensor_msgs::msg::Image::ConstSharedPtr & image,
-      const vision_msgs::msg::Detection3DArray::ConstSharedPtr  & lidar_track)
+    void callback(
+        #if DEBUG_MODE
+        const sensor_msgs::msg::Image::ConstSharedPtr            & image,
+        const vision_msgs::msg::Detection3DArray::ConstSharedPtr &lidar_track)
+        #else
+        const vision_msgs::msg::Detection3DArray::ConstSharedPtr lidar_track)
+        #endif
+
     {
         auto start = std::chrono::high_resolution_clock::now();
 
+        #if DEBUG_MODE
         cv_bridge::CvImagePtr cv_ptr;
 
         try
@@ -114,6 +130,7 @@ private:
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
             return;
         }
+        #endif // if DEBUG_MODE
 
         // Use the inverse of the of lidar2ground transformed used furher up the pipeline
         // If we dont do this the points dont align with the image.
@@ -166,28 +183,33 @@ private:
                 proj_dets.detections.push_back(det);
                 counter = 0;
 
-                if(DEBUG_MODE) {
-                    cv::Point2f top(det.bbox.center.x - det.bbox.size_x / 2.0,
-                      det.bbox.center.y - det.bbox.size_y / 2.0);
-                    cv::Point2f bottom(det.bbox.center.x + det.bbox.size_x / 2.0,
-                      det.bbox.center.y + det.bbox.size_y / 2.0);
-                    cv::rectangle(cv_ptr->image, top, bottom, CV_RGB(40, 40, 210), 4);
-                }
+                #if DEBUG_MODE
+                cv::Point2f top(det.bbox.center.x - det.bbox.size_x / 2.0,
+                  det.bbox.center.y - det.bbox.size_y / 2.0);
+                cv::Point2f bottom(det.bbox.center.x + det.bbox.size_x / 2.0,
+                  det.bbox.center.y + det.bbox.size_y / 2.0);
+                cv::rectangle(cv_ptr->image, top, bottom, CV_RGB(40, 40, 210), 4);
+                #endif
             }
 
-            if(DEBUG_MODE) {
-                // Draw each point on image
-                cv::Point2f p2d(x, y);
-                cv::circle(cv_ptr->image, p2d, 6, CV_RGB(255, 0, 0), -1);
-            }
+            #if DEBUG_MODE
+            // Draw each point on image
+            cv::Point2f p2d(x, y);
+            cv::circle(cv_ptr->image, p2d, 6, CV_RGB(255, 0, 0), -1);
+            #endif
         }
 
+
+        #if DEBUG_MODE
         // Convert the OpenCV image to a ROS image message using cv_bridge
         sensor_msgs::msg::Image::SharedPtr processed_msg = cv_ptr->toImageMsg();
         processed_msg->header = image->header;
 
         // Publish the processed image
         pub_->publish(*processed_msg);
+        #endif
+
+        // Publish detection array
         proj_pub_->publish(proj_dets);
 
         auto stop = std::chrono::high_resolution_clock::now();
@@ -284,13 +306,17 @@ private:
     std::vector<double> camera_matrix_translation { 0.0, 0.0, 0.0 };
     std::vector<double> camera_matrix_rotation;
 
+    #if DEBUG_MODE
     std::shared_ptr<Subscriber<sensor_msgs::msg::Image> > sub_image_;
     std::shared_ptr<Subscriber<vision_msgs::msg::Detection3DArray> > sub_detection_;
     std::shared_ptr<Synchronizer<sync_policies::ApproximateTime<sensor_msgs::msg::Image,
       vision_msgs::msg::Detection3DArray> > > sync_;
 
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_;
+    #endif
+
     rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr proj_pub_;
+    rclcpp::Subscription<vision_msgs::msg::Detection3DArray>::SharedPtr det_sub_;
 };
 
 int main(int argc, char** argv)
