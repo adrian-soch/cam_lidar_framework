@@ -10,6 +10,14 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
+
+import os
+os.environ["OMP_NUM_THREADS"] = "1" 
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1" 
+
 import numpy as np
 import time
 
@@ -18,8 +26,8 @@ from message_filters import ApproximateTimeSynchronizer, Subscriber
 from rclpy.node import Node
 from vision_msgs.msg import Detection2DArray
 
-from sort import Sort, iou_batch, linear_assignment
-from utils import createDetection2DArr, detection2DArray2Numpy
+from fusion_module.sort import Sort, iou_batch, linear_assignment
+from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
 
 class DetectionSyncNode(Node):
     def __init__(self):

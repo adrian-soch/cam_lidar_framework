@@ -109,14 +109,15 @@ def generate_launch_description():
         emulate_tty=True
     )
 
-    s_transform = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
+    # --- UNUSED CURRENTLY ---
+    # s_transform = Node(
+    #     package='tf2_ros',
+    #     executable='static_transform_publisher',
 
-        # params from visual inspection
-        # To make the road paralell with the XY plane/rviz2 grid
-        arguments=['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
-    )
+    #     # params from visual inspection
+    #     # To make the road paralell with the XY plane/rviz2 grid
+    #     arguments=['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
+    # )
 
     # --- UNUSED CURRENTLY ---
     # s_transform2 = Node(
@@ -141,6 +142,21 @@ def generate_launch_description():
         executable='object_tracker',
         name='lidar_obj_tracker',
         output='screen',
+    )
+
+    fusion_2D = Node(
+        package='fusion_module',
+        executable='fusion_node',
+        name='fusion_2D_node'
+    )
+
+    fusion_viz = Node(
+        package='fusion_module',
+        executable='fusion_viz_node',
+        name='fusion_viz_node',
+        parameters=[
+            {'flip_image': str(FLIP_IMAGE)},
+        ]
     )
 
     lidar_tracker_viz = Node(
@@ -182,7 +198,8 @@ def generate_launch_description():
         lidar2image_node,
         perception_node,
         execute_camera_processor,
-        s_transform,
+        fusion_2D,
+        fusion_viz,
         lidar_tracker_viz,
         data_source,
         rviz_node
