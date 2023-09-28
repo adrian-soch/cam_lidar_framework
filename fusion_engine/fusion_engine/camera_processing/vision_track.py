@@ -69,28 +69,28 @@ class VisionTracker():
         yolo_weights=WEIGHTS / 'yolov5n.pt'  # model.pt path(s)
         reid_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt'  # model.pt path
 
-        self.flip_x = False # Flip image
         self.imgsz=(640, 640)  # inference size (height, width)
         self.tracking_method='ocsort' # ocsort or strongsort
-        self.conf_thres=0.25  # confidence threshold
+        self.conf_thres=0.3  # confidence threshold
         self.iou_thres=0.45  # NMS IOU threshold
-        self.max_det=255  # maximum detections per image
-        self.device='cpu'  # cuda device, i.e. 0 or 0,1,2,3 or cpu
+        self.max_det=128  # maximum detections per image
+        self.device='0'  # cuda device, i.e. 0 or 0,1,2,3 or cpu
         self.show_vid=False  # show results
         self.classes=[0, 1, 2, 3, 5, 7]  # filter by class: --class 0, or --class 0 2 3
-        self.half=False  # use FP16 half-precision inference (GPU ONLY)
+        self.half=True  # use FP16 half-precision inference (GPU ONLY)
         dnn=False  # use OpenCV DNN for ONNX inference
+
+        if 'cpu' == self.device:
+            self.half = False
 
         # Load model
         self.device = select_device(self.device)
         self.model = DetectMultiBackend(yolo_weights, device=self.device, dnn=dnn, data=None, fp16=self.half)
         stride, self.names, _ = self.model.stride, self.model.names, self.model.pt
         self.imgsz = check_img_size(self.imgsz, s=stride)  # check image size
-
         cudnn.benchmark = True  # set True to speed up constant image size inference
 
         # Create tracker object
-
         self.tracker = create_tracker(self.tracking_method, reid_weights, self.device, self.half, config_path_root=str(ROOT))
         if hasattr(self.tracker, 'model'):
             if hasattr(self.tracker.model, 'warmup'):
@@ -109,20 +109,14 @@ class VisionTracker():
 
         @return detections and tracker output
         """
-
         outputs = [None]
 
         # Preprocess image for model
-
-        if self.flip_x:
-            im = cv2.flip(im, -1)
-
         im0 = im.copy()
         im = letterbox(im, self.imgsz, stride=32, auto=True)[0]
         im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         im = np.ascontiguousarray(im)
 
-        
         im = torch.from_numpy(im).to(self.device)
         im = im.half() if self.half else im.float()  # uint8 to fp16/32
         im /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -152,12 +146,6 @@ class VisionTracker():
             # Rescale boxes from img_size to im0 size
             det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # xyxy
 
-            # Print results
-            # s = ''
-            # for c in det[:, -1].unique():
-            #     n = (det[:, -1] == c).sum()  # detections per class
-            #     s += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
             # pass detections to tracker
             outputs = self.tracker.update(det.cpu(), im0)
 
@@ -177,10 +165,6 @@ class VisionTracker():
         else:
             empty_tensor = torch.empty((0, 6))
             self.tracker.update(empty_tensor, im0)
-            # if self.tracking_method == 'strongsort':
-            #     self.tracker.increment_ages()
-            # LOGGER.info('No detections')
-            pass
 
         if self.show_vid or return_image:
             # Stream results

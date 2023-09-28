@@ -33,13 +33,16 @@ class ImageSubscriber(Node):
         Class constructor to set up the node
         """
         super().__init__('camera_processor')
+        self.declare_parameter('flip_image', False)
+        self.flip_image = self.get_parameter(
+            'flip_image').get_parameter_value().bool_value
 
         # Create Subscriber with callback
         self.subscription = self.create_subscription(
             Image,
             'image',
             self.camera_callback,
-            5)
+            1)
         self.subscription  # prevent unused variable warning
         self.get_logger().info('Image subscriber created.')
 
@@ -63,12 +66,13 @@ class ImageSubscriber(Node):
         # Convert ROS Image message to OpenCV image
         current_frame = self.br.imgmsg_to_cv2(msg)
 
-        out_img = cv2.flip(current_frame, -1)
+        if self.flip_image is True:
+            current_frame = cv2.flip(current_frame, -1)
 
         tracks, out_img = self.tracker.update(current_frame, return_image=True)
 
         # Pub track results
-        track_msg_arr = createDetection2DArr(tracks, msg.header)
+        track_msg_arr = self.createDetection2DArr(tracks, msg.header)
         self.track_pub_.publish(track_msg_arr)
 
         # Pub visual results
@@ -79,40 +83,40 @@ class ImageSubscriber(Node):
         t5 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info(f'Time (msec): {(t5-t1)*1000:.1f}')
 
+    @staticmethod
+    def createDetection2DArr(tracks, header) -> Detection2DArray:
+        """Convert tracker output to message for publishing
 
-def createDetection2DArr(tracks, header) -> Detection2DArray:
-    """Convert tracker output to message for publishing
+        Args:
+            tracks (ndarray): Array of the form [[x1,y1,x2,y2,id], [x1,y1,x2,y2,id], ...]
 
-    Args:
-        tracks (ndarray): Array of the form [[x1,y1,x2,y2,id], [x1,y1,x2,y2,id], ...]
+        Returns:
+            Detection2DArray
+        """
+        out = Detection2DArray()
+        out.header = header
 
-    Returns:
-        Detection2DArray
-    """
-    out = Detection2DArray()
-    out.header = header
+        for trk in tracks:
+            if trk is None:
+                continue
 
-    for trk in tracks:
-        if trk is None:
-            continue
+            det = Detection2D()
 
-        det = Detection2D()
+            result = ObjectHypothesisWithPose()
+            result.hypothesis.score = trk[4]
+            det.results.append(result)
 
-        result = ObjectHypothesisWithPose()
-        result.hypothesis.score = trk[4]
-        det.results.append(result)
+            x_len = trk[2] - trk[0]
+            y_len = trk[3] - trk[1]
 
-        x_len = trk[2] - trk[0]
-        y_len = trk[3] - trk[1]
+            det.bbox.center.x = x_len/2.0 + trk[0]
+            det.bbox.center.y = y_len/2.0 + trk[1]
+            det.bbox.size_x = x_len
+            det.bbox.size_y = y_len
 
-        det.bbox.center.x = x_len/2.0 + trk[0]
-        det.bbox.center.y = y_len/2.0 + trk[1]
-        det.bbox.size_x = x_len
-        det.bbox.size_y = y_len
+            out.detections.append(det)
 
-        out.detections.append(det)
-
-    return out
+        return out
 
 
 if __name__ == '__main__':

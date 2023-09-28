@@ -44,12 +44,12 @@ public:
      * @param cloud_ptr: Pointer to a PCL cloud object
      * @param voxel_leaf_size: size in meters of the voxel grid
      */
-    void voxel_grid_filter(PointCloudPtr cloud_ptr, float voxel_leaf_size)
+    void voxel_grid_filter(PointCloudPtr cloud_ptr, float voxel_leaf_size_x, float voxel_leaf_size_y, float voxel_leaf_size_z)
     {
         pcl::VoxelGrid<PointT> voxel_filter;
 
         voxel_filter.setInputCloud(cloud_ptr);
-        voxel_filter.setLeafSize(voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
+        voxel_filter.setLeafSize(voxel_leaf_size_x, voxel_leaf_size_y, voxel_leaf_size_z);
         voxel_filter.filter(*cloud_ptr);
     }
 
