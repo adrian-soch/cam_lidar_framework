@@ -3,6 +3,8 @@
  * @file obj_classifier.py
  * @brief Perform lidar object classification
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
+
+ See `cam_lidar_tools/data_tools/scripts/ml_stuff` for details on traning and decision making
 """
 
 import numpy as np

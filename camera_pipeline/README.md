@@ -1,11 +1,11 @@
-# fusion_engine
+# camera_pipeline
 
 ## Directory Structure
 ```
-├── fusion_engine
+├── camera_pipeline
 │   ├── config
 │   │   └── rviz
-│   ├── fusion_engine
+│   ├── camera_pipeline
 │   │   ├── camera_processing
 │   │   │   ├── trackers
 │   │   │   ├── weights
@@ -26,7 +26,7 @@ tree -d -L 3 -I __pycache__
 
 <!-- To get started
 ```
-git clone --recurse-submodules https://github.com/adrian-soch/fusion_engine.git
+git clone --recurse-submodules https://github.com/adrian-soch/camera_pipeline.git
 ``` -->
 
 <!-- ### ROS2 Packages
@@ -70,7 +70,7 @@ If I missed any requirements that cause an error at runtime, just install any pa
 <!-- ## OPTIONAL
 ```
 cd <ROS2_WORKSPACE>/src
-git clone --recurse-submodules https://github.com/adrian-soch/fusion_engine.git
+git clone --recurse-submodules https://github.com/adrian-soch/camera_pipeline.git
 cd <ROS2_WS>
 colcon build
 ```
@@ -110,16 +110,16 @@ Before you start you need to source ros2 in all the terminal you want to run a c
 ros2 bag play <Path to rosbag>/<bag name>.db3
 
 # Start the python code
-cd <Path to fusion_engine>/fusion_engine
+cd <Path to camera_pipeline>/camera_pipeline
 python3 camera_processing_node.py
 ```
-To modify the parameters go to `fusion_engine/camera_processing/vision_track.py`.
+To modify the parameters go to `camera_pipeline/camera_processing/vision_track.py`.
 
 
 #### Starting the LiDAR
 ```
 # Ensure your source ROS2 and run `. install/setup.bash`
-ros2 launch fusion_engine ouster_driver_launch.py
+ros2 launch camera_pipeline ouster_driver_launch.py
 ```
 ## Aditional information
 

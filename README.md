@@ -1,60 +1,64 @@
 # cam_lidar_tools
 
+This repositiory contains ROS 2 packages for realtime LiDAR + Camera fusion for road-side traffic monitoring applications.
+
+![image](./Docs/readme_images/fusion_demo.png)
+
 ```
 ├── cam2image
 │   ├── include
-│   │   └── cam2image
 │   ├── launch
 │   └── src
+├── camera_pipeline
+│   ├── camera_pipeline
+│   ├── config
+│   ├── launch
+│   ├── resource
+│   └── test
 ├── data_tools
-│   ├── include
-│   │   └── data_tools
+│   ├── data_tools
+│   ├── launch
 │   ├── scripts
 │   └── src
 ├── Docs
-├── fusion_engine
-│   ├── config
-│   │   └── rviz
-│   ├── fusion_engine
-│   │   ├── camera_processing
-│   │   └── lidar_processing
-│   ├── launch
+│   └── readme_images
+├── fusion_module
+│   ├── fusion_module
 │   ├── resource
 │   └── test
 ├── lidar_pipeline
 │   ├── configs
 │   ├── include
-│   │   └── lidar_pipeline
 │   ├── launch
 │   └── src
-├── Metrics
-│   └── kitti_MOT_2D_HOTA_Test
-│       └── data
-├── obj_tracker
-│   ├── obj_tracker
-│   │   └── sort
+├── obj_classifier
+│   ├── obj_classifier
 │   ├── resource
 │   └── test
+├── obj_tracker
+│   ├── obj_tracker
+│   ├── resource
+│   └── test
+├── pipeline_interfaces
+│   ├── msg
+│   └── srv
 └── ros2_numpy
     ├── ros2_numpy
     └── test
-
 ```
 <!---
-tree -d -L 3 -I __pycache__
+tree -d -L 2 -I __pycache__
 --->
 
 ## RQT Graph
 
-![image](https://github.com/adrian-soch/cam_lidar_tools/assets/6884645/fcae153a-d175-48d1-a33a-fc8e5faa0b82)
-
-![image](https://github.com/adrian-soch/cam_lidar_tools/assets/6884645/1fcd223e-6cf9-4caf-a0e6-907f08eb147d)
+![image](./Docs/readme_images/rosgraph.png)
 
 ---
 # Description
 
 ## ROS Packges
-> `fusion_engine`: Camera object detection and tracking module
+> `camera_pipeline`: Camera object detection and tracking module
 
 > `cam2image`: USB Camera driver
 
@@ -62,9 +66,13 @@ tree -d -L 3 -I __pycache__
 
 > `lidar_pipeline`: LiDAR Object Detection Module
 
+> > `obj_classifier`: LiDAR Object Classification Module
+
 > `obj_tracker`: LiDAR Object Tracking Module
 
 > `data_tools`: Tools for converting and processing data
+
+> `fusion_module`: LiDAR + Camera Fusion module 
 
 ## Non-ROS packages
 
@@ -73,15 +81,24 @@ tree -d -L 3 -I __pycache__
 > Metrics: Scripts and info about calculating performance metrics
 
 ---
-# Install
+# Setup
 
-## Install Python requirements
+Tested on:
+
+| Ubunbtu 20.04 |
+|:-------------:|
+|  i7 16 cores  |
+|   32 GB RAM   |
+|  Discrete GPU |
+
+## 1. ROS 2 Galactic 
+Install ROS 2 Galactic.
+
+## 2. Install Python requirements
 ```
-# PyTorch CPU Version
-pip install torch torchvision
-
+# PyTorch
 # GPU Version
-See: https://pytorch.org/get-started/locally/
+# See: https://pytorch.org/get-started/locally/
 
 pip install numpy
 
@@ -90,7 +107,7 @@ pip install opencv-python
 pip install opencv-contrib-python
 ```
 
-### Yolov5/7 requirements
+### 2.1 Yolov5/7 requirements
 ```
 numpy>=1.18.5
 opencv-python>=4.1.1
@@ -103,19 +120,19 @@ scipy>=1.4.1
 
 If I missed any requirements that cause an error at runtime, just install any packages that are missing.
 
-## C++ requirements
+## 3. C++ requirements
 
 ```
 sudo apt install libtins-dev
 ```
-## ROS2 requirements
+## 4. ROS2 requirements
 Install via `apt`:
 ```
 ros-galactic-pcl-ros
 ros-galactic-ament-cmake-nose
 ```
 
-## Clone and build repo
+## 5. Clone and build repo
 
 ```
 cd <ROS2_WS>/src
@@ -123,7 +140,16 @@ git clone --recurse-submodules https://github.com/adrian-soch/cam_lidar_tools.gi
 cd ..
 colcon build
 ```
-> Always source the ROS2 install and the local ros2 wroksapce via `source /opt/ros/galactic/setup.bash` and `. install/setup.bash` respectively.
+> Always source the ROS2 install and the local ros2 worksapce via `source /opt/ros/galactic/setup.bash` and `. install/setup.bash` respectively.
+
+---
+# Running the code
+
+1. Download the ROS bags from: `TBD`.
+
+2. Run the launch file in the terminal `ros2 launch lidar_pipeline fusion_demo.launch.py`. The primary launch file will start all the nodes including Rviz2 for visualization. See: `cam_lidar_tools/lidar_pipeline/launch/fusion_demo.launch.py`, there are some parameters you can adjust there for different demonstrations.
+
+3. Tune parameters and re-run. inspect the launch file to see what nodes are being executed. Sometime the launch file calls other launch files. Each node may have different paramters that can be adjusted.
 
 ---
 # Troubleshooting and Comments

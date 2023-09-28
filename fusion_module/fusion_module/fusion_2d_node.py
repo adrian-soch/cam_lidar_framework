@@ -94,6 +94,8 @@ class DetectionSyncNode(Node):
         including the longer distance and also use lidar detections in
         poor conditions the camera didnt get
 
+        NOTE code is adapted from SORT algorithm
+
         Args:
             cam_arr (np.ndarray): Cam detection array
             lidar_arr (np.ndarray): Lidar detection array

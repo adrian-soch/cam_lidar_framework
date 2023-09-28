@@ -127,6 +127,8 @@ def euler_from_quaternion(q):
     roll is rotation around x in radians (counterclockwise)
     pitch is rotation around y in radians (counterclockwise)
     yaw is rotation around z in radians (counterclockwise)
+
+    Note: only returns yaw about z axis
     """
     # t0 = +2.0 * (q.w * q.x + q.y * q.z)
     # t1 = +1.0 - 2.0 * (q.x * q.x + q.y * q.y)

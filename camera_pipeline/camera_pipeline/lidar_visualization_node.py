@@ -34,8 +34,8 @@ from numpy.lib.recfunctions import structured_to_unstructured, unstructured_to_s
 Constants
 ###################################################
 '''
-CAM_CAL_PATH = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/fusion_engine/config/1920x1080_ost.yaml'
-TRANSFORM_PATH = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/fusion_engine/config/transforms.yaml'
+CAM_CAL_PATH = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/camera_pipeline/config/1920x1080_ost.yaml'
+TRANSFORM_PATH = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/camera_pipeline/config/transforms.yaml'
 MULTI_THREAD_EXEC = False  # Set to true to use multithreaded executor
 USE_SENSOR_QOS = True  # Set to true to use sensor QoS (ie not rosbag)
 PUB_PC2 = False
