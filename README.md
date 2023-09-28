@@ -12,10 +12,10 @@
 │   ├── scripts
 │   └── src
 ├── Docs
-├── fusion_engine
+├── camera_pipeline
 │   ├── config
 │   │   └── rviz
-│   ├── fusion_engine
+│   ├── camera_pipeline
 │   │   ├── camera_processing
 │   │   └── lidar_processing
 │   ├── launch
@@ -54,7 +54,7 @@ tree -d -L 3 -I __pycache__
 # Description
 
 ## ROS Packges
-> `fusion_engine`: Camera object detection and tracking module
+> `camera_pipeline`: Camera object detection and tracking module
 
 > `cam2image`: USB Camera driver
 

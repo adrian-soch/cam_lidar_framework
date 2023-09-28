@@ -3,7 +3,7 @@ from glob import glob
 from setuptools import setup
 from setuptools import find_packages
 
-package_name = 'fusion_engine'
+package_name = 'camera_pipeline'
 
 setup(
     name=package_name,
@@ -27,7 +27,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'camera_processor = fusion_engine.camera_processing_node:main'
+            'camera_processor = camera_pipeline.camera_processing_node:main'
         ],
     },
 )

@@ -25,8 +25,8 @@ from rosbags.serde import deserialize_cdr
 from utils.projection_utils import *
 
 def main():
-    CAM_CAL_PATH = '/home/adrian/dev/ros2_ws/src/fusion_engine/config/1280x720_ost.yaml'
-    TRANSFORM_PATH = '/home/adrian/dev/ros2_ws/src/fusion_engine/config/transforms.yaml'
+    CAM_CAL_PATH = '/home/adrian/dev/ros2_ws/src/camera_pipeline/config/1280x720_ost.yaml'
+    TRANSFORM_PATH = '/home/adrian/dev/ros2_ws/src/camera_pipeline/config/transforms.yaml'
     ROSBAG_PATH = '/home/adrian/dev/bags/dec12_2022/HD_lidar_ROS_RECEP_0'
 
     pc2_topic ='/points'

@@ -1,7 +1,7 @@
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess
 
-ABS_PATH_TO_FUSION_ENGINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/fusion_engine/fusion_engine'
+ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/camera_pipeline/camera_pipeline'
 
 
 def generate_launch_description():
@@ -12,7 +12,7 @@ def generate_launch_description():
         cmd=[[
             'python3 ./camera_processing_node.py'
         ]],
-        cwd=[ABS_PATH_TO_FUSION_ENGINE],
+        cwd=[ABS_PATH_TO_CAMERA_PIPELINE],
         shell=True,
         name='camera_processor',
         emulate_tty=True

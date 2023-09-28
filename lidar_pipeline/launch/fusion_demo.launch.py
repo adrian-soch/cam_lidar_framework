@@ -35,7 +35,7 @@ BAG_SELECTOR = 2
 
 # Because of the yolov5 includes, its easier to just run this directly
 # in the terminal instead of a traditional node
-ABS_PATH_TO_FUSION_ENGINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/fusion_engine/fusion_engine'
+ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/camera_pipeline/camera_pipeline'
 
 '''
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -103,7 +103,7 @@ def generate_launch_description():
     execute_camera_processor = ExecuteProcess(
         cmd=['python3 ./camera_processing_node.py' +
              ' --ros-args -p flip_image:=' + str(FLIP_IMAGE)],
-        cwd=[ABS_PATH_TO_FUSION_ENGINE],
+        cwd=[ABS_PATH_TO_CAMERA_PIPELINE],
         shell=True,
         name='camera_processor',
         emulate_tty=True
@@ -155,7 +155,7 @@ def generate_launch_description():
         executable='fusion_viz_node',
         name='fusion_viz_node',
         parameters=[
-            {'flip_image': str(FLIP_IMAGE)},
+            {'flip_image': FLIP_IMAGE},
         ]
     )
 
@@ -179,7 +179,7 @@ def generate_launch_description():
         )
     else:
         data_source = IncludeLaunchDescription(PythonLaunchDescriptionSource(
-            [os.path.join(FindPackageShare("fusion_engine"), 'lidar_camera_launch.py')]))
+            [os.path.join(FindPackageShare("camera_pipeline"), 'lidar_camera_launch.py')]))
 
     rviz_config_file = PathJoinSubstitution(
         [FindPackageShare("lidar_pipeline"), "configs", "rviz.rviz"]

@@ -32,7 +32,7 @@ import os
 
 
 def generate_launch_description():
-    share_dir = get_package_share_directory('fusion_engine')
+    share_dir = get_package_share_directory('camera_pipeline')
     parameter_file = LaunchConfiguration('config_file')
     node_name = 'ouster_driver'
 
