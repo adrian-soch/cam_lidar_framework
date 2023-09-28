@@ -14,6 +14,8 @@
  * 
  * @copyright Copyright (c) 2023
 """
+
+# This limits CPU usage
 import os
 os.environ["OMP_NUM_THREADS"] = "1" 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -75,6 +77,7 @@ class ObjectTracker(Node):
         """
         t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
+        # Convert detections to np.ndarray for the tracker
         detections = detection3DArray2Numpy(msg.detections, self.isOBB)
 
         # update SORT with detections
@@ -88,18 +91,22 @@ class ObjectTracker(Node):
         m_arr = self.track2MarkerArray(track_ids, msg.header.stamp, self.isOBB)
         self.marker_publisher_.publish(m_arr)
 
+        # Print execution time to ros log
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info('Tracked {:4d} objects in {:.1f} msec.'.format(
             len(m_arr.markers), (t2-t1)*1000))
 
     def track2MarkerArray(self, track_ids, stamp, isOBB) -> MarkerArray:
-        """
-        Create ROS 2 markers for track results
+        """Create ROS 2 markers for track results
+
+        Args:
+            track_ids (np.ndarray): Tracker results
+            stamp (ros timestamp): time stamp of the message
+            isOBB (bool): Is oriented or axis-aligned bbox
 
         Returns:
-            npArray[x,y,trackID]: _description_
+            MarkerArray: array of markers for rviz
         """
-
         m_arr = MarkerArray()
         idx = 0
         for trk in track_ids:

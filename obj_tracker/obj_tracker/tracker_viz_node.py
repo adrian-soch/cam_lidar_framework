@@ -1,6 +1,11 @@
 """
-This node subscribes to a Detection3DArray which storestracker results
+This node subscribes to a Detection3DArray which stores tracker results
 It will publish the tracking results as marker array to be visualized in rviz
+
+To see the result:
+    1. open Rviz.
+    2. add the marker topic that is published here.
+    3. set the frame in rviz to the one that the markers are set to. 
 """
 import rclpy
 from rclpy.node import Node
@@ -31,6 +36,8 @@ class DetectorNode(Node):
 
         self.get_logger().info('Starting Tracker BBox Visualization')
 
+        # Index to prevent us from overwriting a tracklet that we
+        # still want to see in Rviz
         self.tracklet_idx = 0
 
     def detection_callback(self, msg):

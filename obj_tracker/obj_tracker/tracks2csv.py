@@ -1,6 +1,8 @@
 """
-This node subscribes to a Detection3DArray which storestracker results
-It will publish the tracking results as marker array to be visualized in rviz
+This node subscribes to a Detection3DArray which stores tracker results.
+It will convert the Detection3D object into a csv entry and save the csv file
+
+This was created to save the results for offline evaluation.
 """
 import os
 from datetime import datetime
