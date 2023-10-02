@@ -4,7 +4,7 @@ import numpy as np
 from vision_msgs.msg import Detection2D, Detection2DArray
 from vision_msgs.msg import ObjectHypothesisWithPose
 
-def detection2DArray2Numpy(detection_list) -> np.ndarray:
+def detection2DArray2Numpy(detection_list, sensor_type) -> np.ndarray:
     """Convert vision_msgs/Detection2DArray to numpy array
 
     Args:
@@ -29,7 +29,7 @@ def detection2DArray2Numpy(detection_list) -> np.ndarray:
             det.bbox.center.y - half_y,
             det.bbox.center.x + half_x,
             det.bbox.center.y + half_y,
-            0.5]
+            float(ord(sensor_type))]
 
     return out_arr
 
@@ -52,6 +52,7 @@ def createDetection2DArr(tracks, header) -> Detection2DArray:
         det = Detection2D()
         result = ObjectHypothesisWithPose()
         result.hypothesis.score = trk[4]
+        result.hypothesis.class_id = chr(int(trk[5]))
         det.results.append(result)
 
         x_len = trk[2] - trk[0]

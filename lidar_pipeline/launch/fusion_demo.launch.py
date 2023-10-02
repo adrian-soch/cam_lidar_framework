@@ -8,6 +8,7 @@ from launch_ros.substitutions import FindPackageShare
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess
 from launch.actions import IncludeLaunchDescription
+from launch.actions import TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import PathJoinSubstitution
 
@@ -167,15 +168,20 @@ def generate_launch_description():
     )
 
     if BAG_SELECTOR != -1:
-        data_source = ExecuteProcess(
-            cmd=[[
-                'ros2 bag play ',
-                ABS_PATH_TO_ROSBAGS,
-                BAG_NAME,
-                ' -l',
-                ' -r ' + str(BAG_PLAY_RATE)
-            ]],
-            shell=True
+        data_source = TimerAction(
+            period=0.0,
+            actions=[
+                ExecuteProcess(
+                    cmd=[[
+                        'ros2 bag play ',
+                        ABS_PATH_TO_ROSBAGS,
+                        BAG_NAME,
+                        ' -l',
+                        ' -r ' + str(BAG_PLAY_RATE)
+                    ]],
+                    shell=True
+                )
+            ],
         )
     else:
         data_source = IncludeLaunchDescription(PythonLaunchDescriptionSource(
