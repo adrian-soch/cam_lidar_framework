@@ -3,6 +3,30 @@
 perception_node:
   ros__parameters:
 
+    # Transformation from sensor to world frame
+    lidar2world_transform:
+      # [x,y,z] in meters
+      translation: [0.0, 0.0, 8.8]
+
+      # [w,x,y,z] normalized quaternion
+      quaternion: [0.999950, 0.000000, 0.010000, 0.000000]
+
+    # The crop box isolates a region of interest in the pointcloud
+    # all point outside this box are removed
+    # Use the roi_visulaizer.py tool to find a new crop_box params if needed
+    crop_box_transform:
+      # [x,y,z] in meters
+      translation: [22.0, -5.0, 0.0]
+
+      # [w,x,y,z] normalized quaternion
+      quaternion: [0.9990482215818578, 0.0, 0.0, 0.043619387365336]
+
+      # [x, y, z] in meters
+      size: [30.0, 75.0, 5.0]
+
+projection_node:
+  ros__parameters:
+
     # Matrix from intrinsic camera calibration
     # This day's data was recorded at 1920x1200
     # See A9 dataset labels for original data source
@@ -18,8 +42,8 @@ perception_node:
 
     # Transform from Lidar to camera frame
     lidar2cam_extrinsic:
-      rotation: [0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0]
-      translation: [0.00, 0.00, 0.00]
+      rotation: [0.641509,-0.766975,0.0146997,-0.258939,-0.234538,-0.936986,0.722092,0.597278,-0.349058]
+      translation: [1.99131, 1.21464, -1.50021]
 
     # Transform from lidar data from to lidar sensor frame
     # See https://github.com/ros-drivers/ros2_ouster_drivers/issues/87
@@ -27,16 +51,3 @@ perception_node:
     lidarData2lidarSensor_extrinsic:
       rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
       translation: [0.0, 0.0, 0.0]
-
-    # The crop box isolates a region of interest in the pointcloud
-    # all point outside this box are removed
-    # Use the roi_visulaizer.py tool to find a new crop_box params if needed
-    crop_box_transform:
-      # [x,y,z] in meters
-      translation: [22.0, -5.0, 0.0]
-
-      # [w,x,y,z] normalized quaternion
-      quaternion: [0.9990482215818578, 0.0, 0.0, 0.043619387365336]
-
-      # [x, y, z] in meters
-      size: [30.0, 75.0, 5.0]
