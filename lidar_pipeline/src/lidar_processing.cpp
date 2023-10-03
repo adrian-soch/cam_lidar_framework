@@ -29,7 +29,6 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
      * ========================================*/
     pcl::PointCloud<pcl::PointXYZI> cloud;
     pcl::fromROSMsg(*recent_cloud, cloud);
-
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
     transform.translation() << lidar2world_translation[0], lidar2world_translation[1], lidar2world_translation[2];
     transform.rotate(Eigen::Quaternionf(lidar2world_quat[0], lidar2world_quat[1],
@@ -47,20 +46,21 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
      * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr crop_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*cloud_ptr));
 
-    /** 
+    /**
      * TODO make this a func
-     * 
+     *
      * pass entire size array to function
-     * 
+     *
      * add multi box cropping
-    */
+     */
     Eigen::Affine3f box_transform = Eigen::Affine3f::Identity();
     box_transform.translation() << crop_box_translation[0][0], crop_box_translation[0][1], crop_box_translation[0][2];
     box_transform.rotate(Eigen::Quaternionf(crop_box_quat[0][0], crop_box_quat[0][1],
       crop_box_quat[0][2], crop_box_quat[0][3]));
 
     // Crop just the road using a prism
-    cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, crop_box_size[0][0], crop_box_size[0][1], crop_box_size[0][2]);
+    cloud_ops.prism_segmentation(crop_cloud_ptr, box_transform, crop_box_size[0][0], crop_box_size[0][1],
+      crop_box_size[0][2]);
 
     /* ========================================
      * STATISTICAL OUTLIER REMOVAL

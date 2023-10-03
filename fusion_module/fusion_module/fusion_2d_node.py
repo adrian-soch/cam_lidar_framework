@@ -66,8 +66,8 @@ class DetectionSyncNode(Node):
         t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
         # Convert message arrays to numpy
-        cam_dets = detection2DArray2Numpy(cam_2d_dets.detections)
-        lidar_dets = detection2DArray2Numpy(lidar_2d_dets.detections)
+        cam_dets = detection2DArray2Numpy(cam_2d_dets.detections, sensor_type='C')
+        lidar_dets = detection2DArray2Numpy(lidar_2d_dets.detections, sensor_type='L')
 
         # Simple fusion with IoU based association
         fused_detections = self.fuse(
@@ -145,6 +145,9 @@ class DetectionSyncNode(Node):
 
         fused_dets = []
         for i in filt_match_inds:
+            # Change sensor type to 'B' (both)
+            det = cam_arr[i[0], :]
+            det[-1] = float(ord('B'))
             fused_dets.append(cam_arr[i[0], :])
 
         unmatched_cam_dets = []

@@ -4,13 +4,17 @@
 
 @brief This node subsribes to images and runs detection+tracking
 
-@section TODO
-- Add debug flag to remove log statemetns when in "production mode"
-- Add flag to remove confidence from output
-
 @section Author(s)
 - Created by Adrian Sochaniwsky on 13/11/2022
 """
+import os
+# limit the number of cpus used by high performance libraries
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 import cv2
 import time
 import rclpy

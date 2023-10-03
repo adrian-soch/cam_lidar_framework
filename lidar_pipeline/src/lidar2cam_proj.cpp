@@ -51,18 +51,22 @@ public:
         this->get_parameter("cam_result_topic", cam_result_topic);
 
         // Get transforms
-        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.translation", { 0.0, 0.0508, 0.0502 });
+        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.translation", { 0.0, 0.0, 0.0 });
         this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.rotation", { 0.0, 1.0, 0.0,
                                                                                         0.0, 0.0, -1.0,
                                                                                         -1.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.translation", { 0.0, 0.0,
-                                                                                                       0.03618 });
+        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.translation", { 0.0, 0.0, 0.0 });
         this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.rotation", { -1.0, 0.0, 0.0,
                                                                                                     0.0, -1.0, 0.0,
                                                                                                     0.0, 0.0, 1.0 });
-        this->declare_parameter<std::vector<double> >("camera_matrix", { 1199.821557, 0.000000, 960.562236,
-                                                                         0.000000, 1198.033465, 551.675808,
-                                                                         0.000000, 0.000000, 1.000000 });
+        this->declare_parameter<std::vector<double> >("camera_matrix", { 0.0, 0.0, 0.0,
+                                                                         0.0, 0.0, 0.0,
+                                                                         0.0, 0.0, 0.0 });
+
+        this->declare_parameter<std::vector<double> >("lidar2world_transform.translation", { 0.0 });
+        this->declare_parameter<std::vector<double> >("lidar2world_transform.quaternion", { 1.0, 0.0, 0.0, 0.0 });
+        this->get_parameter("lidar2world_transform.translation", lidar2world_translation);
+        this->get_parameter("lidar2world_transform.quaternion", lidar2world_quat);
 
         this->get_parameter("lidar2cam_extrinsic.translation", lidar2cam_translation);
         this->get_parameter("lidar2cam_extrinsic.rotation", lidar2cam_rotation);
@@ -102,8 +106,10 @@ public:
         cam_mat = param2Transform(camera_matrix_rotation, camera_matrix_translation);
 
         sensor2world = Eigen::Affine3f::Identity();
-        sensor2world.translation() << 0.0, 0.0, 12.0;
-        sensor2world.rotate(Eigen::Quaternionf(0.9795752, 0.0, 0.2010779, 0.0));
+        sensor2world.translation() << lidar2world_translation[0], lidar2world_translation[1],
+            lidar2world_translation[2];
+        sensor2world.rotate(Eigen::Quaternionf(lidar2world_quat[0], lidar2world_quat[1], lidar2world_quat[2],
+          lidar2world_quat[3]));
     }
 
 private:
@@ -305,6 +311,8 @@ private:
     std::vector<double> lidarData2lidarSensor_rotation;
     std::vector<double> camera_matrix_translation { 0.0, 0.0, 0.0 };
     std::vector<double> camera_matrix_rotation;
+    std::vector<double> lidar2world_translation;
+    std::vector<double> lidar2world_quat;
 
     #if DEBUG_MODE
     std::shared_ptr<Subscriber<sensor_msgs::msg::Image> > sub_image_;

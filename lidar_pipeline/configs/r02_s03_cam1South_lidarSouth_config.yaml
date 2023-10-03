@@ -3,6 +3,30 @@
 perception_node:
   ros__parameters:
 
+    # Transformation from sensor to world frame
+    lidar2world_transform:
+      # [x,y,z] in meters
+      translation: [0.0, 0.0, 8.8]
+
+      # [w,x,y,z] normalized quaternion
+      quaternion: [0.999950, 0.000000, 0.010000, 0.000000]
+
+    # The crop box isolates a region of interest in the pointcloud
+    # all point outside this box are removed
+    # Use the roi_visulaizer.py tool to find a new crop_box params if needed
+    crop_box_transform:
+      # [x,y,z] in meters
+      translation: [22.0, -5.0, 0.0]
+
+      # [w,x,y,z] normalized quaternion
+      quaternion: [0.9990482215818578, 0.0, 0.0, 0.043619387365336]
+
+      # [x, y, z] in meters
+      size: [30.0, 75.0, 5.0]
+
+projection_node:
+  ros__parameters:
+
     # Matrix from intrinsic camera calibration
     # This day's data was recorded at 1920x1200
     # See A9 dataset labels for original data source
@@ -18,8 +42,8 @@ perception_node:
 
     # Transform from Lidar to camera frame
     lidar2cam_extrinsic:
-      rotation: [0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0]
-      translation: [0.00, 0.00, 0.00]
+      rotation: [-0.0931837,-0.995484,0.018077, -0.481033,0.029117,-0.876219, 0.871736,-0.0903453,-0.481574]
+      translation: [-13.8309, 1.96067, -2.58546]
 
     # Transform from lidar data from to lidar sensor frame
     # See https://github.com/ros-drivers/ros2_ouster_drivers/issues/87
@@ -28,15 +52,3 @@ perception_node:
       rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
       translation: [0.0, 0.0, 0.0]
 
-    # The crop box isolates a region of interest in the pointcloud
-    # all point outside this box are removed
-    # Use the roi_visulaizer.py tool to find a new crop_box params if needed
-    crop_box_transform:
-      # [x,y,z] in meters
-      translation: [22.0, -5.0, 0.0]
-
-      # [w,x,y,z] normalized quaternion
-      quaternion: [0.9990482215818578, 0.0, 0.0, 0.043619387365336]
-
-      # [x, y, z] in meters
-      size: [30.0, 75.0, 5.0]
