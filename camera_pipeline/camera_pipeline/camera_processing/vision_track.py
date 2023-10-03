@@ -20,7 +20,7 @@ import os
 # limit the number of cpus used by high performance libraries
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "2"
+os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
@@ -66,7 +66,7 @@ class VisionTracker():
         @return An instance of the VisionTracker class with the specified name
         """
 
-        yolo_weights=WEIGHTS / 'yolov5n.pt'  # model.pt path(s)
+        yolo_weights=WEIGHTS / 'yolov5s.pt'  # model.pt path(s)
         reid_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt'  # model.pt path
 
         self.imgsz=(640, 640)  # inference size (height, width)
