@@ -32,7 +32,7 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_SELECTOR = 2
+BAG_SELECTOR = -1
 
 # Because of the yolov5 includes, its easier to just run this directly
 # in the terminal instead of a traditional node
@@ -43,7 +43,10 @@ ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/came
 '''
 # MARC Rooftop data without data syncronization
 # Fusion and projection will not work
-if BAG_SELECTOR == 0:
+if BAG_SELECTOR == -1:
+    # FLIP_IMAGE = True
+    CONFIG_NAME = 'default_config.yaml'
+elif BAG_SELECTOR == 0:
     FLIP_IMAGE = True
     BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
     CONFIG_NAME = 'dec7_config.yaml'
@@ -185,7 +188,9 @@ def generate_launch_description():
         )
     else:
         data_source = IncludeLaunchDescription(PythonLaunchDescriptionSource(
-            [os.path.join(FindPackageShare("camera_pipeline"), 'lidar_camera_launch.py')]))
+            PathJoinSubstitution(
+                [FindPackageShare("camera_pipeline"), 'lidar_camera_launch.py'])
+        ))
 
     rviz_config_file = PathJoinSubstitution(
         [FindPackageShare("lidar_pipeline"), "configs", "rviz.rviz"]

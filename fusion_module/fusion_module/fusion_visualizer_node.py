@@ -59,10 +59,14 @@ class FusionVisualizer(Node):
         # Loop through the detections and draw them on the image
         for detection in detection_msg.detections:
             # Get the bounding box coordinates
-            x = int(detection.bbox.center.x - detection.bbox.size_x / 2)
-            y = int(detection.bbox.center.y - detection.bbox.size_y / 2)
-            w = int(detection.bbox.size_x)
-            h = int(detection.bbox.size_y)
+
+            try:
+                x = int(detection.bbox.center.x - detection.bbox.size_x / 2)
+                y = int(detection.bbox.center.y - detection.bbox.size_y / 2)
+                w = int(detection.bbox.size_x)
+                h = int(detection.bbox.size_y)
+            except ValueError:
+                continue
 
             # Indicates which sensor contributed to this track result
             colour = None

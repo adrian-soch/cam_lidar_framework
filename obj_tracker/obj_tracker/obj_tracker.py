@@ -67,6 +67,8 @@ class ObjectTracker(Node):
             Detection3DArray, 'lidar_proc/tracks', 2)
         self.marker_publisher_ = self.create_publisher(
             MarkerArray, 'lidar_proc/track_markers', 2)
+        
+        self.get_logger().info('Tracker Module initialized.')
 
     def callback(self, msg):
         """Takes new detections and updates the tracker.

@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<lidar_pipeline::LidarProcessing>();
-    auto exec = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+    auto exec = std::make_shared<rclcpp::executors::StaticSingleThreadedExecutor>();
     exec->add_node(node);
     exec->spin();
 

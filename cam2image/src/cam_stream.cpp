@@ -111,7 +111,7 @@ private:
     }
 
     // Publish the image message and increment the frame_id.
-    RCLCPP_INFO(get_logger(), "Publishing image #%zd", publish_number_++);
+    RCLCPP_DEBUG(get_logger(), "Publishing image #%zd", publish_number_++);
     pub_->publish(std::move(msg));
   }
 
