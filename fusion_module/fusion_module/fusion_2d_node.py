@@ -55,6 +55,8 @@ class DetectionSyncNode(Node):
         # Create publisher
         self.track_publisher_ = self.create_publisher(
             Detection2DArray, 'image_proc/fusion_tracks', 2)
+        
+        self.get_logger().info('Fusion Module initialized.')
 
     def callback(self, cam_2d_dets: Detection2DArray, lidar_2d_dets: Detection2DArray):
         """This callback will take the 2 sensors detection arrays and produce a final fused and tracked array
@@ -167,7 +169,6 @@ def main():
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()
