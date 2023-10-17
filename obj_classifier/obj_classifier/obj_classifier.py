@@ -54,38 +54,43 @@ class Obj_Classifier(Node):
 
         self.classes = ['BICYCLE', 'BUS', 'CAR', 'EMERGENCY_VEHICLE',
                    'MOTORCYCLE', 'PEDESTRIAN', 'TRAILER', 'TRUCK', 'VAN']
+        
+        self.get_logger().info('Classifier Module initialized.')
 
     def callback(self, detections, pointclouds):
         start = time.time()
 
-        feature_vectors = np.empty((len(detections.detections), 7))
-        for i, (det, pc) in enumerate(zip(detections.detections, pointclouds.pointclouds)):
-            num_points = pc.row_step*pc.height
-            length = det.bbox.size.x
-            width = det.bbox.size.y
-            height = det.bbox.size.z
+        # If no detections just publish the same array without modification
+        if len(detections.detections) > 0:
+            
+            feature_vectors = np.empty((len(detections.detections), 7))
+            for i, (det, pc) in enumerate(zip(detections.detections, pointclouds.pointclouds)):
+                num_points = pc.row_step*pc.height
+                length = det.bbox.size.x
+                width = det.bbox.size.y
+                height = det.bbox.size.z
 
-            x = det.bbox.center.position.x
-            y = det.bbox.center.position.y
-            z = det.bbox.center.position.z
-            dist2sensor = np.linalg.norm([x,y,z])
+                x = det.bbox.center.position.x
+                y = det.bbox.center.position.y
+                z = det.bbox.center.position.z
+                dist2sensor = np.linalg.norm([x,y,z])
 
-            w_h_ratio = width/height
-            l_h_ratio = length/height
+                w_h_ratio = width/height
+                l_h_ratio = length/height
 
-            feature_vectors[i, :] = [num_points, length, width, height, dist2sensor, w_h_ratio, l_h_ratio]
+                feature_vectors[i, :] = [num_points, length, width, height, dist2sensor, w_h_ratio, l_h_ratio]
 
-        feature_vectors = self.scaler.transform(feature_vectors)
-        feature_vectors = self.pca.transform(feature_vectors)
+            feature_vectors = self.scaler.transform(feature_vectors)
+            feature_vectors = self.pca.transform(feature_vectors)
 
-        # Predict the class of the feature vector using the SVM model
-        predicted_classes = self.svm.predict(feature_vectors)
+            # Predict the class of the feature vector using the SVM model
+            predicted_classes = self.svm.predict(feature_vectors)
 
-        """
-        TODO Unknown classes or objects we dont want should be set to "DONOTTRACK"
-        """
-        for i, det in enumerate(detections.detections):
-            det.id = self.classes[int(predicted_classes[i])]
+            """
+            TODO Unknown classes or objects we dont want should be set to "DONOTTRACK"
+            """
+            for i, det in enumerate(detections.detections):
+                det.id = self.classes[int(predicted_classes[i])]
 
         self.det3d_pub.publish(detections)
 
