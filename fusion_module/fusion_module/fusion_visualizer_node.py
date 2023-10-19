@@ -5,7 +5,7 @@ from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2DArray
 from cv_bridge import CvBridge
 from cv2 import flip, rectangle, putText, FONT_HERSHEY_PLAIN
-from cv2 import VideoWriter, VideoWriter_fourcc, COLOR_BGR2RGB, cvtColor
+from cv2 import VideoWriter, VideoWriter_fourcc
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 
 import datetime
@@ -102,7 +102,7 @@ class FusionVisualizer(Node):
 
         # create video writer if not exists
         if self.video_writer is None:
-            fourcc = VideoWriter_fourcc(*'XVID')  # choose codec
+            fourcc = VideoWriter_fourcc(*'mp4v')  # choose codec
             fps = 10  # choose frame rate
             filename = 'video_{}.mp4'.format(datetime.datetime.now().strftime(
                 '%Y%m%d_%H%M%S'))  # choose file name with current timestamp

@@ -22,6 +22,8 @@ pipeline_params = os.path.join(
 BAG_PLAY_RATE = 1
 FLIP_IMAGE = False
 
+BAG_PLAY_LOOP = True
+
 '''
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
               CHANGE THESE PARAMS
@@ -32,7 +34,11 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_SELECTOR = -1
+BAG_SELECTOR = 3
+
+# Determines what kind of output you want, Video/Rviz2
+SAVE_OUTPUT_VIDEO = True
+SHOW_RVIZ = False
 
 # Because of the yolov5 includes, its easier to just run this directly
 # in the terminal instead of a traditional node
@@ -65,17 +71,32 @@ elif BAG_SELECTOR == 3:
     BAG_NAME = 'may10_2023/q7_2_may10_2023'
     CONFIG_NAME = 'may10_config.yaml'
 
-# A9 data
+# Roadside data
 elif BAG_SELECTOR == 4:
+    BAG_NAME = 'oct18_2023/r3'
+    CONFIG_NAME = 'default_config.yaml'
+elif BAG_SELECTOR == 5:
+    BAG_NAME = 'oct18_2023/r9'
+    CONFIG_NAME = 'default_config.yaml'
+
+# A9 data
+elif BAG_SELECTOR == 8:
     # Nighttime + rain
     BAG_PLAY_RATE = 4
     BAG_NAME = '2023-09-19_14-49-25_a9_dataset_r02_s04_camSouth2_LidarSouth'
     CONFIG_NAME = 'r02_s04_cam2South_lidarSouth_config.yaml'
-elif BAG_SELECTOR == 5:
+elif BAG_SELECTOR == 9:
     # Day time
     BAG_PLAY_RATE = 4
     BAG_NAME = '2023-08-30_13-58-46_a9_dataset_r02_s03_camSouth1_LidarSouth'
     CONFIG_NAME = 'r02_s03_cam1South_lidarSouth_config.yaml'
+
+START_BAG_DELAY = 0.0
+if SAVE_OUTPUT_VIDEO:
+    START_BAG_DELAY = 10.0
+
+if SAVE_OUTPUT_VIDEO:
+    BAG_PLAY_LOOP = False
 
 data_dependant_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', CONFIG_NAME)
@@ -148,6 +169,13 @@ def generate_launch_description():
         output='screen',
     )
 
+    lidar_tracker_viz = Node(
+        package='obj_tracker',
+        executable='tracker_bbox_viz',
+        name='tracker_bbox_viz',
+        output='screen',
+    )
+
     fusion_2D = Node(
         package='fusion_module',
         executable='fusion_node',
@@ -160,37 +188,9 @@ def generate_launch_description():
         name='fusion_viz_node',
         parameters=[
             {'flip_image': FLIP_IMAGE},
+            {'save_video': SAVE_OUTPUT_VIDEO},
         ]
     )
-
-    lidar_tracker_viz = Node(
-        package='obj_tracker',
-        executable='tracker_bbox_viz',
-        name='tracker_bbox_viz',
-        output='screen',
-    )
-
-    if BAG_SELECTOR != -1:
-        data_source = TimerAction(
-            period=0.0,
-            actions=[
-                ExecuteProcess(
-                    cmd=[[
-                        'ros2 bag play ',
-                        ABS_PATH_TO_ROSBAGS,
-                        BAG_NAME,
-                        ' -l',
-                        ' -r ' + str(BAG_PLAY_RATE)
-                    ]],
-                    shell=True
-                )
-            ],
-        )
-    else:
-        data_source = IncludeLaunchDescription(PythonLaunchDescriptionSource(
-            PathJoinSubstitution(
-                [FindPackageShare("camera_pipeline"), 'lidar_camera_launch.py'])
-        ))
 
     rviz_config_file = PathJoinSubstitution(
         [FindPackageShare("lidar_pipeline"), "configs", "rviz.rviz"]
@@ -202,8 +202,29 @@ def generate_launch_description():
         arguments=['-d', rviz_config_file]
     )
 
-    # Items above will only be launched if they are present in this list
-    return LaunchDescription([
+    if BAG_SELECTOR != -1:
+        bag_cmd = ['ros2 bag play ',
+                   ABS_PATH_TO_ROSBAGS, BAG_NAME,
+                   ' -r ' + str(BAG_PLAY_RATE)]
+
+        if BAG_PLAY_LOOP:
+            bag_cmd.append(' -l')
+
+        data_source = TimerAction(
+            period=START_BAG_DELAY,
+            actions=[
+                ExecuteProcess(
+                    cmd=[bag_cmd],
+                    shell=True)
+            ],
+        )
+    else:
+        data_source = IncludeLaunchDescription(PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("camera_pipeline"), 'lidar_camera_launch.py'])
+        ))
+
+    launch_list = [
         lidar_tracker,
         lidar_classifier,
         lidar2image_node,
@@ -213,5 +234,10 @@ def generate_launch_description():
         fusion_viz,
         lidar_tracker_viz,
         data_source,
-        rviz_node
-    ])
+    ]
+
+    if SHOW_RVIZ:
+        launch_list.append(rviz_node)
+
+    # Items above will only be launched if they are present in this list
+    return LaunchDescription(launch_list)

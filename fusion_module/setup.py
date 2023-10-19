@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
             'fusion_node = fusion_module.fusion_2d_node:main',
             'fusion_viz_node = fusion_module.fusion_visualizer_node:main',
+            'detection2csv_node = fusion_module.detection2csv_node:main'
         ],
     },
 )
