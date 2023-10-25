@@ -14,9 +14,7 @@ import os
 from shapely.geometry import Point, Polygon
 import pandas as pd
 
-
-# image_path = '/home/adrian/dev/metrics/test_may10000000.jpg'
-# file_path = '/home/adrian/dev/metrics/SORT_Results/fusion_yolov5n_ocsort+lidar.txt'
+from re_number_frames import normalize_frame_numbers, get_lines, write_lines
 
 
 def main(args):
@@ -66,8 +64,12 @@ def main(args):
     df = df.drop(remove_indices)
 
     path, name = os.path.split(args.file_path)
-    result = os.path.join(path, 'processed_' + name)
-    df.to_csv(result, index=False, header=None)
+    result_name = os.path.join(path, 'processed_' + name)
+    df.to_csv(result_name, index=False, header=None)
+
+    lines = get_lines(result_name)
+    normalized_lines = normalize_frame_numbers(lines)
+    write_lines(result_name, normalized_lines)
 
     if args.image_path is not None:
         # Show the image with polygons
