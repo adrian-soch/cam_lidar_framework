@@ -11,23 +11,21 @@
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
 
+from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
+from fusion_module.sort import Sort, iou_batch, linear_assignment
+from vision_msgs.msg import Detection2DArray
+from rclpy.node import Node
+from message_filters import ApproximateTimeSynchronizer, Subscriber
+import rclpy
+import time
+import numpy as np
 import os
-os.environ["OMP_NUM_THREADS"] = "1" 
+os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1" 
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
-import numpy as np
-import time
-
-import rclpy
-from message_filters import ApproximateTimeSynchronizer, Subscriber
-from rclpy.node import Node
-from vision_msgs.msg import Detection2DArray
-
-from fusion_module.sort import Sort, iou_batch, linear_assignment
-from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
 
 class DetectionSyncNode(Node):
     def __init__(self):
@@ -41,6 +39,22 @@ class DetectionSyncNode(Node):
             'cam_track_topic', '/image_proc/tracks').get_parameter_value().string_value
         lidar2d_track_topic = self.declare_parameter(
             'lidar2d_track_topic', 'image_proc/lidar_track_2D').get_parameter_value().string_value
+        
+        tracker_iou_thresh = self.declare_parameter(
+            'tracker_iou_thresh', 0.01).get_parameter_value().double_value
+        
+        self.fusion_iou_thresh = self.declare_parameter(
+            'fusion_iou_thresh', 0.01).get_parameter_value().double_value
+
+        self.lidar_only_override = self.declare_parameter(
+            'lidar_only_override', False).get_parameter_value().bool_value
+
+        self.camera_only_override = self.declare_parameter(
+            'camera_only_override', False).get_parameter_value().bool_value
+
+        if self.lidar_only_override and self.camera_only_override:
+            self.get_logger().error('Sensor overrrides are mutally exclusive, check parameters.')
+            exit(-1)
 
         # Create subscribers and the approximate syncronizer message filter
         cam_sub = Subscriber(self, Detection2DArray, cam_track_topic)
@@ -50,12 +64,12 @@ class DetectionSyncNode(Node):
         sync.registerCallback(self.callback)
 
         # Create SORT instance for fused detections
-        self.tracker = Sort(max_age=4, min_hits=3, iou_threshold=0.01)
+        self.tracker = Sort(max_age=4, min_hits=3, iou_threshold=tracker_iou_thresh)
 
         # Create publisher
         self.track_publisher_ = self.create_publisher(
             Detection2DArray, 'image_proc/fusion_tracks', 2)
-        
+
         self.get_logger().info('Fusion Module initialized.')
 
     def callback(self, cam_2d_dets: Detection2DArray, lidar_2d_dets: Detection2DArray):
@@ -68,12 +82,19 @@ class DetectionSyncNode(Node):
         t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
         # Convert message arrays to numpy
-        cam_dets = detection2DArray2Numpy(cam_2d_dets.detections, sensor_type='C')
-        lidar_dets = detection2DArray2Numpy(lidar_2d_dets.detections, sensor_type='L')
-
-        # Simple fusion with IoU based association
-        fused_detections = self.fuse(
-            cam_arr=cam_dets, lidar_arr=lidar_dets, iou_threshold=0.1)
+        cam_dets = detection2DArray2Numpy(
+            cam_2d_dets.detections, sensor_type='C')
+        lidar_dets = detection2DArray2Numpy(
+            lidar_2d_dets.detections, sensor_type='L')
+        
+        if self.camera_only_override:
+            fused_detections = cam_dets
+        if self.lidar_only_override:
+            fused_detections = lidar_dets
+        else:
+            # Simple fusion with IoU based association
+            fused_detections = self.fuse(
+                cam_arr=cam_dets, lidar_arr=lidar_dets, iou_threshold=self.fusion_iou_thresh)
 
         # Update SORT with detections
         track_ids = self.tracker.update(fused_detections)
@@ -169,6 +190,7 @@ def main():
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
