@@ -18,6 +18,8 @@ def get_unique_id(key):
     return random_uint32
 
 def convert_json_to_csv(json_file):
+    no_output_flag = False
+
     # Open the json file and load the data
     with open(json_file, "r") as f:
         data = json.load(f)
@@ -35,7 +37,7 @@ def convert_json_to_csv(json_file):
             frame_index = frame["index"]
 
             # Create a set to store the keys of the figures in the frame
-
+            seen_keys = set()
 
             # Loop through the figures in the frame
             for figure in frame["figures"]:
@@ -45,6 +47,12 @@ def convert_json_to_csv(json_file):
                 # Check if the figure key is already in the set
                 if figure_key not in id_dict:
                     id_dict[figure_key] = (len(id_dict) + 1, frame_index)
+                    
+                if figure_key not in seen_keys:
+                    seen_keys.add(figure_key)
+                else:
+                    print(f'Error: multiple labels for the same object within frame {frame_index}')
+                    no_output_flag = True
 
                 id = id_dict[figure_key][0]
 
@@ -55,7 +63,8 @@ def convert_json_to_csv(json_file):
                 width = x2 - x1
                 height = y2 - y1
 
-                writer.writerow([frame_index, id, x1, y1, width, height, -1, -1, -1, -1])
+                if not no_output_flag:
+                    writer.writerow([frame_index, id, x1, y1, width, height, -1, -1, -1, -1])
 
 
 def main():

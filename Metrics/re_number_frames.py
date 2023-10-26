@@ -16,12 +16,10 @@ def normalize_frame_numbers(lines):
     # Shift frame numbers to start at 1
     shift = int(lines[0].split(",")[0])
 
-    if (shift > 1):
-        shift -= 1
-    elif (shift == 1):
+    if shift == 1:
         return lines
     else:
-        shift += 1
+        shift -= 1
 
     # Loop through the list of lines with an index
     for i, line in enumerate(lines):
@@ -38,6 +36,7 @@ def normalize_frame_numbers(lines):
 
 def main(args):
     # Open the file in read mode
+    file_name = args.file
     lines = get_lines(file_name)
 
     normalized_lines = normalize_frame_numbers(lines)
@@ -54,5 +53,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Get the name of the file from the arguments
-    file_name = args.file
     main(args)
