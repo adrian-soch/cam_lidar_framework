@@ -11,11 +11,10 @@ Since we are using a custom dataset with rooftop traffic data, the basic workflo
 
 ```mermaid
 graph LR;
-    RawData(Raw data: \n rosbag file)-->Trans(Transformed Data: \n Pipeline + data_tools convert node);
-    Trans-->Video(Image folder to video file: \n images2video.py);
-    Video-->GroundTruth(2D labeled ground truth: \n Supervisely video annotator);
-    GroundTruth-->ExportedFormat(Exported format: \n From Supervisely JSON);
-    ExportedFormat-->MOTChallenge(MOT Challenge format: \n supervisely_video_ann2MOT.py);
+    RawData(Raw data: \n rosbag file)-->Trans(Bag to images: \n Data_tools convert node);
+    Trans-->Video(Images folder to video file: \n images2video.py);
+    Video-->GroundTruth(2D labeled ground truth: \n Supervisely video annotator JSON);
+    GroundTruth-->MOTChallenge(JSON to MOT Challenge format: \n supervisely_video_ann2MOT.py);
     MOTChallenge-->Processed(Preprocess results: \n preprocessGT.py);
 ```
 

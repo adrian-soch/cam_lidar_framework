@@ -29,7 +29,8 @@ height, width, channels = img.shape
 # Create a video writer object with fourcc codec, fps and frame size
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
 fps = 10
-video = cv2.VideoWriter("output.avi", fourcc, fps, (width, height))
+output = os.path.join(folder, "output.avi")
+video = cv2.VideoWriter(output, fourcc, fps, (width, height))
 
 # Loop through the image files and write them to the video
 for image_file in image_files:

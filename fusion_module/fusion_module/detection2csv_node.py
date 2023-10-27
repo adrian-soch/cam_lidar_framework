@@ -50,15 +50,12 @@ class DetectorNode(Node):
     def __init__(self):
         super().__init__('detector_node')
 
-        # topic = 'image_proc/fusion_tracks' # fusion_topic
-        topic = 'image_proc/tracks' # camera_topic
+        topic = 'image_proc/fusion_tracks' # fusion_topic
 
         # Get the topic name from the ROS parameter server
         topic_name = self.declare_parameter(
             'topic_name', topic).get_parameter_value().string_value
         
-
-
         # Subscribe to the detection messages
         self.subscription = self.create_subscription(
             Detection2DArray, topic_name, self.detection_callback, 2)
