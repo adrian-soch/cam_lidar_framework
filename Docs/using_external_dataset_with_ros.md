@@ -7,7 +7,7 @@
 3. Wait until all the files are parsed
 4. Play the ros bag and manually check the replay is correct in `Rviz2`
 
-> **Note:** this script assumes there are an equal number of image and pointcloud files. AND it assumes the files are in order and sybcronized.
+> **Note:** this script assumes there are an equal number of image and pointcloud files. AND it assumes the files are in order and syncronized.
 
 ## Part 2: Find the Sensor2Ground Transformation and Crop Box parameters
 
