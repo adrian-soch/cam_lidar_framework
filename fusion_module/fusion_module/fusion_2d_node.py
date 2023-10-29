@@ -89,7 +89,7 @@ class DetectionSyncNode(Node):
         
         if self.camera_only_override:
             fused_detections = cam_dets
-        if self.lidar_only_override:
+        elif self.lidar_only_override:
             fused_detections = lidar_dets
         else:
             # Simple fusion with IoU based association
