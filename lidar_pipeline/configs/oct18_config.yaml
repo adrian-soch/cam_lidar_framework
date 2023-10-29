@@ -6,20 +6,24 @@ perception_node:
     # Transformation from sensor to world frame
     lidar2world_transform:
       # [x,y,z] in meters
-      translation: [0.0, 0.0, 0.0]
+      translation: [0.0, 0.0, 3.0]
 
       # [w,x,y,z] normalized quaternion
-      quaternion: [1.0, 0.0, 0.0, 0.0]
+      quaternion: [0.999769, 0.0, -0.021498, 0.0]
 
+    # The crop box isolates a region of interest in the pointcloud
+    # all point outside this box are removed
+    # Use the roi_visulaizer.py tool to find a new crop_box params if needed
     crop_box_transform:
       # [x,y,z] in meters
-      translation: [0.0, 0.0, 0.0]
+      translation: [35.0, -2.0, 1.75]
 
       # [w,x,y,z] normalized quaternion
-      quaternion: [0.0, 0.0, 0.0, 0.0]
+      quaternion: [0.898794046299167, 0.0, 0.0, 0.4383711467890774]
 
       # [x, y, z] in meters
-      size: [25.0, 25.0, 6.0]
+      size: [18.5, 75.0,3.5]
+
 
 # Use the same `lidar2world_transform` for both nodes
 projection_node:
@@ -27,15 +31,15 @@ projection_node:
 
     # Matrix from intrinsic camera calibration
     # This day's data was recorded at 1920x1080
-    camera_matrix: [1199.821557, 0.000000, 960.562236, 0.000000, 1198.033465, 551.675808, 0.000000, 0.000000, 1.000000]
+    camera_matrix: [1199.821557, 0.0, 960.562236, 0.0, 1198.033465, 551.675808, 0.0, 0.0, 1.0]
 
     # Transformation from sensor to world frame
     lidar2world_transform:
       # [x,y,z] in meters
-      translation: [0.0, 0.0, 0.0]
+      translation: [0.0, 0.0, 3.0]
 
       # [w,x,y,z] normalized quaternion
-      quaternion: [1.0, 0.0, 0.0, 0.0]
+      quaternion: [0.999769, 0.0, -0.021498, 0.0]
 
     # Transform from Lidar to camera frame
     lidar2cam_extrinsic:
@@ -48,3 +52,4 @@ projection_node:
     lidarData2lidarSensor_extrinsic:
       rotation: [-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0]
       translation: [0.0, 0.0, 0.03618]
+
