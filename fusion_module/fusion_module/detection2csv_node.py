@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 This node subscribes to a Detection2DArray which stores tracker results.
 It will convert the Detection2D object into a csv entry and save the csv file
@@ -11,6 +12,8 @@ import rclpy
 from rclpy.node import Node
 from vision_msgs.msg import Detection2DArray
 
+from rclpy.time import Time
+
 FOLDER_PATH = '/home/adrian/dev/metrics/SORT_Results'
 
 
@@ -19,7 +22,7 @@ class MotEntry:
         See comment at the top of the file for more details.
     """
 
-    def __init__(self, frame, id=None, bb_left=None, bb_top=None, bb_width=None, bb_height=None, conf=-1):
+    def __init__(self, frame, id=None, bb_left=None, bb_top=None, bb_width=None, bb_height=None, conf=-1, x=-1, y=-1, z=-1):
         self.frame = frame
         self.id = id
         self.bb_left = bb_left
@@ -27,9 +30,9 @@ class MotEntry:
         self.bb_width = bb_width
         self.bb_height = bb_height
         self.conf = conf
-        self.x = -1
-        self.y = -1
-        self.z = -1
+        self.x = x
+        self.y = y
+        self.z = z
 
     def toStr(self):
         return "{},{},{:.1f},{:.1f},{:.1f},{:.1f},{},{},{},{}".format(
@@ -50,12 +53,12 @@ class DetectorNode(Node):
     def __init__(self):
         super().__init__('detector_node')
 
-        topic = 'image_proc/fusion_tracks' # fusion_topic
+        topic = 'image_proc/fusion_tracks'  # fusion_topic
 
         # Get the topic name from the ROS parameter server
         topic_name = self.declare_parameter(
             'topic_name', topic).get_parameter_value().string_value
-        
+
         # Subscribe to the detection messages
         self.subscription = self.create_subscription(
             Detection2DArray, topic_name, self.detection_callback, 2)
@@ -77,20 +80,33 @@ class DetectorNode(Node):
         # Hold all the tracks in a frame
         tracks = []
 
-        # Loop through each detection
-        for detection in msg.detections:
-            # Get the position and size of the detection
-            pos = detection.bbox.center
-            size = detection.bbox
+        if len(msg.detections) > 0:
+            for detection in msg.detections:
+                # Get the position and size of the detection
+                pos = detection.bbox.center
+                size = detection.bbox
 
-            result = detection.results[0]
-            id = int(result.hypothesis.score)
+                # ts = detection.header.stamp
+                time = Time.from_msg(msg.header.stamp)
+                sec, nsec = time.seconds_nanoseconds()
 
-            entry = MotEntry(self.frame_count, id,
-                             bb_left=pos.x - size.size_x/2.0,
-                             bb_top=pos.y - size.size_y/2.0,
-                             bb_width=size.size_x,
-                             bb_height=size.size_y)
+                result = detection.results[0]
+                id = int(result.hypothesis.score)
+
+                entry = MotEntry(self.frame_count, id,
+                                 bb_left=pos.x - size.size_x/2.0,
+                                 bb_top=pos.y - size.size_y/2.0,
+                                 bb_width=size.size_x,
+                                 bb_height=size.size_y,
+                                 z=sec + nsec/1e9)
+                tracks.append(entry)
+        else:
+            # Add placeholder for frames without detection
+            entry = MotEntry(self.frame_count, -1,
+                             bb_left=-1,
+                             bb_top=-1,
+                             bb_width=-1,
+                             bb_height=-1)
             tracks.append(entry)
 
         # Print to txt file
