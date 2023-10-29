@@ -39,14 +39,17 @@ private:
         // cv::Mat image = cv::imdecode(cv::Mat(msg->height, msg->width, CV_8UC3, const_cast<uint8_t*>(msg->data.data())), cv::IMREAD_COLOR);
 
         // flip image because webcam is upsidedown
-        if(true == flip_){
+        if(true == flip_) {
             cv::flip(im_prt->image, im_prt->image, -1);
         }
 
         // Generate a file name for the image based on the current time
         std::stringstream ss;
-        ss << file_path_ << std::setfill('0') << std::setw(6) << count_++ << ".jpg";
+        ss << file_path_ << std::setfill('0') << std::setw(6) << count_ << "_" << msg->header.stamp.sec << "_"
+           << msg->header.stamp.nanosec << ".jpg";
         std::string file_name = ss.str();
+
+        count_ += 1;
 
         // Save the image to a file
         cv::imwrite(file_name, im_prt->image);
@@ -57,7 +60,7 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
     int count_ { 0 };
     std::string file_path_;
-    bool flip_ {false};
+    bool flip_ { false };
 
     cv_bridge::CvImagePtr im_prt;
 };
@@ -67,14 +70,16 @@ int main(int argc, char** argv)
     // Initialize the ROS 2 node
     rclcpp::init(argc, argv);
     if(!((argc == 3) || (argc == 4))) {
-        RCLCPP_ERROR(rclcpp::get_logger("image_saver"), "Usage: %s <topic_name:string> <file_path:string> <flip_image:any_int (Optional)>", argv[0]);
+        RCLCPP_ERROR(rclcpp::get_logger(
+              "image_saver"), "Usage: %s <topic_name:string> <file_path:string> <flip_image:any_int (Optional)>",
+          argv[0]);
         return 1;
     }
 
     std::string topic_name = argv[1];
     std::string file_path  = argv[2];
     bool flip = false;
-    if(argc == 4){
+    if(argc == 4) {
         flip = true;
     }
 
