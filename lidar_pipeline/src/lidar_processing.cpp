@@ -165,9 +165,11 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
     this->publishPointCloudArray(pc_array_pub_, clusters);
 
+    frame_count_ += 1;
+
     auto stop = std::chrono::high_resolution_clock::now();
     auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    RCLCPP_INFO(get_logger(), "Time (msec): %ld", t_ms.count());
+    RCLCPP_INFO(get_logger(), "Frame count: %d, Time (msec): %ld", frame_count_, t_ms.count());
 } // LidarProcessing::cloud_callback
 
 template<typename PointT>
