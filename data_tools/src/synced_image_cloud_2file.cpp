@@ -43,8 +43,12 @@ public:
         sync_->registerCallback(&SyncedSubscriberNode::imageCloudCallback, this);
 
         // Create folders
-        img_path_ = pcd_path_ + "/related_images/";
+        img_path_ = pcd_path_ + "/images/";
         std::filesystem::path path = img_path_;
+        std::filesystem::create_directories(path);
+
+        pcd_path_ += "/pcds/";
+        path = pcd_path_;
         std::filesystem::create_directories(path);
     }
 
