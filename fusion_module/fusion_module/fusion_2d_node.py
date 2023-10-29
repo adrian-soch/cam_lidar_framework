@@ -60,7 +60,7 @@ class DetectionSyncNode(Node):
         cam_sub = Subscriber(self, Detection2DArray, cam_track_topic)
         lidar_sub = Subscriber(self, Detection2DArray, lidar2d_track_topic)
         sync = ApproximateTimeSynchronizer(
-            [cam_sub, lidar_sub], queue_size=3, slop=0.65)
+            [cam_sub, lidar_sub], queue_size=10, slop=0.035)
         sync.registerCallback(self.callback)
 
         # Create SORT instance for fused detections
