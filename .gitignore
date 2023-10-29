@@ -1,3 +1,7 @@
+# PyTorch and TensorRT weights
+*.pt
+*.engine
+
 # VSCode
 .vscode
 
