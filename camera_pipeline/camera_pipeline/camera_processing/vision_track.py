@@ -47,7 +47,7 @@ ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 from trackers.multi_tracker_zoo import create_tracker
 from yolov5.models.common import DetectMultiBackend
 from yolov5.utils.augmentations import letterbox
-from yolov5.utils.general import (check_img_size, cv2,
+from yolov5.utils.general import (LOGGER, check_img_size, cv2,
                                   non_max_suppression, scale_boxes)
 from yolov5.utils.plots import Annotator, colors
 from yolov5.utils.torch_utils import time_sync, select_device
@@ -66,7 +66,7 @@ class VisionTracker():
         @return An instance of the VisionTracker class with the specified name
         """
 
-        yolo_weights=WEIGHTS / 'yolov5s.pt'  # model.pt path(s)
+        yolo_weights=WEIGHTS / 'yolov5l.pt'  # model.pt path(s)
         reid_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt'  # model.pt path
 
         self.imgsz=(640, 640)  # inference size (height, width)
@@ -88,7 +88,13 @@ class VisionTracker():
         self.model = DetectMultiBackend(yolo_weights, device=self.device, dnn=dnn, data=None, fp16=self.half)
         stride, self.names, _ = self.model.stride, self.model.names, self.model.pt
         self.imgsz = check_img_size(self.imgsz, s=stride)  # check image size
-        cudnn.benchmark = True  # set True to speed up constant image size inference
+
+        # Uncomment to speed up inferences on constant size images
+        # But sacrificing the speed of the first frame
+        # https://discuss.pytorch.org/t/model-inference-very-slow-when-batch-size-changes-for-the-first-time/44911/2
+        # cudnn.benchmark = True
+
+        self.model.warmup()
 
         # Create tracker object
         self.tracker = create_tracker(self.tracking_method, reid_weights, self.device, self.half, config_path_root=str(ROOT))
@@ -111,6 +117,8 @@ class VisionTracker():
         """
         outputs = [None]
 
+        # t1 = time_sync()
+
         # Preprocess image for model
         im0 = im.copy()
         im = letterbox(im, self.imgsz, stride=32, auto=True)[0]
@@ -123,12 +131,15 @@ class VisionTracker():
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
 
+        # t2 = time_sync()
+
         # Inference
         pred = self.model(im, augment=False, visualize=False)
 
+        # t3 = time_sync()
+
         # Apply NMS
         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, self.classes, agnostic=False, max_det=self.max_det)
-        # self.dt[2] += time_sync() - t3
         t4 = time_sync()
 
         annotator = Annotator(im0, line_width=2, pil=not ascii)
@@ -137,6 +148,8 @@ class VisionTracker():
         if hasattr(self.tracker, 'tracker') and hasattr(self.tracker.tracker, 'camera_update'):
             if self.prev_frame is not None and self.curr_frame is not None:  # camera motion compensation
                 self.tracker.tracker.camera_update(self.prev_frame, self.curr_frame)
+
+        # t5 = time_sync()
 
         # Process detections
         det = pred[0]
@@ -175,8 +188,8 @@ class VisionTracker():
             cv2.waitKey(1)  # 1 millisecond
 
         self.prev_frame = self.curr_frame
-        t7 = time_sync()
-        # LOGGER.info(f'Pre: {t2-t1}, Inf: {t3-t2}, NMS: {t4-t3}, CreA: {t5-t4}, Draw {t6-t5}, Disp: {t7-t6} Final = {t7-t1}')
+        # t6 = time_sync()
+        # LOGGER.info(f'Pre: {t2-t1}, Inf: {t3-t2}, NMS: {t4-t3}, Track: {t5-t4}, Draw {t6-t5}, Final = {t6-t1}')
 
         if return_image:
             return outputs, im0
