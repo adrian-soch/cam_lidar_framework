@@ -1,3 +1,6 @@
+'''
+Convert amazon sage GT data for 3D pointclouds into 2D mot (ground plane projection of 3D bbox)
+'''
 import os
 import json
 import argparse

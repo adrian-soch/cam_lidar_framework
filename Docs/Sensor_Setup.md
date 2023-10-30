@@ -1,4 +1,4 @@
-# Extra info
+# Sensor Setup
 
 ## Ouster LiDAR Setup
 
@@ -14,17 +14,16 @@ Ethernet and power into the box. Cable from box to LiDAR. Plug into an outlet, e
 
 ### Initial Setup
 
+- Turn off Wifi.
+- In Ethernet settings. Set ethernet device to static IP 10.5.5.90, netmask is 24, Gateway empty.
 - Open `os1-991920100080.local` in browser.
-- In configuration tab, confirm the IP of the *UDP Destination Address* to 10.5.5.90
-- In Linux settings set ethernet to static IP 10.5.5.90, netmask is 24, Gateway empty   
-
+- Find the configuration tab, confirm the IP of the *UDP Destination Address* to 10.5.5.90 
 - Copy param and launch file from here [https://github.com/ros-drivers/ros2\_ouster\_drivers/tree/ros2/ros2_ouster](https://github.com/ros-drivers/ros2_ouster_drivers/tree/ros2/ros2_ouster)
     
 
 ### Optional - Update Firmware
 
-Minimum V2.1 required. Currently V2.4 is not supported by the driver unless you build from source
-
+Minimum V2.1 required. Currently only V2.4 is available from Ouster website.
 1.  Visit https://ouster.com/downloads/ and download the desired firmware image.
 2.  Go to the LiDAR page same as in [Initial Setup](#initial-setup), and upload the new firmware.
 3.  Wait for the sensor to reboot itself (this takes a few minutes for it to stop spinning and begin spinning again).
