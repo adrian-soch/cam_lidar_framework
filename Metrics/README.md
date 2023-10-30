@@ -2,16 +2,21 @@
 
 ## Description
 
-These scripts help prepare the data for evaluation. We are using the HOTA metric and the supporting scripts from https://github.com/JonathonLuiten/TrackEval/blob/master/scripts/run_mot_challenge.py.
+These scripts help prepare the data for evaluation. We are using the HOTA metric and the supporting scripts from: https://github.com/JonathonLuiten/TrackEval/blob/master/scripts/run_mot_challenge.py.
 
 
 ### Ground Truth Data
 
-Since we are using a custom dataset with rooftop traffic data, the basic workflow for obtaining the ground truth is here:
+Since we are using a custom dataset with rooftop traffic data, the basic workflow for obtaining the ground truth is presented below.
+
+>Note: Since the rosbag data are not perfect, we also need to preprocess some of the un-syncronized frames that would otherwise cause an offset in the ground truth vs. tracker result.
 
 ```mermaid
-graph LR;
-    RawData(Raw data: \n rosbag file)-->Trans(Bag to images: \n Data_tools convert node);
+graph TD;
+    RawData(Raw data: \n rosbag file)-->Clean(Bag to images and PCDs, \n and removing un-synced frames: \n synced_image_cloud_2file.cpp);
+    Clean-->Bag(Convert images + PCDs to clean bag: \n synced_file2image_cloud_msgs.cpp);
+
+    Bag(Clean Data: \n processed rosbag file)-->Trans(Bag to images: \n data_tools convert node);
     Trans-->Video(Images folder to video file: \n images2video.py);
     Video-->GroundTruth(2D labeled ground truth: \n Supervisely video annotator JSON);
     GroundTruth-->MOTChallenge(JSON to MOT Challenge format: \n supervisely_video_ann2MOT.py);
@@ -23,7 +28,7 @@ graph LR;
 For obtaining the tracker results:
 ```mermaid
 graph LR;
-    RawData(Raw data: \n rosbag file)-->Trans(Transformed Data: \n Pipeline);
+    RawData(Clean data: \n clean rosbag file)-->Trans(Transformed Data: \n Pipeline);
     Trans-->GroundTruth(Track Results: \n Tracker node);
     GroundTruth-->ExportedFormat(Exported results: \n Tracks to MOT CSV node);
     ExportedFormat-->Final(Preprocess results: \n preprocessGT.py)
