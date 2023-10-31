@@ -37,19 +37,19 @@ class MyNode(Node):
 
     def image_callback(self, msg):
         # do something with the image
-        self.get_logger().info(f'Received image at {msg.header.stamp.sec}.{msg.header.stamp.nanosec}')
+        self.get_logger().info(f'Received image at {msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}')
         # write the image timestamp to the csv file using the with statement
         with open(self.csv_file.name, 'a') as f:
             csv_writer = csv.writer(f)
-            csv_writer.writerow([f'{msg.header.stamp.sec}.{msg.header.stamp.nanosec}', ''])
+            csv_writer.writerow([f'{msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}', ''])
 
     def points_callback(self, msg):
         # do something with the pointcloud
-        self.get_logger().info(f'Received pointcloud at {msg.header.stamp.sec}.{msg.header.stamp.nanosec}')
+        self.get_logger().info(f'Received pointcloud at {msg.header.stamp.sec:}.{msg.header.stamp.nanosec:09d}')
         # write the pointcloud timestamp to the csv file using the with statement
         with open(self.csv_file.name, 'a') as f:
             csv_writer = csv.writer(f)
-            csv_writer.writerow(['', f'{msg.header.stamp.sec}.{msg.header.stamp.nanosec}'])
+            csv_writer.writerow(['', f'{msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}'])
 
 def main(args=None):
     rclpy.init(args=args)

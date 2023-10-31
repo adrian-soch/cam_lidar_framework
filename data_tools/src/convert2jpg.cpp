@@ -35,9 +35,6 @@ private:
     {
         im_prt = cv_bridge::toCvCopy(msg, msg->encoding);
 
-        // Convert the Image message to an OpenCV Mat
-        // cv::Mat image = cv::imdecode(cv::Mat(msg->height, msg->width, CV_8UC3, const_cast<uint8_t*>(msg->data.data())), cv::IMREAD_COLOR);
-
         // flip image because webcam is upsidedown
         if(true == flip_) {
             cv::flip(im_prt->image, im_prt->image, -1);
@@ -46,7 +43,7 @@ private:
         // Generate a file name for the image based on the current time
         std::stringstream ss;
         ss << file_path_ << std::setfill('0') << std::setw(6) << count_ << "_" << msg->header.stamp.sec << "_"
-           << msg->header.stamp.nanosec << ".jpg";
+           << std::setfill('0') << std::setw(9) << msg->header.stamp.nanosec << ".jpg";
         std::string file_name = ss.str();
 
         count_ += 1;

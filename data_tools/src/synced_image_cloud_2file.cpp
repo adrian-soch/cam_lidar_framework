@@ -48,7 +48,7 @@ public:
         std::filesystem::create_directories(path);
 
         pcd_path_ += "/pcds/";
-        path = pcd_path_;
+        path       = pcd_path_;
         std::filesystem::create_directories(path);
     }
 
@@ -69,7 +69,8 @@ private:
         // Generate a file name for the image based on the current time
         std::stringstream ss;
         ss << img_path_ << std::setfill('0') << std::setw(6) << count_ << "_" << image_msg->header.stamp.sec << "_"
-           << image_msg->header.stamp.nanosec << ".jpg";
+           << std::setfill('0') << std::setw(9) << image_msg->header.stamp.nanosec << ".jpg";
+
         std::string file_name = ss.str();
 
         // Save the image to a file
@@ -85,7 +86,7 @@ private:
         // Save PCD file with an increasing file name
         std::stringstream ss1;
         ss1 << pcd_path_ << std::setfill('0') << std::setw(6) << count_ << "_" << cloud_msg->header.stamp.sec << "_"
-            << cloud_msg->header.stamp.nanosec << ".pcd";
+            << std::setfill('0') << std::setw(9) << cloud_msg->header.stamp.nanosec << ".pcd";
         std::string file_name1 = ss1.str();
         pcl::io::savePCDFileBinary(file_name1, *pcl_cloud);
         RCLCPP_INFO(this->get_logger(), "Saved PCD file to %s", file_name1.c_str());
