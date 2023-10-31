@@ -18,6 +18,18 @@ from re_number_frames import normalize_frame_numbers, get_lines, write_lines
 
 
 def main(args):
+    path, name = os.path.split(args.file_path)
+    result_name = os.path.join(path, 'processed_' + name)
+
+    '''
+    Start the frame numbers from 1, if not already the case
+
+    This has to occur before the pruning detections
+    '''
+    lines = get_lines(args.file_path,)
+    normalized_lines = normalize_frame_numbers(lines)
+    write_lines(result_name, normalized_lines)
+    
     # Define a list of points as tuples, must be clockwise
     # q7_2_may10_2023 bag
     roi_points = np.array([(495, 230), (900, 230), (1910, 730), (525, 900)])
@@ -34,7 +46,7 @@ def main(args):
         cv2.polylines(img, [roi_points], True, (255, 0, 0), 3)
 
     # Read the csv file using pandas
-    df = pd.read_csv(args.file_path, header=None)
+    df = pd.read_csv(result_name, header=None)
 
     # Create an empty list to store the indices of the rows to be removed
     remove_indices = []
@@ -63,13 +75,7 @@ def main(args):
     # Drop the rows that are in the remove list using pandas
     df = df.drop(remove_indices)
 
-    path, name = os.path.split(args.file_path)
-    result_name = os.path.join(path, 'processed_' + name)
     df.to_csv(result_name, index=False, header=None)
-
-    lines = get_lines(result_name)
-    normalized_lines = normalize_frame_numbers(lines)
-    write_lines(result_name, normalized_lines)
 
     if args.image_path is not None:
         # Show the image with polygons
