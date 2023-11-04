@@ -1,0 +1,19 @@
+diff --git a/cam2image/src/cam_stream.cpp b/cam2image/src/cam_stream.cpp
+index 8e7524b..47912f3 100644
+--- a/cam2image/src/cam_stream.cpp
++++ b/cam2image/src/cam_stream.cpp
+@@ -68,7 +68,14 @@ private:
+       RCLCPP_ERROR(this->get_logger(), "Could not open video stream");
+       throw std::runtime_error("Could not open video stream");
+     }
++    auto start = std::chrono::high_resolution_clock::now();
++    timerCallback();
++    auto stop = std::chrono::high_resolution_clock::now();
+ 
++    auto t_ms = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
++    RCLCPP_INFO(get_logger(), "Time: %ld", t_ms.count());
++
++    return;
+     // Start main timer loop
+     timer_ = this->create_wall_timer(
+       std::chrono::milliseconds(static_cast<int>(1000.0 / freq_)),

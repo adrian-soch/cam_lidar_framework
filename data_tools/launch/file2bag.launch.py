@@ -8,20 +8,33 @@ images and publishes them.
 '''
 import time
 
-from launch_ros.actions import Node
-from launch.actions import ExecuteProcess
 from launch import LaunchDescription
 
-ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-IMAGE_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04/images/s110_camera_basler_south2_8mm'
-PCD_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04/point_clouds/s110_lidar_ouster_south'
+from launch_ros.actions import Node
+from launch.actions import ExecuteProcess
+from launch.actions import TimerAction
+
+ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/cleaned_bags/'
+IMAGE_FOLDER = '/home/adrian/dev/bags/may10_q7_rebag/images'
+PCD_FOLDER = '/home/adrian/dev/bags/may10_q7_rebag/pcds'
 
 current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
-folder_name = ABS_PATH_TO_ROSBAGS + '/' + \
-    current_time + '_' + PCD_FOLDER.split('/')[-3]
+folder_name = ABS_PATH_TO_ROSBAGS + '/' + 'may10_q7_clean_rate_test'
+
+START_DELAY = 1.5
+PUBLISH_RATE = 10.0
+
+# ABS_PATH_TO_ROSBAGS + '/' + \
+# current_time + '_' + PCD_FOLDER.split('/')[-3]
 
 
 def generate_launch_description():
+
+    recorder = ExecuteProcess(
+        cmd=['ros2', 'bag', 'record', '/points', '/image',
+             '--max-cache-size', str(int(float(2e8))), '-o', folder_name],
+        output='screen'
+    )
 
     file2msg = Node(
         package='data_tools',
@@ -29,19 +42,21 @@ def generate_launch_description():
         name='file2image_cloud',
         output='screen',
         parameters=[
-                {'publish_rate': 2.5},
+                {'publish_rate': PUBLISH_RATE},
                 {'image_folder': IMAGE_FOLDER},
                 {'pointcloud_folder': PCD_FOLDER},
         ]
     )
 
-    recorder = ExecuteProcess(
-        cmd=['ros2', 'bag', 'record', '/points', '/image', '-o', folder_name],
-        output='screen'
+    delayed_pub = TimerAction(
+        period=START_DELAY,
+        actions=[
+            file2msg
+        ],
     )
 
     # Items above will only be launched if they are present in this list
     return LaunchDescription([
-        file2msg,
-        recorder
+        recorder,
+        delayed_pub,
     ])

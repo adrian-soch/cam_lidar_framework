@@ -220,7 +220,7 @@ private:
 
         auto stop = std::chrono::high_resolution_clock::now();
         auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        RCLCPP_INFO(get_logger(), "Time (msec): %ld", t_ms.count());
+        RCLCPP_DEBUG(get_logger(), "Time (msec): %ld", t_ms.count());
     } // callback
 
     pcl::PointCloud<pcl::PointXYZ> center_size2points3D(vision_msgs::msg::BoundingBox3D bbox)

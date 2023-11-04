@@ -120,10 +120,7 @@ To modify the parameters go to `camera_pipeline/camera_processing/vision_track.p
 ```
 # Ensure your source ROS2 and run `. install/setup.bash`
 ros2 launch camera_pipeline ouster_driver_launch.py
-```
-## Aditional information
-
-See [ExtraInfo.md](./ExtraInfo.md)
+``'
 
 ## References
 

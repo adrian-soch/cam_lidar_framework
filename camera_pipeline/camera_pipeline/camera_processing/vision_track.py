@@ -47,7 +47,7 @@ ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 from trackers.multi_tracker_zoo import create_tracker
 from yolov5.models.common import DetectMultiBackend
 from yolov5.utils.augmentations import letterbox
-from yolov5.utils.general import (check_img_size, cv2,
+from yolov5.utils.general import (LOGGER, check_img_size, cv2,
                                   non_max_suppression, scale_boxes)
 from yolov5.utils.plots import Annotator, colors
 from yolov5.utils.torch_utils import time_sync, select_device
@@ -66,7 +66,7 @@ class VisionTracker():
         @return An instance of the VisionTracker class with the specified name
         """
 
-        yolo_weights=WEIGHTS / 'yolov5s.pt'  # model.pt path(s)
+        yolo_weights=WEIGHTS / 'yolov5m_marc.engine'  # model.pt path(s)
         reid_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt'  # model.pt path
 
         self.imgsz=(640, 640)  # inference size (height, width)
@@ -88,7 +88,11 @@ class VisionTracker():
         self.model = DetectMultiBackend(yolo_weights, device=self.device, dnn=dnn, data=None, fp16=self.half)
         stride, self.names, _ = self.model.stride, self.model.names, self.model.pt
         self.imgsz = check_img_size(self.imgsz, s=stride)  # check image size
-        cudnn.benchmark = True  # set True to speed up constant image size inference
+
+        # Uncomment to speed up inferences on constant size images
+        # But sacrificing the speed of the first frame
+        # https://discuss.pytorch.org/t/model-inference-very-slow-when-batch-size-changes-for-the-first-time/44911/2
+        # cudnn.benchmark = True
 
         # Create tracker object
         self.tracker = create_tracker(self.tracking_method, reid_weights, self.device, self.half, config_path_root=str(ROOT))
@@ -100,7 +104,7 @@ class VisionTracker():
         self.curr_frame, self.prev_frame = [None], [None]
     
     @torch.no_grad()
-    def update(self, im, return_image=False):
+    def update(self, im, return_image=False, detection_only=False):
         """
         Runs the detection and tracking, must be called for each image.
         Developer muat ensure loop speed is sufficient for desired output frequency
@@ -110,6 +114,8 @@ class VisionTracker():
         @return detections and tracker output
         """
         outputs = [None]
+
+        # t1 = time_sync()
 
         # Preprocess image for model
         im0 = im.copy()
@@ -123,12 +129,15 @@ class VisionTracker():
         if len(im.shape) == 3:
             im = im[None]  # expand for batch dim
 
+        # t2 = time_sync()
+
         # Inference
         pred = self.model(im, augment=False, visualize=False)
 
+        # t3 = time_sync()
+
         # Apply NMS
         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, self.classes, agnostic=False, max_det=self.max_det)
-        # self.dt[2] += time_sync() - t3
         t4 = time_sync()
 
         annotator = Annotator(im0, line_width=2, pil=not ascii)
@@ -138,6 +147,8 @@ class VisionTracker():
             if self.prev_frame is not None and self.curr_frame is not None:  # camera motion compensation
                 self.tracker.tracker.camera_update(self.prev_frame, self.curr_frame)
 
+        # t5 = time_sync()
+
         # Process detections
         det = pred[0]
         self.curr_frame = im0
@@ -146,8 +157,10 @@ class VisionTracker():
             # Rescale boxes from img_size to im0 size
             det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # xyxy
 
-            # pass detections to tracker
-            outputs = self.tracker.update(det.cpu(), im0)
+            if detection_only:
+                outputs = det.cpu().numpy()
+            else:
+                outputs = self.tracker.update(det.cpu(), im0)
 
             # draw boxes for visualization
             if len(outputs) > 0:
@@ -163,8 +176,9 @@ class VisionTracker():
                         label = f'{id} {self.names[c]} {conf:.2f}'
                         annotator.box_label(bboxes, label, color=colors(c, True))
         else:
-            empty_tensor = torch.empty((0, 6))
-            self.tracker.update(empty_tensor, im0)
+            if not detection_only:
+                empty_tensor = torch.empty((0, 6))
+                self.tracker.update(empty_tensor, im0)
 
         if self.show_vid or return_image:
             # Stream results
@@ -175,8 +189,8 @@ class VisionTracker():
             cv2.waitKey(1)  # 1 millisecond
 
         self.prev_frame = self.curr_frame
-        t7 = time_sync()
-        # LOGGER.info(f'Pre: {t2-t1}, Inf: {t3-t2}, NMS: {t4-t3}, CreA: {t5-t4}, Draw {t6-t5}, Disp: {t7-t6} Final = {t7-t1}')
+        # t6 = time_sync()
+        # LOGGER.info(f'Pre: {t2-t1}, Inf: {t3-t2}, NMS: {t4-t3}, Track: {t5-t4}, Draw {t6-t5}, Final = {t6-t1}')
 
         if return_image:
             return outputs, im0

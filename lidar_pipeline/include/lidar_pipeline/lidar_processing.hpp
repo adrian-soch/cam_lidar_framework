@@ -144,6 +144,9 @@ private:
     std::vector<std::vector<double> > crop_box_quat{ { }, { } };
     std::vector<std::vector<double> > crop_box_size{ { }, { } };
 
+    // To keep track of frames processed
+    int frame_count_ {0};
+
     // For assigning the same stamp in message headers
     builtin_interfaces::msg::Time stamp_;
 

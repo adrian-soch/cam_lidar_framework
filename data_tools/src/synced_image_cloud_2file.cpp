@@ -2,8 +2,10 @@
 #include <memory>
 #include <string>
 
-#include "message_filters/subscriber.h"
-#include "message_filters/sync_policies/approximate_time.h"
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <message_filters/synchronizer.h>
+
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
@@ -18,6 +20,7 @@
 #include <filesystem>
 
 using namespace std::chrono_literals;
+using namespace message_filters;
 
 class SyncedSubscriberNode : public rclcpp::Node
 {
@@ -25,25 +28,27 @@ public:
     SyncedSubscriberNode(const std::string& image_topic, const std::string& cloud_topic, const std::string& root_path)
         : Node("synced_subscriber_node"), pcd_path_(root_path)
     {
-        // Set up image subscriber
-        image_subscriber_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::Image> >(
-            this, image_topic, rmw_qos_profile_sensor_data);
+        cloud_subscriber_ = std::make_shared<Subscriber<sensor_msgs::msg::PointCloud2> >(this, cloud_topic);
+        image_subscriber_ = std::make_shared<Subscriber<sensor_msgs::msg::Image> >(this, image_topic);
 
-        // Set up point cloud subscriber
-        cloud_subscriber_ = std::make_shared<message_filters::Subscriber<sensor_msgs::msg::PointCloud2> >(
-            this, cloud_topic, rmw_qos_profile_sensor_data);
+        // Create a sync policy using the approximate time synchronizer
+        sync_ = std::make_shared<Synchronizer<sync_policies::ApproximateTime<sensor_msgs::msg::Image,
+            sensor_msgs::msg::PointCloud2> > >(8);
+        sync_->connectInput(*image_subscriber_, *cloud_subscriber_);
 
-        // Set up approximate time synchronizer
-        approx_sync_ = std::make_shared<message_filters::Synchronizer<ApproximateSyncPolicy> >(
-            ApproximateSyncPolicy(10), *image_subscriber_, *cloud_subscriber_);
+        std::chrono::milliseconds slop(30);
+        sync_->setMaxIntervalDuration(rclcpp::Duration(slop));
 
-        // Register the callback
-        approx_sync_->registerCallback(std::bind(&SyncedSubscriberNode::imageCloudCallback, this, std::placeholders::_1,
-          std::placeholders::_2));
+        // Register a callback for the synchronized messages
+        sync_->registerCallback(&SyncedSubscriberNode::imageCloudCallback, this);
 
         // Create folders
-        img_path_ = pcd_path_ + "/related_images/";
+        img_path_ = pcd_path_ + "/images/";
         std::filesystem::path path = img_path_;
+        std::filesystem::create_directories(path);
+
+        pcd_path_ += "/pcds/";
+        path       = pcd_path_;
         std::filesystem::create_directories(path);
     }
 
@@ -63,7 +68,9 @@ private:
 
         // Generate a file name for the image based on the current time
         std::stringstream ss;
-        ss << img_path_ << std::setfill('0') << std::setw(6) << count_ << ".jpg";
+        ss << img_path_ << std::setfill('0') << std::setw(6) << count_ << "_" << image_msg->header.stamp.sec << "_"
+           << std::setfill('0') << std::setw(9) << image_msg->header.stamp.nanosec << ".jpg";
+
         std::string file_name = ss.str();
 
         // Save the image to a file
@@ -78,23 +85,26 @@ private:
 
         // Save PCD file with an increasing file name
         std::stringstream ss1;
-        ss1 << pcd_path_ << std::setfill('0') << std::setw(6) << count_++ << ".pcd";
+        ss1 << pcd_path_ << std::setfill('0') << std::setw(6) << count_ << "_" << cloud_msg->header.stamp.sec << "_"
+            << std::setfill('0') << std::setw(9) << cloud_msg->header.stamp.nanosec << ".pcd";
         std::string file_name1 = ss1.str();
         pcl::io::savePCDFileBinary(file_name1, *pcl_cloud);
         RCLCPP_INFO(this->get_logger(), "Saved PCD file to %s", file_name1.c_str());
 
+        count_ += 1;
         // Print the synchronized timestamp
         // auto timestamp = std::max(image_msg->header.stamp, cloud_msg->header.stamp);
         // RCLCPP_INFO(get_logger(), "Synchronized timestamp: %ld.%09ld", timestamp.sec, timestamp.nanosec);
-    }
+    } // imageCloudCallback
 
     int count_ { 0 };
     std::string img_path_, pcd_path_;
     cv_bridge::CvImagePtr im_prt;
 
-    std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image> > image_subscriber_;
-    std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::PointCloud2> > cloud_subscriber_;
-    std::shared_ptr<message_filters::Synchronizer<ApproximateSyncPolicy> > approx_sync_;
+    std::shared_ptr<Subscriber<sensor_msgs::msg::Image> > image_subscriber_;
+    std::shared_ptr<Subscriber<sensor_msgs::msg::PointCloud2> > cloud_subscriber_;
+    std::shared_ptr<Synchronizer<sync_policies::ApproximateTime<sensor_msgs::msg::Image,
+      sensor_msgs::msg::PointCloud2> > > sync_;
 };
 
 int main(int argc, char** argv)
@@ -102,7 +112,8 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
 
     if(argc != 4) {
-        RCLCPP_ERROR(rclcpp::get_logger("synced_subscriber_node"), "Usage: %s <topic_name> <file_path>", argv[0]);
+        RCLCPP_ERROR(rclcpp::get_logger(
+              "synced_subscriber_node"), "Usage: %s <image_topic_name> <cloud_topic_name> <file_path>", argv[0]);
         return 1;
     }
 

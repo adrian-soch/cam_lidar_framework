@@ -88,6 +88,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   ${PROJECT_NAME}/roi_visualizer_node.py
+  ${PROJECT_NAME}/bag_inspection_tool_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

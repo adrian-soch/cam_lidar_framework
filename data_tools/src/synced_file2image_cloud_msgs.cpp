@@ -6,6 +6,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <std_msgs/msg/header.hpp>
 
 class ImagePointCloudPublisher : public rclcpp::Node
 {
@@ -46,7 +47,7 @@ private:
         std::vector<std::string> image_files      = get_files_in_folder(image_folder_);
         std::vector<std::string> pointcloud_files = get_files_in_folder(pointcloud_folder_);
 
-        RCLCPP_INFO(get_logger(), "Remaining files: %ld", image_files.size()-file_index_);
+        RCLCPP_INFO(get_logger(), "Remaining files: %ld", image_files.size() - file_index_);
 
         // Check if there are any files to publish
         if((image_files.empty() || pointcloud_files.empty()) ||
@@ -56,8 +57,6 @@ private:
             return;
         }
 
-        // Increment the file index and exit if complete
-        file_index_++;
         if(file_index_ >= image_files.size() || file_index_ >= pointcloud_files.size()) {
             exit(EXIT_SUCCESS);
         }
@@ -81,11 +80,16 @@ private:
         sensor_msgs::msg::PointCloud2::SharedPtr pointcloud_msg(new sensor_msgs::msg::PointCloud2);
         pcl::toROSMsg(*cloud, *pointcloud_msg);
 
+        std::vector<int> image_times = get_ros_time_from_name(image_files[file_index_]);
+        std::vector<int> cloud_times = get_ros_time_from_name(pointcloud_files[file_index_]);
+
         // Set the frame id and timestamp for both messages
-        image_msg->header.frame_id      = frame_id_;
-        image_msg->header.stamp         = this->now();
-        pointcloud_msg->header.frame_id = frame_id_;
-        pointcloud_msg->header.stamp    = this->now();
+        image_msg->header.frame_id           = frame_id_;
+        image_msg->header.stamp.sec          = image_times[0];
+        image_msg->header.stamp.nanosec      = image_times[1];
+        pointcloud_msg->header.frame_id      = frame_id_;
+        pointcloud_msg->header.stamp.sec     = cloud_times[0];
+        pointcloud_msg->header.stamp.nanosec = cloud_times[1];
 
         // Publish the image and point cloud messages
         image_pub_->publish(*image_msg);
@@ -97,6 +101,8 @@ private:
         auto stop = std::chrono::high_resolution_clock::now();
         auto t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
         RCLCPP_INFO(get_logger(), "Time to publish cloud and image (msec): %ld", t_ms.count());
+
+        file_index_++;
     } // timer_callback
 
     std::vector<std::string> get_files_in_folder(const std::string& folder)
@@ -130,6 +136,27 @@ private:
         std::sort(files.begin(), files.end());
 
         return files;
+    }
+
+    std::vector<int> get_ros_time_from_name(std::string file_path)
+    {
+        size_t pos       = file_path.find_last_of("/"); // find the last slash or backslash
+        std::string name = file_path.substr(pos + 1);   //
+
+        std::stringstream ss(name);
+        int sec, nsec;
+        std::string temp;
+
+        // Read the first part of the string until the first underscore
+        std::getline(ss, temp, '_');
+        // Read the second part of the string until the second underscore
+        std::getline(ss, temp, '_');
+        // Convert the second part to an integer using std::stoi
+        sec = std::stoi(temp);
+        std::getline(ss, temp, '.');
+        nsec = std::stoi(temp);
+
+        return std::vector<int> {sec, nsec};
     }
 
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
