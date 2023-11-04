@@ -19,7 +19,11 @@ from re_number_frames import normalize_frame_numbers, get_lines, write_lines
 
 def main(args):
     path, name = os.path.split(args.file_path)
-    result_name = os.path.join(path, 'processed_' + name)
+
+    if args.output is None:
+        result_name = os.path.join(path, 'processed_' + name)
+    else:
+        result_name = os.path.join(path, args.output)
 
     '''
     Start the frame numbers from 1, if not already the case
@@ -31,8 +35,11 @@ def main(args):
     write_lines(result_name, normalized_lines)
     
     # Define a list of points as tuples, must be clockwise
-    # q7_2_may10_2023 bag
-    roi_points = np.array([(495, 230), (900, 230), (1910, 730), (525, 900)])
+    # q7_2_may10_2023_clean bag
+    # roi_points = np.array([(495, 230), (900, 230), (1910, 730), (525, 900)])
+
+    # q7_2_may10_2023_clean_short_range
+    roi_points = np.array([(658,305), (980,960), (1900,737), (1049,287)])
 
     # Create a polygon object from the points using shapely
     region_of_interest = Polygon(roi_points)
@@ -89,6 +96,8 @@ if __name__ == "__main__":
     parser.add_argument('--file_path', '-f', type=str, required=True,
                         help='Path to file with detections in MOT format.')
     parser.add_argument('--image_path', '-i', type=str, default=None,
+                        help='(Optional) Path to image for visualizing detections in a sequence.')
+    parser.add_argument('--output', '-o', type=str, default=None,
                         help='(Optional) Path to image for visualizing detections in a sequence.')
     args = parser.parse_args()
     main(args)

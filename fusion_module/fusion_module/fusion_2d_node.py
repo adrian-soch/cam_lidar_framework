@@ -41,10 +41,10 @@ class DetectionSyncNode(Node):
             'lidar2d_track_topic', 'image_proc/lidar_track_2D').get_parameter_value().string_value
         
         tracker_iou_thresh = self.declare_parameter(
-            'tracker_iou_thresh', 0.01).get_parameter_value().double_value
+            'tracker_iou_thresh', 0.1).get_parameter_value().double_value
         
         self.fusion_iou_thresh = self.declare_parameter(
-            'fusion_iou_thresh', 0.01).get_parameter_value().double_value
+            'fusion_iou_thresh', 0.1).get_parameter_value().double_value
 
         self.lidar_only_override = self.declare_parameter(
             'lidar_only_override', False).get_parameter_value().bool_value

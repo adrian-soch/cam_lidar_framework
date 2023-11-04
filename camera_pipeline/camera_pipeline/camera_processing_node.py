@@ -107,11 +107,11 @@ class ImageSubscriber(Node):
             det = Detection2D()
 
             result = ObjectHypothesisWithPose()
-            result.hypothesis.score = trk[4]
+            result.hypothesis.score = float(trk[4])
             det.results.append(result)
 
-            x_len = trk[2] - trk[0]
-            y_len = trk[3] - trk[1]
+            x_len = float(trk[2] - trk[0])
+            y_len = float(trk[3] - trk[1])
 
             det.bbox.center.x = x_len/2.0 + trk[0]
             det.bbox.center.y = y_len/2.0 + trk[1]

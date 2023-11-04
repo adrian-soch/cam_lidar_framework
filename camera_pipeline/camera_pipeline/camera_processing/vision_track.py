@@ -66,7 +66,7 @@ class VisionTracker():
         @return An instance of the VisionTracker class with the specified name
         """
 
-        yolo_weights=WEIGHTS / 'yolov5l.pt'  # model.pt path(s)
+        yolo_weights=WEIGHTS / 'yolov5m_marc.engine'  # model.pt path(s)
         reid_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt'  # model.pt path
 
         self.imgsz=(640, 640)  # inference size (height, width)
@@ -94,8 +94,6 @@ class VisionTracker():
         # https://discuss.pytorch.org/t/model-inference-very-slow-when-batch-size-changes-for-the-first-time/44911/2
         # cudnn.benchmark = True
 
-        self.model.warmup()
-
         # Create tracker object
         self.tracker = create_tracker(self.tracking_method, reid_weights, self.device, self.half, config_path_root=str(ROOT))
         if hasattr(self.tracker, 'model'):
@@ -106,7 +104,7 @@ class VisionTracker():
         self.curr_frame, self.prev_frame = [None], [None]
     
     @torch.no_grad()
-    def update(self, im, return_image=False):
+    def update(self, im, return_image=False, detection_only=False):
         """
         Runs the detection and tracking, must be called for each image.
         Developer muat ensure loop speed is sufficient for desired output frequency
@@ -159,8 +157,10 @@ class VisionTracker():
             # Rescale boxes from img_size to im0 size
             det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # xyxy
 
-            # pass detections to tracker
-            outputs = self.tracker.update(det.cpu(), im0)
+            if detection_only:
+                outputs = det.cpu().numpy()
+            else:
+                outputs = self.tracker.update(det.cpu(), im0)
 
             # draw boxes for visualization
             if len(outputs) > 0:
@@ -176,8 +176,9 @@ class VisionTracker():
                         label = f'{id} {self.names[c]} {conf:.2f}'
                         annotator.box_label(bboxes, label, color=colors(c, True))
         else:
-            empty_tensor = torch.empty((0, 6))
-            self.tracker.update(empty_tensor, im0)
+            if not detection_only:
+                empty_tensor = torch.empty((0, 6))
+                self.tracker.update(empty_tensor, im0)
 
         if self.show_vid or return_image:
             # Stream results
