@@ -25,7 +25,7 @@ using namespace message_filters;
 class SyncedSubscriberNode : public rclcpp::Node
 {
 public:
-    SyncedSubscriberNode(const std::string& image_topic, const std::string& cloud_topic, const std::string& root_path)
+    SyncedSubscriberNode(const std::string& image_topic, const std::string& cloud_topic, const std::string& root_path, const bool flip)
         : Node("synced_subscriber_node"), pcd_path_(root_path)
     {
         cloud_subscriber_ = std::make_shared<Subscriber<sensor_msgs::msg::PointCloud2> >(this, cloud_topic);
@@ -50,6 +50,8 @@ public:
         pcd_path_ += "/pcds/";
         path       = pcd_path_;
         std::filesystem::create_directories(path);
+
+        flip_ = flip;
     }
 
 private:
@@ -64,7 +66,9 @@ private:
         im_prt = cv_bridge::toCvCopy(image_msg, image_msg->encoding);
 
         // flip image because webcam is upsidedown
-        cv::flip(im_prt->image, im_prt->image, -1);
+        if(true == flip_) {
+            cv::flip(im_prt->image, im_prt->image, -1);
+        }
 
         // Generate a file name for the image based on the current time
         std::stringstream ss;
@@ -98,6 +102,7 @@ private:
     } // imageCloudCallback
 
     int count_ { 0 };
+    bool flip_;
     std::string img_path_, pcd_path_;
     cv_bridge::CvImagePtr im_prt;
 
@@ -111,14 +116,19 @@ int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
 
-    if(argc != 4) {
+    if(!((argc == 4) || (argc == 5))) {
         RCLCPP_ERROR(rclcpp::get_logger(
-              "synced_subscriber_node"), "Usage: %s <image_topic_name> <cloud_topic_name> <file_path>", argv[0]);
+              "synced_subscriber_node"), "Usage: %s <image_topic_name> <cloud_topic_name> <file_path> <Optional: flip_image>", argv[0]);
         return 1;
     }
 
+    bool flip {false};
+    if(argc == 5) {
+        flip = true;
+    }
+
     // Create a ROS 2 node and pass in the image and point cloud topic names as arguments
-    auto node = std::make_shared<SyncedSubscriberNode>(argv[1], argv[2], argv[3]);
+    auto node = std::make_shared<SyncedSubscriberNode>(argv[1], argv[2], argv[3], flip);
     rclcpp::spin(node);
     rclcpp::shutdown();
 
