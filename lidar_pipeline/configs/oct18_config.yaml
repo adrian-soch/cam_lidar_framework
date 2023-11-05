@@ -16,13 +16,13 @@ perception_node:
     # Use the roi_visulaizer.py tool to find a new crop_box params if needed
     crop_box_transform:
       # [x,y,z] in meters
-      translation: [35.0, -2.0, 1.75]
+      translation: [35.0, -0.5, 1.75]
 
       # [w,x,y,z] normalized quaternion
-      quaternion: [0.898794046299167, 0.0, 0.0, 0.4383711467890774]
+      quaternion: [0.9025852843498606, 0.0, 0.0, 0.43051109680829514]
 
       # [x, y, z] in meters
-      size: [18.5, 75.0,3.5]
+      size:  [16.0, 75.0, 3.5]
 
 
 # Use the same `lidar2world_transform` for both nodes
