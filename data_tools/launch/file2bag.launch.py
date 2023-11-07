@@ -15,11 +15,11 @@ from launch.actions import ExecuteProcess
 from launch.actions import TimerAction
 
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/cleaned_bags/'
-IMAGE_FOLDER = '/home/adrian/dev/bags/may10_q7_rebag/images'
-PCD_FOLDER = '/home/adrian/dev/bags/may10_q7_rebag/pcds'
+IMAGE_FOLDER = '/home/adrian/dev/bags/cleaned_bags/oct18_r9__short_rebag/images_short'
+PCD_FOLDER = '/home/adrian/dev/bags/cleaned_bags/oct18_r9__short_rebag/pcds_short'
 
 current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
-folder_name = ABS_PATH_TO_ROSBAGS + '/' + 'may10_q7_clean_rate_test'
+folder_name = ABS_PATH_TO_ROSBAGS + '/' + 'oct18_r9_clean'
 
 START_DELAY = 1.5
 PUBLISH_RATE = 10.0
