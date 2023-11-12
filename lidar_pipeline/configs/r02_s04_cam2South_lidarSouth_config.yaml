@@ -16,13 +16,13 @@ perception_node:
     # Use the roi_visulaizer.py tool to find a new crop_box params if needed
     crop_box_transform:
       # [x,y,z] in meters
-      translation: [22.0, -5.0, 0.0]
+      translation: [28.0, 27.0, 1.5]
 
       # [w,x,y,z] normalized quaternion
-      quaternion: [0.9990482215818578, 0.0, 0.0, 0.043619387365336]
+      quaternion: [0.9975640502598242, 0.0, 0.0, 0.0697564737441253]
 
       # [x, y, z] in meters
-      size: [30.0, 75.0, 5.0]
+      size: [50.0, 47.0, 3.75]
 
 projection_node:
   ros__parameters:
