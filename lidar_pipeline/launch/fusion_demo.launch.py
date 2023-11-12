@@ -19,7 +19,7 @@ pipeline_params = os.path.join(
 # Used to change playback rate of ros bag
 # A9 data bags were recoreded at 2.5Hz so they need a x4 speedup
 # if left as 1 then thre is no rate change
-BAG_PLAY_RATE = 0.1
+BAG_PLAY_RATE = 1.0
 FLIP_IMAGE = False
 
 BAG_PLAY_LOOP = True
@@ -34,12 +34,12 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_SELECTOR = 7
+BAG_SELECTOR = 3
 
 # Determines what kind of output you want, Video/Rviz2
-SAVE_OUTPUT_VIDEO = True
-SAVE_CSV_FUSION_OUTPUT = True
-SHOW_RVIZ = False
+SAVE_OUTPUT_VIDEO = False
+SAVE_CSV_FUSION_OUTPUT = False
+SHOW_RVIZ = True
 
 # Fusion Overrides
 LIDAR_RESULT_ONLY = True
@@ -150,26 +150,6 @@ def generate_launch_description():
         emulate_tty=True
     )
 
-    # --- UNUSED CURRENTLY ---
-    # s_transform = Node(
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-
-    #     # params from visual inspection
-    #     # To make the road paralell with the XY plane/rviz2 grid
-    #     arguments=['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
-    # )
-
-    # --- UNUSED CURRENTLY ---
-    # s_transform2 = Node(
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-
-    #     # params from visual inspection
-    #     # To make the road paralell with the XY plane/rviz2 grid
-    #     arguments=['0', '0', '0', '3.1416', '0',
-    #                '0', 'map', 'laser_sensor_frame']
-    # )
 
     lidar_classifier = Node(
         package='obj_classifier',
