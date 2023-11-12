@@ -33,22 +33,24 @@ def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
         for trk in tracks:
             det = Detection3D()
             result = ObjectHypothesisWithPose()
-            result.hypothesis.score = trk[5]
+            result.hypothesis.score = trk[6]
             det.results.append(result)
 
             y_len = np.sqrt(trk[2]*trk[3])
             x_len = trk[2]/y_len
 
-            det.bbox.center.position.x = trk[0]
-            det.bbox.center.position.y = trk[1]
             det.bbox.size.x = x_len
             det.bbox.size.y = y_len
+            # det.bbox.size.z = trk[5]
 
             # Fixed height based on length
-            if det.bbox.size.x > 6 or det.bbox.size.y > 6:
+            if det.bbox.size.x > 6.0 or det.bbox.size.y > 6.0:
                 det.bbox.size.z = 3.2
             else:
                 det.bbox.size.z = 2.0
+
+            det.bbox.center.position.x = trk[0]
+            det.bbox.center.position.y = trk[1]
             det.bbox.center.position.z = det.bbox.size.z/2.0
 
             q = quaternion_from_euler(0, 0, trk[4])
@@ -74,6 +76,13 @@ def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
             det.bbox.size.x = x_len
             det.bbox.size.y = y_len
 
+            # Fixed height based on length
+            if det.bbox.size.x > 6 or det.bbox.size.y > 6:
+                det.bbox.size.z = 3.2
+            else:
+                det.bbox.size.z = 2.0
+            det.bbox.center.position.z = det.bbox.size.z/2.0
+
             out.detections.append(det)
     return out
 
@@ -86,14 +95,18 @@ def detection3DArray2Numpy(detection_list, isOBB):
         detection_list (vision_msgs/Detection3DArray)
 
     Returns:
-        numpy_arr: if isOBB: Numpy float array of [[x,y,x*y,w/h, angle], [...], ...]
+        numpy_arr: if isOBB: Numpy float array of [[x,y,w*h,w/h, angle, height], [...], ...]
             if not OBB: [[x1,y1,x2,y2,id], [x1,y1,x2,y2,id], ...]
     """
+    size = 5
+    if isOBB:
+        size = 6
+
     if len(detection_list) <= 0:
-        return np.empty((0, 5))
+        return np.empty((0, size))
 
     # Pre-allocate numpy array
-    out_arr = np.empty(shape=(len(detection_list), 5), dtype=float)
+    out_arr = np.empty(shape=(len(detection_list), size), dtype=float)
 
     idx = 0
 
@@ -104,7 +117,8 @@ def detection3DArray2Numpy(detection_list, isOBB):
             out_arr[idx] = [det.bbox.center.position.x, det.bbox.center.position.y,
                             area,
                             det.bbox.size.y/det.bbox.size.x,
-                            angle]
+                            angle,
+                            det.bbox.size.z]
             idx += 1
     else:
         for det in detection_list:
