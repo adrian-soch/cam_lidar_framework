@@ -85,7 +85,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     std::vector<pcl::PointIndices> cluster_indices;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr dense_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*plane_ptr));
-    cloud_ops.warp_density(dense_cloud_ptr);
+    // cloud_ops.warp_density(dense_cloud_ptr);
 
     // Uncomment to use vanilla euclidean clustering
     cloud_ops.euclidean_clustering(dense_cloud_ptr, cluster_indices,
