@@ -56,9 +56,11 @@ private:
 
         // Save PCD file with an increasing file name
         std::stringstream ss;
-        ss << file_path_ << std::setfill('0') << std::setw(6) << file_count_++ << msg->header.stamp.sec << "_"
+        ss << file_path_ << std::setfill('0') << std::setw(6) << file_count_ << "_" << msg->header.stamp.sec << "_"
            << std::setfill('0') << std::setw(9) << msg->header.stamp.nanosec << ".pcd";
         std::string file_name = ss.str();
+
+        file_count_ += 1;
 
         pcl::io::savePCDFileBinary(file_name, *pcl_cloud);
         RCLCPP_INFO(this->get_logger(), "Saved PCD file to %s", file_name.c_str());
