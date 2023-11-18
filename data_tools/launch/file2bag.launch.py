@@ -15,17 +15,16 @@ from launch.actions import ExecuteProcess
 from launch.actions import TimerAction
 
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/cleaned_bags/'
-IMAGE_FOLDER = '/home/adrian/dev/bags/cleaned_bags/oct18_r9__short_rebag/images_short'
-PCD_FOLDER = '/home/adrian/dev/bags/cleaned_bags/oct18_r9__short_rebag/pcds_short'
+IMAGE_FOLDER = '/home/adrian/dev/bags/cleaned_bags/dec7_dhd1_rebag/images'
+PCD_FOLDER = '/home/adrian/dev/bags/cleaned_bags/dec7_dhd1_rebag/pcds'
 
 current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
-folder_name = ABS_PATH_TO_ROSBAGS + '/' + 'oct18_r9_clean'
+folder_name = ABS_PATH_TO_ROSBAGS + '/' + 'dec7_dhd1_clean'
+
+use_system_time = True
 
 START_DELAY = 1.5
 PUBLISH_RATE = 10.0
-
-# ABS_PATH_TO_ROSBAGS + '/' + \
-# current_time + '_' + PCD_FOLDER.split('/')[-3]
 
 
 def generate_launch_description():
@@ -45,6 +44,7 @@ def generate_launch_description():
                 {'publish_rate': PUBLISH_RATE},
                 {'image_folder': IMAGE_FOLDER},
                 {'pointcloud_folder': PCD_FOLDER},
+                {'use_system_time': use_system_time},
         ]
     )
 
