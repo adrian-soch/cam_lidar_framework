@@ -20,3 +20,31 @@ perception_node:
 
       # [x, y, z] in meters
       size: [17.0, 80.0, 5.2]
+
+# Use the same `lidar2world_transform` for both nodes
+projection_node:
+  ros__parameters:
+
+    # Matrix from intrinsic camera calibration
+    # This day's data was recorded at 1920x1080
+    camera_matrix: [1199.821557, 0.000000, 960.562236, 0.000000, 1198.033465, 551.675808, 0.000000, 0.000000, 1.000000]
+
+    # Transformation from sensor to world frame
+    lidar2world_transform:
+      # [x,y,z] in meters
+      translation: [0.0, 0.0, 12.0]
+
+      # [w,x,y,z] normalized quaternion
+      quaternion: [0.9938165, 0.0, 0.1110353, 0.0]
+
+    # Transform from Lidar to camera frame
+    lidar2cam_extrinsic:
+      rotation: [0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0]
+      translation: [0.00, 0.0508, 0.0502]
+
+    # Transform from lidar data from to lidar sensor frame
+    # See https://github.com/ros-drivers/ros2_ouster_drivers/issues/87
+    # The translation part may already be accounted for internally in the driver
+    lidarData2lidarSensor_extrinsic:
+      rotation: [-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0]
+      translation: [0.0, 0.0, 0.03618]
