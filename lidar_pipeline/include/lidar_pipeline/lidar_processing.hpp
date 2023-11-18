@@ -17,6 +17,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 
 // Application specific headers
+#include "lidar_pipeline/pcl_dbscan.hpp"
 #include "lidar_pipeline/point_cloud_utils.hpp"
 #include "pipeline_interfaces/msg/point_cloud2_array.hpp"
 
@@ -57,9 +58,9 @@ public:
         this->declare_parameter("cloud_topic", "/points");
         this->declare_parameter("world_frame", "map");
         this->declare_parameter("camera_frame", "laser_data_frame");
-        this->declare_parameter("voxel_leaf_size_x", 0.16);
-        this->declare_parameter("voxel_leaf_size_y", 0.16);
-        this->declare_parameter("voxel_leaf_size_z", 0.24);
+        this->declare_parameter("voxel_leaf_size_x", 0.1);
+        this->declare_parameter("voxel_leaf_size_y", 0.1);
+        this->declare_parameter("voxel_leaf_size_z", 0.12);
         this->declare_parameter("plane_max_iter", 120);
         this->declare_parameter("plane_dist_thresh", 0.35);
         this->declare_parameter("cluster_tol", 1.35);
@@ -97,6 +98,8 @@ public:
         cloud_subscriber_ =
           this->create_subscription<sensor_msgs::msg::PointCloud2>(
             cloud_topic, 1, std::bind(&LidarProcessing::cloud_callback, this, std::placeholders::_1));
+
+        dbscan.set_params(1.0, 3);
     }
 
 private:
@@ -145,13 +148,15 @@ private:
     std::vector<std::vector<double> > crop_box_size{ { }, { } };
 
     // To keep track of frames processed
-    int frame_count_ {0};
+    int frame_count_ { 0 };
 
     // For assigning the same stamp in message headers
     builtin_interfaces::msg::Time stamp_;
 
     // Create cloud operation object
     Operations<pcl::PointXYZI> cloud_ops;
+
+    DBSCAN<pcl::PointXYZI> dbscan;
 
     /**
      * @brief Executed when a point cloud is received. Must execute faster

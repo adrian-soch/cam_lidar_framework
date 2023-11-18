@@ -66,7 +66,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
      * STATISTICAL OUTLIER REMOVAL
      * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr stats_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*crop_cloud_ptr));
-    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 50, 10.0);
+    cloud_ops.stats_outlier_removal(stats_cloud_ptr, 30, 9.0);
 
     /* ========================================
      * PLANE SEGEMENTATION
@@ -87,9 +87,10 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     pcl::PointCloud<pcl::PointXYZI>::Ptr dense_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*plane_ptr));
     // cloud_ops.warp_density(dense_cloud_ptr);
 
-    // Uncomment to use vanilla euclidean clustering
     cloud_ops.euclidean_clustering(dense_cloud_ptr, cluster_indices,
       cluster_tol, cluster_min_size, cluster_max_size);
+
+    // cluster_indices = dbscan.run(dense_cloud_ptr);
 
     /* ========================================
      * Compute Bounding Boxes
@@ -211,7 +212,7 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
     pcl::computeCovarianceMatrixNormalized(cloud_cluster, centroid, covariance);
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigen_solver(covariance, Eigen::ComputeEigenvectors);
     Eigen::Matrix3f eigenVectorsPCA = eigen_solver.eigenvectors();
-    // Eigen::Vector3f eigenValuesPCA  = eigen_solver.eigenvalues();
+
     eigenVectorsPCA.col(2) = eigenVectorsPCA.col(0).cross(eigenVectorsPCA.col(1));
     eigenVectorsPCA.col(0) = eigenVectorsPCA.col(1).cross(eigenVectorsPCA.col(2));
     eigenVectorsPCA.col(1) = eigenVectorsPCA.col(2).cross(eigenVectorsPCA.col(0));
@@ -238,7 +239,6 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
     box_dim = max_pt_T.getVector3fMap() - min_pt_T.getVector3fMap();
     Eigen::Affine3f transform2 = Eigen::Affine3f::Identity();
     transform2.translate(center_new);
-    // Eigen::Affine3f transform3 = transform * transform2;
 
     Eigen::Quaternionf bboxQ(keep_Z_Rot);
     bboxQ.normalize();
