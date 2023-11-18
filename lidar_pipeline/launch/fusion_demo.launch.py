@@ -34,7 +34,7 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_SELECTOR = 3
+BAG_SELECTOR = 10
 
 # Determines what kind of output you want, Video/Rviz2
 SAVE_OUTPUT_VIDEO = False
@@ -42,7 +42,7 @@ SAVE_CSV_FUSION_OUTPUT = False
 SHOW_RVIZ = True
 
 # Fusion Overrides
-LIDAR_RESULT_ONLY = True
+LIDAR_RESULT_ONLY = False
 CAM_RESULT_ONLY = False
 
 # Because of the yolov5 includes, its easier to just run this directly
@@ -52,11 +52,13 @@ ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/came
 '''
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 '''
-# MARC Rooftop data without data syncronization
-# Fusion and projection will not work
 if BAG_SELECTOR == -1:
     # FLIP_IMAGE = True
     CONFIG_NAME = 'default_config.yaml'
+
+
+# MARC Rooftop data without data syncronization
+# Fusion and projection will not work
 elif BAG_SELECTOR == 0:
     FLIP_IMAGE = True
     BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
@@ -64,6 +66,11 @@ elif BAG_SELECTOR == 0:
 elif BAG_SELECTOR == 1:
     FLIP_IMAGE = True
     BAG_NAME = 'dec7_2022/roofTestDaylight_2_FHD_qosOverrride_true/'
+    CONFIG_NAME = 'dec7_config.yaml'
+elif BAG_SELECTOR == 10:
+    # Cleaned bag - mismatched frames removed
+    # Good for use with metrics
+    BAG_NAME = 'cleaned_bags/dec7_dhd1_clean'
     CONFIG_NAME = 'dec7_config.yaml'
 
 # MARC Rooftop data with syncronized lidar + camera
@@ -149,7 +156,6 @@ def generate_launch_description():
         name='camera_processor',
         emulate_tty=True
     )
-
 
     lidar_classifier = Node(
         package='obj_classifier',
