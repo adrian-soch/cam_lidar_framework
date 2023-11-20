@@ -14,6 +14,7 @@
 
 // Application Specific Includes
 #include "lidar_pipeline/lidar_processing.hpp"
+#include "lidar_pipeline/l_fitting.hpp"
 
 #define AABB_ENABLE 0
 
@@ -125,6 +126,9 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
         // Init and fill detection_array
         vision_msgs::msg::Detection3D detection;
         vision_msgs::msg::BoundingBox3D o_bbox = getOrientedBoudingBox(*cloud_cluster);
+        
+        // Use this for L-SHape bbox fitting
+        // getLFitBoudingBox(*cloud_cluster);
 
         detection.header.stamp = recent_cloud->header.stamp;
         detection.bbox         = o_bbox;
@@ -260,6 +264,27 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
 
     return bbox;
 } // LidarProcessing::getOrientedBoudingBox
+
+template<typename PointT>
+vision_msgs::msg::BoundingBox3D LidarProcessing::getLFitBoudingBox(const pcl::PointCloud<PointT> &cloud_cluster){
+    recFitting fit;
+
+    fit.fitting(cloud_cluster);
+
+    vision_msgs::msg::BoundingBox3D bbox;
+    bbox.center.position.x    = fit.shapeRlt.translation[X];
+    bbox.center.position.y    = fit.shapeRlt.translation[Y];
+    bbox.center.position.z    = fit.shapeRlt.translation[Z];
+    bbox.center.orientation.x = fit.shapeRlt.rotation.x();
+    bbox.center.orientation.y = fit.shapeRlt.rotation.y();
+    bbox.center.orientation.z = fit.shapeRlt.rotation.z();
+    bbox.center.orientation.w = fit.shapeRlt.rotation.w();
+    bbox.size.x = fit.shapeRlt.length;
+    bbox.size.y = fit.shapeRlt.width;
+    bbox.size.z = fit.shapeRlt.height;
+
+    return bbox;
+}
 
 template<typename PointT>
 void LidarProcessing::publishPointCloud(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher,
