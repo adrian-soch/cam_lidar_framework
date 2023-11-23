@@ -8,11 +8,11 @@ perception_node:
     voxel_leaf_size: 0.2
 
     # Max number of ransac iterations
-    plane_max_iterations: 120
+    plane_max_iterations: 160
     # Ransac dist thresh in meters
-    plane_distance_threshold: 0.35
+    plane_distance_threshold: 0.25
 
     # Min and Max number of points for euclidean clustering
-    cluster_min_size: 2
-    cluster_max_size: 2000
+    cluster_min_size: 3
+    cluster_max_size: 10000
     cluster_tol: 1.35
