@@ -39,7 +39,13 @@ def main(args):
     # roi_points = np.array([(495, 230), (900, 230), (1910, 730), (525, 900)])
 
     # q7_2_may10_2023_clean_short_range
-    roi_points = np.array([(658,305), (980,960), (1900,737), (1049,287)])
+    # roi_points = np.array([(658,305), (980,960), (1900,737), (1049,287)])
+
+    # oct18_r9
+    roi_points = np.array([(5,735),(1270,645),(1500,676),(240,1060)])
+
+    # dec7_dhd1_short
+    # roi_points = np.array([(835,480), (1050,1056), (1918,845), (1130,465)])
 
     # Create a polygon object from the points using shapely
     region_of_interest = Polygon(roi_points)

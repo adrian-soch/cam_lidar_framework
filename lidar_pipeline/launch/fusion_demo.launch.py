@@ -19,7 +19,7 @@ pipeline_params = os.path.join(
 # Used to change playback rate of ros bag
 # A9 data bags were recoreded at 2.5Hz so they need a x4 speedup
 # if left as 1 then thre is no rate change
-BAG_PLAY_RATE = 1
+BAG_PLAY_RATE = 0.16
 FLIP_IMAGE = False
 
 BAG_PLAY_LOOP = True
@@ -34,11 +34,18 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_SELECTOR = 3
+
+# 10, 7, 6, 12
+BAG_SELECTOR = 7
 
 # Determines what kind of output you want, Video/Rviz2
 SAVE_OUTPUT_VIDEO = True
+SAVE_CSV_FUSION_OUTPUT = True
 SHOW_RVIZ = False
+
+# Fusion Overrides
+LIDAR_RESULT_ONLY = True
+CAM_RESULT_ONLY = False
 
 # Because of the yolov5 includes, its easier to just run this directly
 # in the terminal instead of a traditional node
@@ -47,11 +54,13 @@ ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/came
 '''
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 '''
-# MARC Rooftop data without data syncronization
-# Fusion and projection will not work
 if BAG_SELECTOR == -1:
     # FLIP_IMAGE = True
     CONFIG_NAME = 'default_config.yaml'
+
+
+# MARC Rooftop data without data syncronization
+# Fusion and projection will not work
 elif BAG_SELECTOR == 0:
     FLIP_IMAGE = True
     BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
@@ -60,9 +69,18 @@ elif BAG_SELECTOR == 1:
     FLIP_IMAGE = True
     BAG_NAME = 'dec7_2022/roofTestDaylight_2_FHD_qosOverrride_true/'
     CONFIG_NAME = 'dec7_config.yaml'
+elif BAG_SELECTOR == 10:
+    # Cleaned bag - mismatched frames removed
+    # Good for use with metrics
+    BAG_NAME = 'cleaned_bags/dec7_dhd1_clean_short'
+    CONFIG_NAME = 'dec7_config.yaml'
+elif BAG_SELECTOR == 12:
+    BAG_NAME = 'cleaned_bags/may10_r5_clean'
+    CONFIG_NAME = 'may10_config.yaml'
 
 # MARC Rooftop data with syncronized lidar + camera
 elif BAG_SELECTOR == 2:
+    # WARNING: 11 missing Pointcloud frames!
     FLIP_IMAGE = True
     BAG_NAME = 'may10_2023/q6_2_may10_2023'
     CONFIG_NAME = 'may10_config.yaml'
@@ -70,14 +88,24 @@ elif BAG_SELECTOR == 3:
     FLIP_IMAGE = True
     BAG_NAME = 'may10_2023/q7_2_may10_2023'
     CONFIG_NAME = 'may10_config.yaml'
+elif BAG_SELECTOR == 6:
+    # Cleaned bag - mismatched frames removed
+    # Good for use with metrics
+    BAG_NAME = 'cleaned_bags/may10_q7_clean'
+    CONFIG_NAME = 'may10_config.yaml'
+elif BAG_SELECTOR == 7:
+    # Cleaned bag - mismatched frames removed
+    # Good for use with metrics
+    BAG_NAME = 'cleaned_bags/oct18_r9_clean'
+    CONFIG_NAME = 'oct18_config.yaml'
 
 # Roadside data
 elif BAG_SELECTOR == 4:
     BAG_NAME = 'oct18_2023/r3'
-    CONFIG_NAME = 'default_config.yaml'
+    CONFIG_NAME = 'oct18_config.yaml'
 elif BAG_SELECTOR == 5:
     BAG_NAME = 'oct18_2023/r9'
-    CONFIG_NAME = 'default_config.yaml'
+    CONFIG_NAME = 'oct18_config.yaml'
 
 # A9 data
 elif BAG_SELECTOR == 8:
@@ -90,10 +118,13 @@ elif BAG_SELECTOR == 9:
     BAG_PLAY_RATE = 4
     BAG_NAME = '2023-08-30_13-58-46_a9_dataset_r02_s03_camSouth1_LidarSouth'
     CONFIG_NAME = 'r02_s03_cam1South_lidarSouth_config.yaml'
+else:
+    print('Invalid bag selection!')
+    exit(-1)
 
 START_BAG_DELAY = 0.0
 if SAVE_OUTPUT_VIDEO:
-    START_BAG_DELAY = 10.0
+    START_BAG_DELAY = 7.5
 
 if SAVE_OUTPUT_VIDEO:
     BAG_PLAY_LOOP = False
@@ -134,27 +165,6 @@ def generate_launch_description():
         emulate_tty=True
     )
 
-    # --- UNUSED CURRENTLY ---
-    # s_transform = Node(
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-
-    #     # params from visual inspection
-    #     # To make the road paralell with the XY plane/rviz2 grid
-    #     arguments=['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
-    # )
-
-    # --- UNUSED CURRENTLY ---
-    # s_transform2 = Node(
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-
-    #     # params from visual inspection
-    #     # To make the road paralell with the XY plane/rviz2 grid
-    #     arguments=['0', '0', '0', '3.1416', '0',
-    #                '0', 'map', 'laser_sensor_frame']
-    # )
-
     lidar_classifier = Node(
         package='obj_classifier',
         executable='object_classifier',
@@ -179,7 +189,11 @@ def generate_launch_description():
     fusion_2D = Node(
         package='fusion_module',
         executable='fusion_node',
-        name='fusion_2D_node'
+        name='fusion_2D_node',
+        parameters=[
+            {'lidar_only_override': LIDAR_RESULT_ONLY},
+            {'camera_only_override': CAM_RESULT_ONLY}
+        ]
     )
 
     fusion_viz = Node(
@@ -190,6 +204,12 @@ def generate_launch_description():
             {'flip_image': FLIP_IMAGE},
             {'save_video': SAVE_OUTPUT_VIDEO},
         ]
+    )
+
+    save_csv_fusion = Node(
+        package='fusion_module',
+        executable='detection2csv_node',
+        name='detection2csv_node',
     )
 
     rviz_config_file = PathJoinSubstitution(
@@ -232,12 +252,15 @@ def generate_launch_description():
         execute_camera_processor,
         fusion_2D,
         fusion_viz,
-        lidar_tracker_viz,
         data_source,
     ]
 
     if SHOW_RVIZ:
         launch_list.append(rviz_node)
+        launch_list.append(lidar_tracker_viz)
+
+    if SAVE_CSV_FUSION_OUTPUT:
+        launch_list.append(save_csv_fusion)
 
     # Items above will only be launched if they are present in this list
     return LaunchDescription(launch_list)

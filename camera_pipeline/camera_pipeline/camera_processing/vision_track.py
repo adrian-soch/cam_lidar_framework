@@ -104,7 +104,7 @@ class VisionTracker():
         self.curr_frame, self.prev_frame = [None], [None]
     
     @torch.no_grad()
-    def update(self, im, return_image=False, detection_only=False):
+    def update(self, im, return_image=False, detection_only=True):
         """
         Runs the detection and tracking, must be called for each image.
         Developer muat ensure loop speed is sufficient for desired output frequency

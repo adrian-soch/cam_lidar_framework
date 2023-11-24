@@ -33,27 +33,27 @@ def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
         for trk in tracks:
             det = Detection3D()
             result = ObjectHypothesisWithPose()
-            result.hypothesis.score = trk[6]
+            result.hypothesis.score = trk[7]
             det.results.append(result)
 
-            y_len = np.sqrt(trk[2]*trk[3])
-            x_len = trk[2]/y_len
+            z_size = trk[6]/2.0 + trk[2]
+            z_center = z_size/2.0
+
+            if z_size <= 1.4:
+                z_size = 1.85
+
+            y_len = np.sqrt(trk[3]*trk[4])
+            x_len = trk[3]/y_len
 
             det.bbox.size.x = x_len
             det.bbox.size.y = y_len
-            # det.bbox.size.z = trk[5]
-
-            # Fixed height based on length
-            if det.bbox.size.x > 6.0 or det.bbox.size.y > 6.0:
-                det.bbox.size.z = 3.2
-            else:
-                det.bbox.size.z = 2.0
+            det.bbox.size.z = z_size
 
             det.bbox.center.position.x = trk[0]
             det.bbox.center.position.y = trk[1]
-            det.bbox.center.position.z = det.bbox.size.z/2.0
+            det.bbox.center.position.z = z_center
 
-            q = quaternion_from_euler(0, 0, trk[4])
+            q = quaternion_from_euler(0, 0, trk[5])
 
             det.bbox.center.orientation.x = q[0]
             det.bbox.center.orientation.y = q[1]
@@ -100,7 +100,7 @@ def detection3DArray2Numpy(detection_list, isOBB):
     """
     size = 5
     if isOBB:
-        size = 6
+        size = 7
 
     if len(detection_list) <= 0:
         return np.empty((0, size))
@@ -118,7 +118,8 @@ def detection3DArray2Numpy(detection_list, isOBB):
                             area,
                             det.bbox.size.y/det.bbox.size.x,
                             angle,
-                            det.bbox.size.z]
+                            det.bbox.size.z,
+                            det.bbox.center.position.z]
             idx += 1
     else:
         for det in detection_list:

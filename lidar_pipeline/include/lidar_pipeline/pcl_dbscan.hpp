@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include <pcl/search/kdtree.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/point_types.h>
 

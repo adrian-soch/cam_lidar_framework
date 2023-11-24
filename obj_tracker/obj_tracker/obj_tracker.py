@@ -54,7 +54,7 @@ class ObjectTracker(Node):
             from .sort import sort as s
 
         # create instance of SORT
-        self.tracker = s.Sort(max_age=4, min_hits=3, iou_threshold=0.01)
+        self.tracker = s.Sort(max_age=3, min_hits=3, iou_threshold=0.01, dt=0.1, output_unmatched=False)
 
         self.subscription = self.create_subscription(
             Detection3DArray,
@@ -121,7 +121,7 @@ class ObjectTracker(Node):
             marker.scale.z = 0.8  # height of `A` in meters
 
             if isOBB:
-                id_str = str(int(trk[5]))
+                id_str = str(int(trk[6]))
             else:
                 id_str = str(int(trk[4]))
 

@@ -23,6 +23,9 @@ public:
         this->get_parameter("image_folder", image_folder_);
         this->get_parameter("pointcloud_folder", pointcloud_folder_);
 
+        this->declare_parameter<bool>("use_system_time", false);
+        this->get_parameter("use_system_time", use_system_time_);
+
         // Get the frame id for image and point cloud messages
         this->declare_parameter<std::string>("frame_id", "map");
         this->get_parameter("frame_id", frame_id_);
@@ -80,16 +83,23 @@ private:
         sensor_msgs::msg::PointCloud2::SharedPtr pointcloud_msg(new sensor_msgs::msg::PointCloud2);
         pcl::toROSMsg(*cloud, *pointcloud_msg);
 
-        std::vector<int> image_times = get_ros_time_from_name(image_files[file_index_]);
-        std::vector<int> cloud_times = get_ros_time_from_name(pointcloud_files[file_index_]);
-
         // Set the frame id and timestamp for both messages
-        image_msg->header.frame_id           = frame_id_;
-        image_msg->header.stamp.sec          = image_times[0];
-        image_msg->header.stamp.nanosec      = image_times[1];
-        pointcloud_msg->header.frame_id      = frame_id_;
-        pointcloud_msg->header.stamp.sec     = cloud_times[0];
-        pointcloud_msg->header.stamp.nanosec = cloud_times[1];
+        image_msg->header.frame_id      = frame_id_;
+        pointcloud_msg->header.frame_id = frame_id_;
+
+        if(true == use_system_time_) {
+            image_msg->header.stamp      = this->now();
+            pointcloud_msg->header.stamp = this->now();
+        } else {
+            std::vector<int> image_times = get_ros_time_from_name(image_files[file_index_]);
+            std::vector<int> cloud_times = get_ros_time_from_name(pointcloud_files[file_index_]);
+
+            image_msg->header.stamp.sec     = image_times[0];
+            image_msg->header.stamp.nanosec = image_times[1];
+
+            pointcloud_msg->header.stamp.sec     = cloud_times[0];
+            pointcloud_msg->header.stamp.nanosec = cloud_times[1];
+        }
 
         // Publish the image and point cloud messages
         image_pub_->publish(*image_msg);
@@ -156,7 +166,7 @@ private:
         std::getline(ss, temp, '.');
         nsec = std::stoi(temp);
 
-        return std::vector<int> {sec, nsec};
+        return std::vector<int> { sec, nsec };
     }
 
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
@@ -165,7 +175,8 @@ private:
     std::string image_folder_;
     std::string pointcloud_folder_;
     std::string frame_id_;
-    size_t file_index_ = 0;
+    size_t file_index_ { 0 };
+    bool use_system_time_ { false };
 };
 
 int main(int argc, char** argv)

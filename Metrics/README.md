@@ -15,8 +15,7 @@ Since we are using a custom dataset with rooftop traffic data, the basic workflo
 graph TD;
     RawData(Raw data: \n rosbag file)-->Clean(Bag to images and PCDs, \n and removing un-synced frames: \n synced_image_cloud_2file.cpp);
     Clean-->Bag(Convert images + PCDs to clean bag: \n synced_file2image_cloud_msgs.cpp);
-
-    Bag(Clean Data: \n processed rosbag file)-->Trans(Bag to images: \n data_tools convert node);
+    Bag-->Trans(Bag to images: \n data_tools convert node);
     Trans-->Video(Images folder to video file: \n images2video.py);
     Video-->GroundTruth(2D labeled ground truth: \n Supervisely video annotator JSON);
     GroundTruth-->MOTChallenge(JSON to MOT Challenge format: \n supervisely_video_ann2MOT.py);

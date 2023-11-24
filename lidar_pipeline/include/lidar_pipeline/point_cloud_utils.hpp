@@ -44,7 +44,8 @@ public:
      * @param cloud_ptr: Pointer to a PCL cloud object
      * @param voxel_leaf_size: size in meters of the voxel grid
      */
-    void voxel_grid_filter(PointCloudPtr cloud_ptr, float voxel_leaf_size_x, float voxel_leaf_size_y, float voxel_leaf_size_z)
+    void voxel_grid_filter(PointCloudPtr cloud_ptr, float voxel_leaf_size_x, float voxel_leaf_size_y,
+      float voxel_leaf_size_z)
     {
         pcl::VoxelGrid<PointT> voxel_filter;
 
@@ -92,7 +93,7 @@ public:
      * @param box_height float
      */
     void prism_segmentation(PointCloudPtr cloud_ptr, Eigen::Affine3f &transform, float box_width, float box_length,
-      float box_height)
+      float box_height, bool inverse_selection=false)
     {
         PointCloudPtr pick_surface_cloud_ptr(new PointCloud());
         pcl::PointIndices::Ptr pt_inliers(new pcl::PointIndices());
@@ -134,6 +135,7 @@ public:
 
         extract_ind.setInputCloud(cloud_ptr);
         extract_ind.setIndices(pt_inliers);
+        extract_ind.setNegative(inverse_selection);
         extract_ind.filter(*cloud_ptr);
     } // prism_segmentation
 
@@ -141,15 +143,15 @@ public:
      * @brief Remove statistical outliers
      *
      * @param cloud_ptr
-     * @param mean
+     * @param num_neighbours
      * @param stddev_mult
      */
-    void stats_outlier_removal(PointCloudPtr cloud_ptr, int mean, float stddev_mult)
+    void stats_outlier_removal(PointCloudPtr cloud_ptr, int num_neighbours, float stddev_mult)
     {
         pcl::StatisticalOutlierRemoval<PointT> sor;
 
         sor.setInputCloud(cloud_ptr);
-        sor.setMeanK(mean);
+        sor.setMeanK(num_neighbours);
         sor.setStddevMulThresh(stddev_mult);
         sor.filter(*cloud_ptr);
     }

@@ -58,6 +58,8 @@ class ImageSubscriber(Node):
         # Used to convert between ROS and OpenCV images
         self.br = CvBridge()
 
+        self.frame_count = 0
+
         self.tracker = vision_track.VisionTracker()
         self.get_logger().info('Vision Tracker created.')
 
@@ -84,8 +86,10 @@ class ImageSubscriber(Node):
         out_msg.header = msg.header
         self.result_pub_.publish(out_msg)
 
+        self.frame_count += 1
+
         t5 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-        self.get_logger().info(f'Time (msec): {(t5-t1)*1000:.1f}')
+        self.get_logger().info(f'Frame count: {self.frame_count}, Time (msec): {(t5-t1)*1000:.1f}')
 
     @staticmethod
     def createDetection2DArr(tracks, header) -> Detection2DArray:

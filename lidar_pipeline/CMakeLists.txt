@@ -34,7 +34,7 @@ find_package(OpenCV REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(pipeline_interfaces REQUIRED)
 
-add_executable(perception_node src/perception_node.cpp src/lidar_processing.cpp)
+add_executable(perception_node src/perception_node.cpp src/lidar_processing.cpp src/l_fitting.cpp)
 target_include_directories(perception_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
