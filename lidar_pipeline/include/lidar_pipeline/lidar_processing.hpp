@@ -58,8 +58,8 @@ public:
         this->declare_parameter("cloud_topic", "/points");
         this->declare_parameter("world_frame", "map");
         this->declare_parameter("camera_frame", "laser_data_frame");
-        this->declare_parameter("voxel_leaf_size_x", 0.1);
-        this->declare_parameter("voxel_leaf_size_y", 0.1);
+        this->declare_parameter("voxel_leaf_size_x", 0.12);
+        this->declare_parameter("voxel_leaf_size_y", 0.12);
         this->declare_parameter("voxel_leaf_size_z", 0.12);
         this->declare_parameter("plane_max_iter", 120);
         this->declare_parameter("plane_dist_thresh", 0.35);
