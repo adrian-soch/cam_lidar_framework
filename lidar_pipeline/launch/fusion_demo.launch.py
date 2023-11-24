@@ -19,7 +19,7 @@ pipeline_params = os.path.join(
 # Used to change playback rate of ros bag
 # A9 data bags were recoreded at 2.5Hz so they need a x4 speedup
 # if left as 1 then thre is no rate change
-BAG_PLAY_RATE = 1.0
+BAG_PLAY_RATE = 0.16
 FLIP_IMAGE = False
 
 BAG_PLAY_LOOP = True
@@ -34,15 +34,17 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_SELECTOR = 10
+
+# 10, 7, 6, 12
+BAG_SELECTOR = 7
 
 # Determines what kind of output you want, Video/Rviz2
-SAVE_OUTPUT_VIDEO = False
-SAVE_CSV_FUSION_OUTPUT = False
-SHOW_RVIZ = True
+SAVE_OUTPUT_VIDEO = True
+SAVE_CSV_FUSION_OUTPUT = True
+SHOW_RVIZ = False
 
 # Fusion Overrides
-LIDAR_RESULT_ONLY = False
+LIDAR_RESULT_ONLY = True
 CAM_RESULT_ONLY = False
 
 # Because of the yolov5 includes, its easier to just run this directly
@@ -70,8 +72,11 @@ elif BAG_SELECTOR == 1:
 elif BAG_SELECTOR == 10:
     # Cleaned bag - mismatched frames removed
     # Good for use with metrics
-    BAG_NAME = 'cleaned_bags/dec7_dhd1_clean'
+    BAG_NAME = 'cleaned_bags/dec7_dhd1_clean_short'
     CONFIG_NAME = 'dec7_config.yaml'
+elif BAG_SELECTOR == 12:
+    BAG_NAME = 'cleaned_bags/may10_r5_clean'
+    CONFIG_NAME = 'may10_config.yaml'
 
 # MARC Rooftop data with syncronized lidar + camera
 elif BAG_SELECTOR == 2:
@@ -113,10 +118,13 @@ elif BAG_SELECTOR == 9:
     BAG_PLAY_RATE = 4
     BAG_NAME = '2023-08-30_13-58-46_a9_dataset_r02_s03_camSouth1_LidarSouth'
     CONFIG_NAME = 'r02_s03_cam1South_lidarSouth_config.yaml'
+else:
+    print('Invalid bag selection!')
+    exit(-1)
 
 START_BAG_DELAY = 0.0
 if SAVE_OUTPUT_VIDEO:
-    START_BAG_DELAY = 10.0
+    START_BAG_DELAY = 7.5
 
 if SAVE_OUTPUT_VIDEO:
     BAG_PLAY_LOOP = False
@@ -244,12 +252,12 @@ def generate_launch_description():
         execute_camera_processor,
         fusion_2D,
         fusion_viz,
-        lidar_tracker_viz,
         data_source,
     ]
 
     if SHOW_RVIZ:
         launch_list.append(rviz_node)
+        launch_list.append(lidar_tracker_viz)
 
     if SAVE_CSV_FUSION_OUTPUT:
         launch_list.append(save_csv_fusion)
