@@ -44,6 +44,9 @@ def main(args):
     # oct18_r9
     roi_points = np.array([(5,735),(1270,645),(1500,676),(240,1060)])
 
+    # dec7_dhd1_short
+    # roi_points = np.array([(835,480), (1050,1056), (1918,845), (1130,465)])
+
     # Create a polygon object from the points using shapely
     region_of_interest = Polygon(roi_points)
     if not region_of_interest.is_valid:
