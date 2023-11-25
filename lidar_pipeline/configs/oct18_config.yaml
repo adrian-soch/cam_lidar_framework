@@ -43,7 +43,7 @@ projection_node:
 
     # Transform from Lidar to camera frame
     lidar2cam_extrinsic:
-      rotation: [-0.0174524,  0.9998477,  0.0000000,-0.0000000, -0.0000000, -1.0000000,-0.9998477, -0.0174524,  0.0000000 ]
+      rotation: [0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0]
       translation: [0.00, 0.0508, 0.0502]
 
     # Transform from lidar data from to lidar sensor frame
