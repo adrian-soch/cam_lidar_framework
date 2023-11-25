@@ -277,9 +277,9 @@ vision_msgs::msg::BoundingBox3D LidarProcessing::getOrientedBoudingBox(const pcl
     size.getArray3fMap() = max_pt_T.getArray3fMap() - min_pt_T.getArray3fMap();
 
     vision_msgs::msg::BoundingBox3D bbox;
-    bbox.center.position.x    = centroid[X];
-    bbox.center.position.y    = centroid[Y];
-    bbox.center.position.z    = centroid[Z];
+    bbox.center.position.x    = center[X];
+    bbox.center.position.y    = center[Y];
+    bbox.center.position.z    = center[Z];
     bbox.center.orientation.x = bboxQ.x();
     bbox.center.orientation.y = bboxQ.y();
     bbox.center.orientation.z = bboxQ.z();
