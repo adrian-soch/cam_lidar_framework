@@ -19,7 +19,7 @@ pipeline_params = os.path.join(
 # Used to change playback rate of ros bag
 # A9 data bags were recoreded at 2.5Hz so they need a x4 speedup
 # if left as 1 then thre is no rate change
-BAG_PLAY_RATE = 0.16
+BAG_PLAY_RATE = 1.0
 FLIP_IMAGE = False
 
 BAG_PLAY_LOOP = True
@@ -35,16 +35,16 @@ Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 
-# 10, 7, 6, 12
-BAG_SELECTOR = 7
+# 10, 7, 6, 12, 13
+BAG_SELECTOR = 13
 
-# Determines what kind of output you want, Video/Rviz2
+# Determines what kind of output you want, Video/Rviz2/csv_tracker_data
 SAVE_OUTPUT_VIDEO = True
 SAVE_CSV_FUSION_OUTPUT = True
 SHOW_RVIZ = False
 
 # Fusion Overrides
-LIDAR_RESULT_ONLY = True
+LIDAR_RESULT_ONLY = False
 CAM_RESULT_ONLY = False
 
 # Because of the yolov5 includes, its easier to just run this directly
@@ -57,7 +57,6 @@ ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/came
 if BAG_SELECTOR == -1:
     # FLIP_IMAGE = True
     CONFIG_NAME = 'default_config.yaml'
-
 
 # MARC Rooftop data without data syncronization
 # Fusion and projection will not work
@@ -77,6 +76,9 @@ elif BAG_SELECTOR == 10:
 elif BAG_SELECTOR == 12:
     BAG_NAME = 'cleaned_bags/may10_r5_clean'
     CONFIG_NAME = 'may10_config.yaml'
+elif BAG_SELECTOR == 13:
+    BAG_NAME = 'cleaned_bags/oct18_r1_clean'
+    CONFIG_NAME = 'oct18_r1_config.yaml'
 
 # MARC Rooftop data with syncronized lidar + camera
 elif BAG_SELECTOR == 2:
@@ -121,6 +123,15 @@ elif BAG_SELECTOR == 9:
 else:
     print('Invalid bag selection!')
     exit(-1)
+
+# Set and validate parameters
+
+if SAVE_CSV_FUSION_OUTPUT:
+    BAG_PLAY_RATE = 0.16
+
+if LIDAR_RESULT_ONLY and CAM_RESULT_ONLY:
+    print('Error: Must use lidar or camera results for fusion.')
+    exit(ValueError)
 
 START_BAG_DELAY = 0.0
 if SAVE_OUTPUT_VIDEO:
@@ -196,6 +207,7 @@ def generate_launch_description():
         ]
     )
 
+    video_name = BAG_NAME.split('/')[-1]
     fusion_viz = Node(
         package='fusion_module',
         executable='fusion_viz_node',
@@ -203,6 +215,7 @@ def generate_launch_description():
         parameters=[
             {'flip_image': FLIP_IMAGE},
             {'save_video': SAVE_OUTPUT_VIDEO},
+            {'video_name': video_name},
         ]
     )
 
