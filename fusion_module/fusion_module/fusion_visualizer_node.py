@@ -23,6 +23,12 @@ class FusionVisualizer(Node):
         self.declare_parameter('save_video', False)
         save_video = self.get_parameter(
             'save_video').get_parameter_value().bool_value
+        
+        self.declare_parameter('video_name', 'video')
+        self.video_name = self.get_parameter(
+            'video_name').get_parameter_value().string_value
+        
+        print(self.video_name + '\n')
 
         self.bridge = CvBridge()
         self.image_sub = Subscriber(self, Image, 'image')
@@ -104,7 +110,7 @@ class FusionVisualizer(Node):
         if self.video_writer is None:
             fourcc = VideoWriter_fourcc(*'mp4v')  # choose codec
             fps = 10  # choose frame rate
-            filename = 'video_{}.mp4'.format(datetime.datetime.now().strftime(
+            filename = self.video_name + '_{}.mp4'.format(datetime.datetime.now().strftime(
                 '%Y%m%d_%H%M%S'))  # choose file name with current timestamp
             self.video_writer = VideoWriter(
                 filename, fourcc, fps, (cv_image.shape[1], cv_image.shape[0]))
