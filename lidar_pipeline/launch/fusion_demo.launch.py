@@ -39,9 +39,9 @@ ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 BAG_SELECTOR = 13
 
 # Determines what kind of output you want, Video/Rviz2/csv_tracker_data
-SAVE_OUTPUT_VIDEO = True
-SAVE_CSV_FUSION_OUTPUT = True
-SHOW_RVIZ = False
+SAVE_OUTPUT_VIDEO = False
+SAVE_CSV_FUSION_OUTPUT = False
+SHOW_RVIZ = True
 
 # Fusion Overrides
 LIDAR_RESULT_ONLY = False

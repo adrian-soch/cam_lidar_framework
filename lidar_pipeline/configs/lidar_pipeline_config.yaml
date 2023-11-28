@@ -14,5 +14,5 @@ perception_node:
 
     # Min and Max number of points for euclidean clustering
     cluster_min_size: 3
-    cluster_max_size: 10000
-    cluster_tol: 1.35
+    cluster_max_size: 100000
+    cluster_tol: 1.3

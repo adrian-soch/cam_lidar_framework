@@ -42,7 +42,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
      * VOXEL GRID
      * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(cloud));
-    cloud_ops.voxel_grid_filter(cloud_ptr, voxel_leaf_size_x, voxel_leaf_size_y, voxel_leaf_size_z);
+    // cloud_ops.voxel_grid_filter(cloud_ptr, voxel_leaf_size_x, voxel_leaf_size_y, voxel_leaf_size_z);
 
     auto s3 = std::chrono::high_resolution_clock::now();
 
@@ -73,14 +73,46 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
      * PLANE SEGEMENTATION
      * ========================================*/
     pcl::PointCloud<pcl::PointXYZI>::Ptr plane_ptr(new pcl::PointCloud<pcl::PointXYZI>(*crop_cloud_ptr));
-    int ret_code = cloud_ops.ground_plane_removal(plane_ptr, plane_max_iter, plane_dist_thresh);
+    // int ret_code = cloud_ops.ground_plane_removal(plane_ptr, plane_max_iter, plane_dist_thresh);
 
-    if(ret_code != 0) {
-        RCLCPP_WARN(this->get_logger(), "Could not estimate a planar model for the given dataset.");
-    }
+    // if(ret_code != 0) {
+    //     RCLCPP_WARN(this->get_logger(), "Could not estimate a planar model for the given dataset.");
+    // }
 
     auto s5 = std::chrono::high_resolution_clock::now();
 
+    /* ========================================
+     * Background Subtraction
+     * ========================================*/
+    static pcl::PointCloud<pcl::PointXYZI>::Ptr sub_result_ptr(new pcl::PointCloud<pcl::PointXYZI>(*plane_ptr));
+
+    // #pragma omp parallel for
+    for(size_t x = 0; x < plane_ptr->height; ++x) {
+        for(size_t y = 0; y < plane_ptr->width; ++y) {
+            auto background_range = sqrt(pow(sub_result_ptr->at(y, x).x, 2.0) + pow(sub_result_ptr->at(y,
+                x).y,
+                2.0) + pow(sub_result_ptr->at(y, x).z, 2.0));
+            auto current_range =
+              sqrt(pow(plane_ptr->at(y, x).x,
+                2.0) + pow(plane_ptr->at(y, x).y, 2.0) + pow(plane_ptr->at(y, x).z, 2.0));
+
+            if((current_range + 0.1) >= background_range) {
+                // Update the background point
+                sub_result_ptr->at(y, x) = plane_ptr->at(y, x);
+
+                // Remove point, it is considered background
+                plane_ptr->at(y, x).x = NAN;
+                plane_ptr->at(y, x).x = NAN;
+                plane_ptr->at(y, x).x = NAN;
+            }
+            else if((current_range + 0.25) >= background_range) {
+                // Remove point, it is considered background
+                plane_ptr->at(y, x).x = NAN;
+                plane_ptr->at(y, x).x = NAN;
+                plane_ptr->at(y, x).x = NAN;
+            }
+        }
+    }
 
     /* ========================================
      * STATISTICAL OUTLIER REMOVAL
@@ -93,16 +125,14 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     /* ========================================
      * CLUSTERING
      * ========================================*/
+    cloud_ops.voxel_grid_filter(stats_cloud_ptr, voxel_leaf_size_x, voxel_leaf_size_y, voxel_leaf_size_z);
 
     std::vector<pcl::PointIndices> cluster_indices;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr foreground_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*stats_cloud_ptr));
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr dense_cloud_ptr(new pcl::PointCloud<pcl::PointXYZI>(*stats_cloud_ptr));
-    // cloud_ops.warp_density(dense_cloud_ptr);
 
-    cloud_ops.euclidean_clustering(dense_cloud_ptr, cluster_indices,
+    cloud_ops.euclidean_clustering(stats_cloud_ptr, cluster_indices,
       cluster_tol, cluster_min_size, cluster_max_size);
-
-    // cluster_indices = dbscan.run(dense_cloud_ptr);
 
     auto s7 = std::chrono::high_resolution_clock::now();
 
@@ -171,10 +201,10 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     /* ========================================
      * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
      * ========================================*/
-    this->publishPointCloud(voxel_grid_pub_, *cloud_ptr);
+    this->publishPointCloud(voxel_grid_pub_, *stats_cloud_ptr);
     this->publishPointCloud(crop_pub_, *crop_cloud_ptr);
     this->publishPointCloud(plane_pub_, *plane_ptr);
-    this->publishPointCloud(stat_pub_, *dense_cloud_ptr);
+    this->publishPointCloud(stat_pub_, *sub_result_ptr);
 
     this->publish3DBBoxOBB(marker_array_pub_, o_detection_array);
 
@@ -188,19 +218,19 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto t_ms = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    RCLCPP_INFO(get_logger(), "Frame count: %d, Time (msec): %.2f", frame_count_, t_ms.count()/1000000.0);
+    // RCLCPP_INFO(get_logger(), "Frame count: %d, Time (msec): %.2f", frame_count_, t_ms.count() / 1000000.0);
 
 
-    // auto dt_convert = std::chrono::duration_cast<std::chrono::nanoseconds>(s2 - start);
-    // auto dt_vox = std::chrono::duration_cast<std::chrono::nanoseconds>(s3 - s2);
-    // auto dt_crop = std::chrono::duration_cast<std::chrono::nanoseconds>(s4 - s3);
-    // auto dt_plane = std::chrono::duration_cast<std::chrono::nanoseconds>(s5 - s4);
-    // auto dt_out = std::chrono::duration_cast<std::chrono::nanoseconds>(s6 - s5);
-    // auto dt_clus = std::chrono::duration_cast<std::chrono::nanoseconds>(s7 - s6);
-    // auto dt_bbox = std::chrono::duration_cast<std::chrono::nanoseconds>(s8 - s7);
-    // RCLCPP_INFO(get_logger(), "Conv %.2f, Vox %.2f, crop %.2f, plane %.2f, filt %.2f, clust %.2f, bbox %.2f, tot %.2f",
-    //   dt_convert.count()/1000000.0, dt_vox.count()/1000000.0, dt_crop.count()/1000000.0, dt_plane.count()/1000000.0, dt_out.count()/1000000.0,
-    //   dt_clus.count(), dt_bbox.count(), t_ms.count());
+    auto dt_convert = std::chrono::duration_cast<std::chrono::nanoseconds>(s2 - start);
+    auto dt_vox = std::chrono::duration_cast<std::chrono::nanoseconds>(s3 - s2);
+    auto dt_crop = std::chrono::duration_cast<std::chrono::nanoseconds>(s4 - s3);
+    auto dt_plane = std::chrono::duration_cast<std::chrono::nanoseconds>(s5 - s4);
+    auto dt_out = std::chrono::duration_cast<std::chrono::nanoseconds>(s6 - s5);
+    auto dt_clus = std::chrono::duration_cast<std::chrono::nanoseconds>(s7 - s6);
+    auto dt_bbox = std::chrono::duration_cast<std::chrono::nanoseconds>(s8 - s7);
+    RCLCPP_INFO(get_logger(), "Conv %.2f, Vox %.2f, crop %.2f, plane %.2f, filt %.2f, clust %.2f, bbox %.2f, tot %.2f",
+      dt_convert.count()/1000000.0, dt_vox.count()/1000000.0, dt_crop.count()/1000000.0, dt_plane.count()/1000000.0, dt_out.count()/1000000.0,
+      dt_clus.count()/1000000.0, dt_bbox.count()/1000000.0, t_ms.count()/1000000.0);
 } // LidarProcessing::cloud_callback
 
 template<typename PointT>

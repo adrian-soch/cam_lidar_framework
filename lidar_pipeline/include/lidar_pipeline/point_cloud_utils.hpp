@@ -136,6 +136,7 @@ public:
         extract_ind.setInputCloud(cloud_ptr);
         extract_ind.setIndices(pt_inliers);
         extract_ind.setNegative(inverse_selection);
+        extract_ind.setKeepOrganized(true);
         extract_ind.filter(*cloud_ptr);
     } // prism_segmentation
 
@@ -189,6 +190,7 @@ public:
         extract.setInputCloud(cloud_ptr);
         extract.setIndices(inliers);
         extract.setNegative(false);
+        extract.setKeepOrganized(true);
 
         // Get the points associated with the planar surface
         extract.filter(*cloud_plane);

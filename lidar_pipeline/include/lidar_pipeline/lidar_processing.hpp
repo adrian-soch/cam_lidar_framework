@@ -211,15 +211,6 @@ private:
     classify(const vision_msgs::msg::BoundingBox3D bb, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster);
 
     /**
-     * @brief Get the Bbox Color R G B A object
-     *
-     * @param id
-     * @param out
-     */
-    void
-    getBboxColorRGBA(const std::string id, std_msgs::msg::ColorRGBA* out);
-
-    /**
      * @brief Publish a pointcloud
      *
      * @param publisher
