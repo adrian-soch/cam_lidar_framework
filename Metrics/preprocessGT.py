@@ -35,16 +35,14 @@ def main(args):
     write_lines(result_name, normalized_lines)
     
     # Define a list of points as tuples, must be clockwise
-    # q7_2_may10_2023_clean bag
-    # roi_points = np.array([(495, 230), (900, 230), (1910, 730), (525, 900)])
 
-    # q7_2_may10_2023_clean_short_range
+    # may10 short_range
     # roi_points = np.array([(658,305), (980,960), (1900,737), (1049,287)])
 
-    # oct18_r9
+    # oct18
     roi_points = np.array([(5,735),(1270,645),(1500,676),(240,1060)])
 
-    # dec7_dhd1_short
+    # dec7
     # roi_points = np.array([(835,480), (1050,1056), (1918,845), (1130,465)])
 
     # Create a polygon object from the points using shapely
@@ -56,7 +54,6 @@ def main(args):
     if args.image_path is not None:
         # Draw roi on image
         img = cv2.imread(args.image_path)
-        cv2.polylines(img, [roi_points], True, (255, 0, 0), 3)
 
     # Read the csv file using pandas
     df = pd.read_csv(result_name, header=None)
@@ -84,6 +81,10 @@ def main(args):
 
         if args.image_path is not None:
             cv2.polylines(img, [points], True, colour, 2)
+
+    if args.image_path is not None:
+        # Draw roi on image
+        cv2.polylines(img, [roi_points], True, (255, 0, 0), 3)
 
     # Drop the rows that are in the remove list using pandas
     df = df.drop(remove_indices)
