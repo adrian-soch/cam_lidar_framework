@@ -21,34 +21,28 @@ class ImagePCDNode(Node):
     def __init__(self):
         super().__init__('image_pcd_node')
 
-        # CAM_CAL_PATH = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/camera_pipeline/config/1920x1080_ost.yaml'
-        # TRANSFORM_PATH = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/lidar_pipeline/configs/may10_config.yaml'
         self.IMG_PATH = '/home/adrian/dev/bags/cleaned_bags/may10_q7_rebag/images/000064_1683739424_096948868.jpg'
         PCD_PATH = '/home/adrian/dev/bags/cleaned_bags/may10_q7_rebag/pcds/000064_1683739424_106343845.pcd'
 
-        ls2ld = np.array([[-1.0, 0.0, 0.0],
+        self.ls2ld = np.array([[-1.0, 0.0, 0.0],
                           [0.0, -1.0, 0.0],
                           [0.0, 0.0, 1.0]])
 
         c2l = np.array([[0.0, 1.0, 0.0],
                         [0.0, 0.0, -1.0],
                         [-1.0, 0.0, 0.0]])
-        l2c = c2l.T
 
-        l2g_quat = [0.0, 0.2010779, 0.0, 0.9795752]
+        l2g_quat = [0.9795752, 0.0, 0.2010779, 0.0]
         self.l2g = R.from_quat(l2g_quat).as_matrix()
 
-        self.rotation_matrix = self.l2g @ c2l @ ls2ld
+        l2g_quat_w = [0.0, 0.2010779, 0.0, 0.9795752]
+        self.l2g_w = R.from_quat(l2g_quat_w).as_matrix()
+
+        self.rotation_matrix =  c2l @ self.ls2ld @ self.l2g
         self.translation = np.array([0.0, 0.0, 12.0])
 
-        # HD mat
-        # self.intrinsic_matrix = [[1199.821557, 0.000000, 960.562236],
-        #                          [0.000000, 1198.033465, 551.675808],
-        #                          [0.000000, 0.000000, 1.000000]]
-
-        # 1280 x 720 mat
-        self.intrinsic_matrix = [[763.836928, 0.000000, 635.352226],
-                                 [0.000000, 743.109955, 357.577260],
+        self.intrinsic_matrix = [[1199.821557, 0.000000, 960.562236],
+                                 [0.000000, 1198.033465, 551.675808],
                                  [0.000000, 0.000000, 1.000000]]
         self.inv_intrinsic_matrix = np.linalg.inv(self.intrinsic_matrix)
 
@@ -56,7 +50,6 @@ class ImagePCDNode(Node):
         self.publisher_pcd = self.create_publisher(PointCloud2, 'base', 2)
         self.publisher_pcd2 = self.create_publisher(
             PointCloud2, 'test_det3d', 2)
-        self.img = cv2.imread(self.IMG_PATH)
         self.pcd = o3d.io.read_point_cloud(PCD_PATH)
         self.points = np.asarray(self.pcd.points)
 
@@ -68,7 +61,8 @@ class ImagePCDNode(Node):
         rate = 1  # Hz
         self.timer = self.create_timer(1.0/rate, self.timer_callback)
 
-        self.draw_flag = False
+        self.img = Im.open(self.IMG_PATH)
+        self.draw = ImageDraw.Draw(self.img)
 
     def timer_callback(self):
         '''
@@ -80,22 +74,27 @@ class ImagePCDNode(Node):
         pc = self.points
         pc = pc[np.logical_not(pc[:, 0] <= 0)]
 
-        pc = self.l2g @ pc.T
+        pc = self.ls2ld @ self.l2g_w @ pc.T
         pc = pc.T + self.translation
 
         # Get seg masks
         results = self.model.predict(
-            self.img, save=False, imgsz=(1280, 720), conf=0.5, device='0')
+            self.img, save=False, imgsz=(640), conf=0.5, device='0')
         result = results[0]
 
-        # TODO make this a forloop for all masks
+        proj_points = np.array([[0,0,0]])
         masks = result.masks
-        mask1 = masks[0]
+        for mask in masks:
+            # mask = mask_obj.data[0].cpu().numpy()
+            polygon = mask.xy[0]
 
-        mask = mask1.data[0].cpu().numpy()
-        polygon = mask1.xy[0]
+            # Draw outline on image
+            self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
 
-        mask3d = self.project_to_ground(polygon.T)
+            # Project camera outline to 3D space
+            mask3d = self.project_to_ground(polygon.T)
+
+            proj_points = np.vstack([proj_points, mask3d])
 
         # Create a PointCloud2 message from the numpy array
         pc = unstructured_to_structured(pc, dtype=np.dtype(
@@ -104,22 +103,17 @@ class ImagePCDNode(Node):
         msg.header.frame_id = 'map'
         self.publisher_pcd.publish(msg)
 
-        pc2 = unstructured_to_structured(mask3d, dtype=np.dtype(
+        pc2 = unstructured_to_structured(proj_points, dtype=np.dtype(
             [('x', '<f4'), ('y', '<f4'), ('z', '<f4')]))
         msg2 = ros2_numpy.msgify(PointCloud2, pc2)
         msg2.header.frame_id = 'map'
         self.publisher_pcd2.publish(msg2)
         self.get_logger().info('Publishing point cloud')
 
-        msg3 = self.br.cv2_to_imgmsg(self.img)
+        msg3 = self.br.cv2_to_imgmsg(np.array(self.img))
         self.img_publisher_.publish(msg3)
 
-        if self.draw_flag == False:
-            img = Im.open(self.IMG_PATH)
-            draw = ImageDraw.Draw(img)
-            draw.polygon(polygon, outline=(0, 255, 0), width=5)
-            img.show()
-            self.draw_flag = True
+        exit(0)
 
     def project_to_ground(self, image_points: np.ndarray, ground_plane_height=0) -> np.ndarray:
         """Project image points (2xn) into ground frame (3xn) i.e. z=0."""
