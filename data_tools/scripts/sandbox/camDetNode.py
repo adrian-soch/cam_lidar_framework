@@ -32,14 +32,11 @@ class ImagePCDNode(Node):
                         [0.0, 0.0, -1.0],
                         [-1.0, 0.0, 0.0]])
 
-        l2g_quat = [0.9795752, 0.0, 0.2010779, 0.0]
-        self.l2g = R.from_quat(l2g_quat).as_matrix()
-
         l2g_quat_w = [0.0, 0.2010779, 0.0, 0.9795752]
         self.l2g_w = R.from_quat(l2g_quat_w).as_matrix()
 
-        self.rotation_matrix =  c2l @ self.ls2ld @ self.l2g
-        self.translation = np.array([0.0, 0.0, 12.0])
+        self.rotation_matrix =  c2l @ self.ls2ld @ self.l2g_w.T
+        self.translation = np.array([0.0, 0.0, 11.0])
 
         self.intrinsic_matrix = [[1199.821557, 0.000000, 960.562236],
                                  [0.000000, 1198.033465, 551.675808],
@@ -74,12 +71,12 @@ class ImagePCDNode(Node):
         pc = self.points
         pc = pc[np.logical_not(pc[:, 0] <= 0)]
 
-        pc = self.ls2ld @ self.l2g_w @ pc.T
+        pc = self.l2g_w @ pc.T
         pc = pc.T + self.translation
 
         # Get seg masks
         results = self.model.predict(
-            self.img, save=False, imgsz=(640), conf=0.5, device='0')
+            self.img, save=False, imgsz=(640), conf=0.5, device='0', classes=[0, 1, 2, 3, 5, 7])
         result = results[0]
 
         proj_points = np.array([[0,0,0]])
