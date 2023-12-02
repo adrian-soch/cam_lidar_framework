@@ -43,8 +43,10 @@ class ImagePCDNode(Node):
                         [-1.0, 0.0, 0.0]])
 
         # x,y,z,w
-        l2g_quat = [0.0, 0.2010779, 0.0, 0.9795752]
-        self.l2g = R.from_quat(l2g_quat).as_matrix()
+        # l2g_quat = [0.0, 0.2010779, 0.0, 0.9795752]
+        # self.l2g = R.from_quat(l2g_quat).as_matrix()
+
+        self.l2g = R.from_euler('xyz', angles=[0,23,0], degrees=True).as_matrix()
 
         self.rotation_matrix = c2l @ self.ls2ld @ self.l2g.T
         self.translation = np.array([0.0, 0.0, 11.0])
@@ -74,7 +76,7 @@ class ImagePCDNode(Node):
         base_cloud = base_cloud[np.logical_not(base_cloud[:, 0] <= 0)]
 
         base_cloud = self.l2g @ base_cloud.T
-        base_cloud = base_cloud.T + self.translation
+        base_cloud = base_cloud.T + [0,0,12]
 
         '''
         Project Segmentation masks to ground
@@ -86,25 +88,24 @@ class ImagePCDNode(Node):
         bbox_array = MarkerArray()
         proj_points = np.array([[0, 0, 0]])
         masks = result.masks
-        for mask in masks:
+        for idx, mask in enumerate(masks):
             polygon = mask.xy[0]
             self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
 
+            '''
+            TODO: Run dbcan to denoise the outlines
+            '''
             # Project camera outline to 3D space
             mask3d = self.project_to_ground(polygon.T)
-            proj_points = mask3d
-            # proj_points = np.vstack([proj_points, mask3d])
-
             bbox = self.l_shape_fit.fitting(mask3d[:, :2])
+            bbox_array.markers.append(self.createMarker(bbox, idx, 'map'))
 
-            lshapeCont2d = np.vstack([bbox.rect_c_x, bbox.rect_c_y]).T
-            lshapeCont3D = np.c_[lshapeCont2d, np.zeros(lshapeCont2d.shape[0])]
+            # Debug cloud to see all countour points
+            proj_points = np.vstack([proj_points, mask3d])
 
-            bbox_array.markers.append(self.createMarker(bbox, 'map'))
-            break
-
-        base_cloud = lshapeCont3D
-       
+            # Uncomment to have BBox corner points
+            # lshapeCont2d = np.vstack([bbox.rect_c_x, bbox.rect_c_y]).T
+            # lshapeCont3D = np.c_[lshapeCont2d, np.zeros(lshapeCont2d.shape[0])]
 
         '''
         Publish image, base pc, and projected points
@@ -118,9 +119,9 @@ class ImagePCDNode(Node):
         exit(0)
 
     @staticmethod
-    def createMarker(bbox, frame_id: str) -> Marker:
+    def createMarker(bbox, index: int, frame_id: str) -> Marker:
         marker = Marker()
-        marker.id = 0
+        marker.id = index
         marker.header.frame_id = frame_id
         marker.type = Marker.CUBE
         marker.action = Marker.ADD
