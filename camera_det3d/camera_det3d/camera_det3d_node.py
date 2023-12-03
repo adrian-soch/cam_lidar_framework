@@ -1,100 +1,145 @@
-import rclpy
-from rclpy.node import Node
-from rclpy.duration import Duration
-from sensor_msgs.msg import Image
-from sensor_msgs.msg import PointCloud2
-from visualization_msgs.msg import Marker, MarkerArray
-from cv_bridge import CvBridge
+"""
+@file camera_det3d_node.py
 
-import numpy as np
-import open3d as o3d
-import ros2_numpy
+@brief This node subscribes to images and perfroms 3D object detection.
+    It publishes detection3D array and Markers for Rviz.
+
+@section Author(s)
+- Created by Adrian Sochaniwsky on 2/12/2023
+"""
+
+# Limit CPU use
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+
 from numpy.lib.recfunctions import unstructured_to_structured
-from scipy.spatial.transform import Rotation as R
+import numpy as np
+from PIL import ImageDraw, Image as Im
+import time
 from sklearn.cluster import DBSCAN
+from scipy.spatial.transform import Rotation as R
 
-from ultralytics import YOLO
+import ros2_numpy
+from cv_bridge import CvBridge
+from sensor_msgs.msg import PointCloud2, Image
+from visualization_msgs.msg import Marker, MarkerArray
 
-from PIL import Image as Im
-from PIL import ImageDraw
+import rclpy
+from rclpy.duration import Duration
+from rcl_interfaces.msg import ParameterDescriptor
+from rclpy.node import Node
+from rclpy.parameter import ParameterType
 
 from camera_det3d.l_shape import LShapeFitting
+from ultralytics import YOLO
 
 
-class ImagePCDNode(Node):
-
+class CameraDet3DNode(Node):
     def __init__(self):
-        super().__init__('image_pcd_node')
+        super().__init__('camera_det3d_node')
 
-        self.IMG_PATH = '/home/adrian/dev/bags/cleaned_bags/may10_q7_rebag/images/000064_1683739424_096948868.jpg'
-        PCD_PATH = '/home/adrian/dev/bags/cleaned_bags/may10_q7_rebag/pcds/000064_1683739424_106343845.pcd'
-
-        self.intrinsic_matrix = [[1199.821557, 0.000000, 960.562236],
-                                 [0.000000, 1198.033465, 551.675808],
-                                 [0.000000, 0.000000, 1.000000]]
+        self.intrinsic_matrix, self.rotation_matrix, self.translation = self.init_params()
         self.inv_intrinsic_matrix = np.linalg.inv(self.intrinsic_matrix)
 
-        self.ls2ld = np.array([[-1.0, 0.0, 0.0],
-                               [0.0, -1.0, 0.0],
-                               [0.0, 0.0, 1.0]])
-
-        c2l = np.array([[0.0, 1.0, 0.0],
-                        [0.0, 0.0, -1.0],
-                        [-1.0, 0.0, 0.0]])
-
-        # x,y,z,w
-        # l2g_quat = [0.0, 0.2010779, 0.0, 0.9795752]
-        # self.l2g = R.from_quat(l2g_quat).as_matrix()
-
-        self.l2g = R.from_euler('xyz', angles=[0,23,0], degrees=True).as_matrix()
-
-        self.rotation_matrix = c2l @ self.ls2ld @ self.l2g.T
-        self.translation = np.array([0.0, 0.0, 11.0])
-
-        self.img_publisher_ = self.create_publisher(Image, 'image2', 2)
-        self.publisher_pcd = self.create_publisher(PointCloud2, 'base', 2)
+        self.img_publisher_ = self.create_publisher(
+            Image, '/image_proc/contours', 2)
         self.publisher_pcd2 = self.create_publisher(
             PointCloud2, 'test_det3d', 2)
         self.bbox_publisher = self.create_publisher(
             MarkerArray, 'cam_bbox3D', 2)
-        self.pcd = o3d.io.read_point_cloud(PCD_PATH)
-        self.points = np.asarray(self.pcd.points)
 
         # Weights will be downloaded on first run
         self.model = YOLO("yolov8m-seg.pt")
         self.br = CvBridge()
-        self.img = Im.open(self.IMG_PATH)
-        self.draw = ImageDraw.Draw(self.img)
-
         self.l_shape_fit = LShapeFitting()
-        self.timer = self.create_timer(1.0, self.timer_callback)
 
-    def timer_callback(self):
+        # Subscribe to the image topic
+        self.image_subscription = self.create_subscription(
+            Image, 'image', self.image_callback, 5
+        )
+        self.image_subscription  # prevent unused variable warning
 
-        # Rough point filtering
-        base_cloud = self.points
-        base_cloud = base_cloud[np.logical_not(base_cloud[:, 0] <= 0)]
+        self.get_logger().info('Setup complete.')
 
-        base_cloud = self.l2g @ base_cloud.T
-        base_cloud = base_cloud.T + [0,0,12]
+    def init_params(self):
+        self.declare_parameter('camera_matrix', descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE_ARRAY))
+        self.declare_parameter('lidar2cam_extrinsic.rotation', descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE_ARRAY))
+        self.declare_parameter('lidar2cam_extrinsic.translation', descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE_ARRAY))
+        self.declare_parameter('lidarData2lidarSensor_extrinsic.rotation', descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE_ARRAY))
+        self.declare_parameter('lidarData2lidarSensor_extrinsic.translation',
+                               descriptor=ParameterDescriptor(type=ParameterType.PARAMETER_DOUBLE_ARRAY))
+        self.declare_parameter('lidar2world_transform.quaternion', descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE_ARRAY))
+        self.declare_parameter('lidar2world_transform.translation', descriptor=ParameterDescriptor(
+            type=ParameterType.PARAMETER_DOUBLE_ARRAY))
 
-        '''
-        Project Segmentation masks to ground
-        '''
+        intrinsic_matrix = self.get_parameter(
+            'camera_matrix').get_parameter_value().double_array_value
+        intrinsic_matrix = np.array(intrinsic_matrix).reshape([3, 3])
+
+        c2l = self.get_parameter(
+            'lidar2cam_extrinsic.rotation').get_parameter_value().double_array_value
+        c2l = np.array(c2l).reshape([3, 3])
+
+        lidar2cam_trans = self.get_parameter(
+            'lidar2cam_extrinsic.translation').get_parameter_value().double_array_value
+
+        ldata2lsensor = self.get_parameter(
+            'lidarData2lidarSensor_extrinsic.rotation').get_parameter_value().double_array_value
+        ldata2lsensor = np.array(ldata2lsensor).reshape([3, 3])
+
+        lidarData2lidarSensor_trans = self.get_parameter(
+            'lidarData2lidarSensor_extrinsic.translation').get_parameter_value().double_array_value
+
+        l2g_quat = self.get_parameter(
+            'lidar2world_transform.quaternion').get_parameter_value().double_array_value
+
+        l2g_translation = self.get_parameter(
+            'lidar2world_transform.translation').get_parameter_value().double_array_value
+
+        # x,y,z,w
+        l2g = R.from_quat(
+            (l2g_quat[1], l2g_quat[2], l2g_quat[3], l2g_quat[0])).as_matrix()
+
+        rotation_matrix = c2l @ ldata2lsensor @ l2g.T
+
+        return intrinsic_matrix, rotation_matrix, l2g_translation
+
+    def image_callback(self, msg):
+        start = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+
+        img = ros2_numpy.numpify(msg)
+        pil_img = Im.fromarray(img)
+        draw = ImageDraw.Draw(pil_img)
+
+        t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+
         results = self.model.predict(
-            self.img, save=False, imgsz=(640), conf=0.5, device='0', classes=[0, 1, 2, 3, 5, 7])
+            img, save=False, imgsz=(640), conf=0.5, device='0', classes=[0, 1, 2, 3, 5, 7], verbose=False)
         result = results[0]
+
+        t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
         bbox_array = MarkerArray()
         proj_points = np.array([[0, 0, 0]])
         masks = result.masks
         for idx, mask in enumerate(masks):
             polygon = mask.xy[0]
-            self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
+            # draw.polygon(polygon, outline=(0, 255, 0), width=2)
 
             # Project camera outline to 3D space
             mask3d = self.project_to_ground(polygon.T)
-            mask3d = self.remove_noise_with_dbscan(mask3d, eps=0.75, min_samples=3)
+            mask3d = self.remove_noise_with_dbscan(
+                mask3d, eps=0.65, min_samples=3)
 
             # Denoising may remove all points from a countour
             if mask3d.shape[0] <= 1:
@@ -107,20 +152,18 @@ class ImagePCDNode(Node):
             # Debug cloud to see all countour points
             proj_points = np.vstack([proj_points, mask3d])
 
-            # Uncomment to have BBox corner points
-            # lshapeCont2d = np.vstack([bbox.rect_c_x, bbox.rect_c_y]).T
-            # lshapeCont3D = np.c_[lshapeCont2d, np.zeros(lshapeCont2d.shape[0])]
+        t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
         '''
         Publish image, base pc, and projected points
         '''
-        self.publish_pc(self.publisher_pcd, base_cloud, 'map')
         self.publish_pc(self.publisher_pcd2, proj_points, 'map')
-        self.publish_image(self.img_publisher_, self.img)
+        self.publish_image(self.img_publisher_, pil_img)
         self.bbox_publisher.publish(bbox_array)
 
-        self.get_logger().info('Publishing point cloud')
-        exit(0)
+        end = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+        self.get_logger().info(
+            f'Time (msec): conv {(t1-start)*1000:.1f} inf {(t2-t1)*1000:.1f} proc {(t3-t2)*1000:.1f} pub {(end-t3)*1000:.1f} total {(end-start)*1000:.1f}')
 
     @staticmethod
     def createMarker(bbox, index: int, frame_id: str) -> Marker:
@@ -147,7 +190,7 @@ class ImagePCDNode(Node):
         marker.color.r = 0.59
         marker.color.g = 0.76
         marker.color.b = 0.1
-        # marker.lifetime = Duration(seconds=0.1).to_msg()
+        marker.lifetime = Duration(seconds=0.1).to_msg()
 
         return marker
 
@@ -176,7 +219,7 @@ class ImagePCDNode(Node):
             (self.translation[2] - ground_plane_height) / ground_points[2]
         result = ground_points.T + self.translation
         return result
-    
+
     @staticmethod
     def remove_noise_with_dbscan(data, eps=0.5, min_samples=5) -> np.ndarray:
         """
@@ -192,24 +235,24 @@ class ImagePCDNode(Node):
         """
         # Initialize DBSCAN
         dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-        
+
         # Fit the model and get the labels
         labels = dbscan.fit_predict(data)
-        
+
         # Identify core samples (non-noise points have labels >= 0)
         core_samples_mask = labels >= 0
-        
+
         # Extract core samples
         core_samples = data[core_samples_mask]
-        
+
         return core_samples
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ImagePCDNode()
-    rclpy.spin(node)
-    node.destroy_node()
+    camera_det3d_node = CameraDet3DNode()
+    rclpy.spin(camera_det3d_node)
+    camera_det3d_node.destroy_node()
     rclpy.shutdown()
 
 
