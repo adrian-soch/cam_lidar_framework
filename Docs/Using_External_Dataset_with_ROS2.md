@@ -11,7 +11,7 @@
 
 ## Part 2: Find the Sensor2Ground Transformation and Crop Box parameters
 
-1. Execute `ros2 launch lidar_pipeline transform_explorer.launch.py`
+1. Execute `ros2 launch cam_lidar_bringup transform_explorer.launch.py`
 2. In a seperate terminal run `ros2 run data_tools roi_visualizer_node.py`.
 3. In another terminal play your ros bag, optionally adding `-l` to loop the bag if it is short in duration.
 4. Change the parameters for translation and orientation in `RQT` until the ground plane is level with the grid in `Rviz2`.

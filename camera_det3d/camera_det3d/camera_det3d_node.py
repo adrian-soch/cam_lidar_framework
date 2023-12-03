@@ -4,6 +4,10 @@
 @brief This node subscribes to images and perfroms 3D object detection.
     It publishes detection3D array and Markers for Rviz.
 
+    Reference: W. Zimmer et al., “InfraDet3D: Multi-Modal 3D Object Detection based on Roadside Infrastructure Camera and LiDAR Sensors.”
+        arXiv, Apr. 29, 2023. doi: 10.48550/arXiv.2305.00314.
+
+
 @section Author(s)
 - Created by Adrian Sochaniwsky on 2/12/2023
 """
@@ -38,6 +42,12 @@ from rclpy.parameter import ParameterType
 from camera_det3d.l_shape import LShapeFitting
 from ultralytics import YOLO
 
+"""
+TODO: Height Estimation and Dimension Filtering The height for each detection is initialized from a fixed value for the object type of the detection.
+Both the height and the location are then jointly optimized through binary search, until the estimated projected 2D object height and the original
+mask height are the same by < 1px. The length and width values, as estimated by the L-Shape-Fitting algorithm for each 3D bottom contour,
+are limited to minimum and maximum
+"""
 
 class CameraDet3DNode(Node):
     def __init__(self):
@@ -207,7 +217,9 @@ class CameraDet3DNode(Node):
         publisher.publish(msg)
 
     def project_to_ground(self, image_points: np.ndarray, ground_plane_height=0) -> np.ndarray:
-        """Project image points (2xn) into ground frame (3xn) i.e. z=0."""
+        """
+        Project image points (2xn) into ground frame (3xn) i.e. z=0.
+        """
         assert image_points.shape[0] == 2
         # "Transform" points into ground frame.
         # The real ground point is somewhere on the line going through the camera position and the respective point.

@@ -1,3 +1,7 @@
+"""
+Adapted from: https://github.com/AtsushiSakai/PythonRobotics/blob/master/Mapping/rectangle_fitting/rectangle_fitting.py
+"""
+
 import numpy as np
 from enum import Enum
 from scipy.spatial.transform import Rotation as R

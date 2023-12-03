@@ -150,7 +150,7 @@ colcon build
 
 1. Download the ROS bags from: `TBD`.
 
-2. Run the launch file in the terminal `ros2 launch lidar_pipeline fusion_demo.launch.py`. The primary launch file will start all the nodes including Rviz2 for visualization. See: `cam_lidar_tools/lidar_pipeline/launch/fusion_demo.launch.py`, there are some parameters you can adjust there for different demonstrations.
+2. Run the launch file in the terminal `ros2 launch cam_lidar_bringup fusion_demo.launch.py`. The primary launch file will start all the nodes including Rviz2 for visualization. See: `cam_lidar_tools/lidar_pipeline/launch/fusion_demo.launch.py`, there are some parameters you can adjust there for different demonstrations.
 
 3. Tune parameters and re-run. inspect the launch file to see what nodes are being executed. Sometime the launch file calls other launch files. Each node may have different paramters that can be adjusted.
 
