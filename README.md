@@ -68,7 +68,7 @@ tree -d -L 2 -I __pycache__
 
 > `lidar_pipeline`: LiDAR Object Detection Module
 
-> > `obj_classifier`: LiDAR Object Classification Module
+> `obj_classifier`: LiDAR Object Classification Module
 
 > `obj_tracker`: LiDAR Object Tracking Module
 
@@ -89,9 +89,10 @@ Tested on:
 
 | Ubunbtu 20.04 |
 |:-------------:|
-|  i7 16 cores  |
+|  i7-11800H @ 2.30GHz × 16|
 |   32 GB RAM   |
-|  Discrete GPU |
+|  NVIDIA Quadro T1200 |
+| CUDA Version: 11.7 |
 
 ## 1. ROS 2 Galactic 
 Install ROS 2 Galactic.
@@ -158,7 +159,7 @@ colcon build
 
 ## Colcon build fails?
 - Check that the libraries you import are in your `CMakeLists.txt` (C++) or `setup.py` (Python) files.
-- Certain warning disappera if you build a 2nd time.
+- Certain warning disappear if you build a 2nd time.
 
 ## Known issues
 
