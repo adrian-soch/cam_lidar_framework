@@ -12,6 +12,7 @@ import open3d as o3d
 import ros2_numpy
 from numpy.lib.recfunctions import unstructured_to_structured
 from scipy.spatial.transform import Rotation as R
+from sklearn.cluster import DBSCAN
 
 from ultralytics import YOLO
 
@@ -92,11 +93,14 @@ class ImagePCDNode(Node):
             polygon = mask.xy[0]
             self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
 
-            '''
-            TODO: Run dbcan to denoise the outlines
-            '''
             # Project camera outline to 3D space
             mask3d = self.project_to_ground(polygon.T)
+            mask3d = self.remove_noise_with_dbscan(mask3d, eps=0.75, min_samples=3)
+
+            if mask3d.shape[0] <= 1:
+                continue
+
+            # Get Bbox with L-shape fitting on cleaned points
             bbox = self.l_shape_fit.fitting(mask3d[:, :2])
             bbox_array.markers.append(self.createMarker(bbox, idx, 'map'))
 
@@ -172,6 +176,33 @@ class ImagePCDNode(Node):
             (self.translation[2] - ground_plane_height) / ground_points[2]
         result = ground_points.T + self.translation
         return result
+    
+    @staticmethod
+    def remove_noise_with_dbscan(data, eps=0.5, min_samples=5) -> np.ndarray:
+        """
+        Perform DBSCAN clustering to identify and remove noise from 2D data.
+
+        Parameters:
+        - data: A 2D numpy array of shape (n_samples, n_features).
+        - eps: The maximum distance between two samples for them to be considered as in the same neighborhood.
+        - min_samples: The number of samples in a neighborhood for a point to be considered as a core point.
+
+        Returns:
+        - core_samples: The 2D numpy array of core samples without noise.
+        """
+        # Initialize DBSCAN
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+        
+        # Fit the model and get the labels
+        labels = dbscan.fit_predict(data)
+        
+        # Identify core samples (non-noise points have labels >= 0)
+        core_samples_mask = labels >= 0
+        
+        # Extract core samples
+        core_samples = data[core_samples_mask]
+        
+        return core_samples
 
 
 def main(args=None):
