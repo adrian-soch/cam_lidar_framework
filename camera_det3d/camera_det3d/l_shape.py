@@ -164,7 +164,7 @@ class RectangleData:
 
         self.quat = [None] * 4
         self.center = [None] * 2
-        self.size = [None] * 2
+        self.size = [None] * 3
 
     def calc_rect_contour(self) -> None:
 
@@ -193,11 +193,11 @@ class RectangleData:
 
         yaw = self.euler_from_quaternion(
             self.quat[0], self.quat[1], self.quat[2], self.quat[3])
-        size = [0,0]
+        size = [0,0,None]
         if(side1 > side2) or (yaw > 0.785):
-            size = [side1, side2]
+            size = [side1, side2, None]
         else:
-            size = [side2, side1]
+            size = [side2, side1, None]
         self.size = size
 
     @staticmethod
