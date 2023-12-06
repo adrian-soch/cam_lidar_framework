@@ -54,7 +54,7 @@ camera_det3d:
     # Transform from Lidar to camera frame
     lidar2cam_extrinsic:
       rotation: [0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0]
-      translation: [0.00, 0.0508, 0.0502]
+      translation: [-0.0508, 0.0502, 0.0]
 
     # Transform from lidar data from to lidar sensor frame
     # See https://github.com/ros-drivers/ros2_ouster_drivers/issues/87

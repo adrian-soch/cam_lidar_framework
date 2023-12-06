@@ -40,7 +40,7 @@ from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.node import Node
 from rclpy.parameter import ParameterType
 
-from camera_det3d.l_shape import LShapeFitting
+from camera_det3d.l_shape import LShapeFitting, RectangleData
 from ultralytics import YOLO
 
 
@@ -59,9 +59,11 @@ class CameraDet3DNode(Node):
             MarkerArray, '/image_proc/cam_bbox3D', 2)
         self.det_publisher = self.create_publisher(
             Detection3DArray, 'image_proc/det3D', 2)
+        
+        weights = self.declare_parameter(
+            'weights', 'yolov8m-seg.pt').get_parameter_value().string_value
 
-        # Weights will be downloaded on first run
-        self.model = YOLO("yolov8m-seg.pt")
+        self.model = YOLO(weights)
         self.br = CvBridge()
         self.l_shape_fit = LShapeFitting()
 
@@ -146,6 +148,7 @@ class CameraDet3DNode(Node):
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
         det_array = Detection3DArray()
+        det_array.header = msg.header
         bbox_array = MarkerArray()
 
         proj_points = np.array([[0, 0, 0]])
@@ -159,7 +162,7 @@ class CameraDet3DNode(Node):
             # Project camera outline to 3D space
             mask3d = self.project_to_ground(polygon.T)
             mask3d = self.remove_noise_with_dbscan(
-                mask3d, eps=0.65, min_samples=3)
+                mask3d, eps=0.65, min_samples=2)
 
             # Denoising may remove all points from a countour
             if mask3d.shape[0] <= 1:
@@ -167,6 +170,9 @@ class CameraDet3DNode(Node):
 
             # Get bounding box with L-shape fitting on cleaned points
             bbox_3d = self.l_shape_fit.fitting(mask3d[:, :2])
+
+            if 0.0 in bbox_3d.size:
+                continue
 
             # Refine 3D BBox based on 2D BBox
             bbox_3d = self.refine_3d_dets(bbox_3d=bbox_3d, bbox_2d=bbox_2d)
@@ -193,7 +199,7 @@ class CameraDet3DNode(Node):
         self.get_logger().info(
             f'Time (msec): conv {(t1-start)*1000:.1f} inf {(t2-t1)*1000:.1f} proc {(t3-t2)*1000:.1f} pub {(end-t3)*1000:.1f} total {(end-start)*1000:.1f}')
 
-    def refine_3d_dets(self, bbox_3d, bbox_2d):
+    def refine_3d_dets(self, bbox_3d, bbox_2d) -> RectangleData:
         """Height Estimation and Dimension Filtering The height for each detection is initialized from a fixed value for the object type of the detection.
            Both the height and the location are then jointly optimized through binary search, until the estimated projected 2D object height and the original
            mask height are the same by < 1px. The length and width values, as estimated by the L-Shape-Fitting algorithm for each 3D bottom contour,
@@ -319,18 +325,18 @@ class CameraDet3DNode(Node):
     def create_3D_det(header, bbox):
         det = Detection3D()
         det.header = header
+        det.bbox.size.x = float(bbox.size[0])
+        det.bbox.size.y = float(bbox.size[1])
+        det.bbox.size.z = 2.3
+
         det.bbox.center.position.x = bbox.center[0]
         det.bbox.center.position.y = bbox.center[1]
-        det.bbox.center.position.z = 2.3
+        det.bbox.center.position.z = det.bbox.size.z/2.0
 
         det.bbox.center.orientation.x = bbox.quat[0]
         det.bbox.center.orientation.y = bbox.quat[1]
         det.bbox.center.orientation.z = bbox.quat[2]
         det.bbox.center.orientation.w = bbox.quat[3]
-
-        det.bbox.size.x = bbox.size[0]
-        det.bbox.size.y = bbox.size[1]
-        det.bbox.size.z = det.bbox.center.position.z/2.0
 
         return det
 

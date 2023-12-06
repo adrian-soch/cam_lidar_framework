@@ -17,9 +17,6 @@ example:
 '''
 
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-# BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
-# BAG_NAME = 'dec7_2022/roofTestDaylight_2_FHD_qosOverrride_true/'
-# BAG_NAME = 'may10_2023/q6_2_may10_2023'
 BAG_NAME = 'may10_2023/q7_2_may10_2023'
 
 share_dir = get_package_share_directory('lidar_pipeline')
@@ -39,25 +36,6 @@ def generate_launch_description():
                 pipeline_params,
                 data_dependant_params
         ]
-    )
-
-    s_transform = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-
-        # params from visual inspection
-        # To make the road paralell with the XY plane/rviz2 grid
-        arguments=['0', '0', '0', '0', '0.2', '0', 'map', 'laser_data_frame']
-    )
-
-    s_transform2 = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-
-        # params from visual inspection
-        # To make the road paralell with the XY plane/rviz2 grid
-        arguments=['0', '0', '0', '3.1416', '0',
-                   '0', 'map', 'laser_sensor_frame']
     )
 
     lidar_tracker = Node(
@@ -96,10 +74,8 @@ def generate_launch_description():
 
     # Items above will only be launched if they are present in this list
     return LaunchDescription([
-        s_transform2,
         lidar_tracker,
         perception_node,
-        s_transform,
         lidar_tracker_viz,
         rosbag_play,
         rviz_node

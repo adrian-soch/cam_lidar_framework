@@ -41,6 +41,12 @@ class ObjectTracker(Node):
         # Get the topic name from the ROS parameter server
         self.world_frame = self.declare_parameter(
             'world_frame', 'map').get_parameter_value().string_value
+        
+        det_pub_topic = self.declare_parameter(
+            'det_pub_topic', 'lidar_proc/tracks').get_parameter_value().string_value
+        
+        marker_pub_topic = self.declare_parameter(
+            'marker_pub_topic', 'lidar_proc/track_markers').get_parameter_value().string_value
 
         # Current default is aa_detections for axis algined and o_detections for oriented detections
         detection_topic = self.declare_parameter(
@@ -64,9 +70,9 @@ class ObjectTracker(Node):
         self.subscription  # prevent unused variable warning
 
         self.track_publisher_ = self.create_publisher(
-            Detection3DArray, 'lidar_proc/tracks', 2)
+            Detection3DArray, det_pub_topic, 2)
         self.marker_publisher_ = self.create_publisher(
-            MarkerArray, 'lidar_proc/track_markers', 2)
+            MarkerArray, marker_pub_topic, 2)
         
         self.get_logger().info('Tracker Module initialized.')
 

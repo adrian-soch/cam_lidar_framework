@@ -26,13 +26,9 @@ class LShapeFitting:
         #: Fitting criteria parameter
         self.criteria = self.Criteria.VARIANCE
         #: Minimum distance for closeness criteria parameter [m]
-        self.min_dist_of_closeness_criteria = 0.01
+        self.min_dist_of_closeness_criteria = 0.015
         #: Angle difference parameter [deg]
-        self.d_theta_deg_for_search = 1.0
-        #: Range segmentation parameter [m]
-        self.R0 = 3.0
-        #: Range segmentation parameter [m]
-        self.Rd = 0.001
+        self.d_theta_deg_for_search = 3.0
 
     def fitting(self, points):
         """
