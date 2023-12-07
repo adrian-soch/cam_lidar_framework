@@ -51,6 +51,8 @@ class CameraDet3DNode(Node):
         self.intrinsic_matrix, self.rotation_matrix, self.translation = self.init_params()
         self.inv_intrinsic_matrix = np.linalg.inv(self.intrinsic_matrix)
 
+        self.cam2ground = self.rotation_matrix.T @ self.inv_intrinsic_matrix
+
         self.img_publisher_ = self.create_publisher(
             Image, '/image_proc/contours', 2)
         self.publisher_pcd2 = self.create_publisher(
@@ -155,6 +157,8 @@ class CameraDet3DNode(Node):
         masks = result.masks
         bboxes_2d = result.boxes
         for idx, (mask, bbox_2d) in enumerate(zip(masks, bboxes_2d)):
+            l1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+
             bbox_2d = bbox_2d.xyxy[0].cpu().numpy()
             polygon = mask.xy[0]
             self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
@@ -163,6 +167,8 @@ class CameraDet3DNode(Node):
             mask3d = self.project_to_ground(polygon.T)
             mask3d = self.remove_noise_with_dbscan(
                 mask3d, eps=0.65, min_samples=2)
+            
+            l2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
             # Denoising may remove all points from a countour
             if mask3d.shape[0] <= 1:
@@ -174,6 +180,8 @@ class CameraDet3DNode(Node):
             if 0.0 in bbox_3d.size:
                 continue
 
+            l3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+
             # Refine 3D BBox based on 2D BBox
             bbox_3d = self.refine_3d_dets(bbox_3d=bbox_3d, bbox_2d=bbox_2d)
 
@@ -184,6 +192,10 @@ class CameraDet3DNode(Node):
 
             # Debug cloud to see all countour points
             proj_points = np.vstack([proj_points, mask3d])
+
+            l4 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+            self.get_logger().info(
+                f'Time (msec): proj {(l2-l1)*1000:.2f} lfit {(l3-l2)*1000:.2f} ref {(l4-l3)*1000:.2f} ')
 
         t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
@@ -270,17 +282,15 @@ class CameraDet3DNode(Node):
         """
         Project image points (2xn) into ground frame (3xn) i.e. z=0.
         """
-        assert image_points.shape[0] == 2
         # "Transform" points into ground frame.
         # The real ground point is somewhere on the line going through the camera position and the respective point.
         augmented_points = np.vstack(
             (image_points, np.ones(image_points.shape[1])))
-        ground_points = self.rotation_matrix.T @ self.inv_intrinsic_matrix @ augmented_points
+        ground_points = self.cam2ground @ augmented_points
         # Find intersection of line with ground plane i.e. z=0.
-        ground_points *= - \
-            (self.translation[2] - ground_plane_height) / ground_points[2]
-        result = ground_points.T + self.translation
-        return result
+        scalar = -(self.translation[2] - ground_plane_height) / ground_points[2]
+        ground_points = ground_points.T * scalar[:, np.newaxis] + self.translation
+        return ground_points
 
     def publish_image(self, publisher, image_array) -> None:
         msg = self.br.cv2_to_imgmsg(np.array(image_array))
