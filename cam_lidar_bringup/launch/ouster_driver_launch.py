@@ -32,7 +32,7 @@ import os
 
 
 def generate_launch_description():
-    share_dir = get_package_share_directory('camera_pipeline')
+    share_dir = get_package_share_directory('cam_lidar_bringup')
     parameter_file = LaunchConfiguration('config_file')
     node_name = 'ouster_driver'
 

@@ -16,6 +16,10 @@ lidar_pipeline_share_dir = get_package_share_directory('lidar_pipeline')
 pipeline_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
 
+rviz_config_file = PathJoinSubstitution(
+        [FindPackageShare('cam_lidar_bringup'), 'configs', 'rviz.rviz']
+    )
+
 # Used to change playback rate of ros bag
 # A9 data bags were recoreded at 2.5Hz so they need a x4 speedup
 # if left as 1 then thre is no rate change
@@ -36,7 +40,7 @@ Note: -1 will use the LiDAR + Webcam with live data
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 
 # 10, 7, 6, 12, 13
-BAG_SELECTOR = 7
+BAG_SELECTOR = 6
 
 # Determines what kind of output you want, Video/Rviz2/csv_tracker_data
 SAVE_OUTPUT_VIDEO = False
@@ -48,7 +52,7 @@ LIDAR_RESULT_ONLY = False
 CAM_RESULT_ONLY = False
 
 # Enable camera 3d detections
-ENABLE_CAM_3D = True
+ENABLE_CAM_3D = False
 
 # Because of the yolov5 includes, its easier to just run this directly
 # in the terminal instead of a traditional node
@@ -214,9 +218,6 @@ def generate_launch_description():
         name='detection2csv_node',
     )
 
-    rviz_config_file = PathJoinSubstitution(
-        [FindPackageShare("lidar_pipeline"), "configs", "rviz.rviz"]
-    )
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -243,7 +244,7 @@ def generate_launch_description():
     else:
         data_source = IncludeLaunchDescription(PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("camera_pipeline"), 'lidar_camera_launch.py'])
+                [FindPackageShare('cam_lidar_bringup'), 'lidar_camera_launch.py'])
         ))
 
     launch_list = [
