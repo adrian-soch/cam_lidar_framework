@@ -23,6 +23,12 @@ class DetectorNode(Node):
         # Get the topic name from the ROS parameter server
         topic_name = self.declare_parameter(
             'topic_name', '/lidar_proc/tracks').get_parameter_value().string_value
+        
+        bbox_marker_topic = self.declare_parameter(
+            'bbox_marker_topic', 'lidar_proc/tracker_bboxs').get_parameter_value().string_value
+        
+        tracklet_topic = self.declare_parameter(
+            'tracklet_topic', '/lidar_proc/tracklets').get_parameter_value().string_value
 
         # Subscribe to the detection messages
         self.subscription = self.create_subscription(
@@ -30,9 +36,9 @@ class DetectorNode(Node):
 
         # Publish the marker messages
         self.bbox_publisher = self.create_publisher(
-            MarkerArray, 'lidar_proc/tracker_bboxs', 5)
+            MarkerArray, bbox_marker_topic, 5)
         self.tracklet_publisher = self.create_publisher(
-            MarkerArray, '/lidar_proc/tracklets', 5)
+            MarkerArray, tracklet_topic, 5)
 
         self.get_logger().info('Starting Tracker BBox Visualization')
 

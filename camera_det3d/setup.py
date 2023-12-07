@@ -1,7 +1,9 @@
+import os
+from glob import glob
 from setuptools import setup
 from setuptools import find_packages
 
-package_name = 'obj_tracker'
+package_name = 'camera_det3d'
 
 setup(
     name=package_name,
@@ -11,18 +13,21 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name),
+         glob('launch/*launch.[pxy][yma]*')),
+        (os.path.join('share', package_name),
+         glob('weights/*.*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='adrian',
     maintainer_email='sochania@mcmaster.ca',
-    description='2D Object Tracking',
+    description='Mono Camera 3D Object Detection',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'object_tracker = obj_tracker.obj_tracker:main',
-            'tracker_bbox_viz = obj_tracker.tracker_viz_node:main'
+            'camera_det3d = camera_det3d.camera_det3d_node:main',
         ],
     },
 )

@@ -16,6 +16,10 @@ lidar_pipeline_share_dir = get_package_share_directory('lidar_pipeline')
 pipeline_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
 
+rviz_config_file = PathJoinSubstitution(
+        [FindPackageShare('cam_lidar_bringup'), 'configs', 'rviz.rviz']
+    )
+
 # Used to change playback rate of ros bag
 # A9 data bags were recoreded at 2.5Hz so they need a x4 speedup
 # if left as 1 then thre is no rate change
@@ -36,16 +40,19 @@ Note: -1 will use the LiDAR + Webcam with live data
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 
 # 10, 7, 6, 12, 13
-BAG_SELECTOR = 13
+BAG_SELECTOR = 6
 
 # Determines what kind of output you want, Video/Rviz2/csv_tracker_data
-SAVE_OUTPUT_VIDEO = True
-SAVE_CSV_FUSION_OUTPUT = True
-SHOW_RVIZ = False
+SAVE_OUTPUT_VIDEO = False
+SAVE_CSV_FUSION_OUTPUT = False
+SHOW_RVIZ = True
 
 # Fusion Overrides
 LIDAR_RESULT_ONLY = False
 CAM_RESULT_ONLY = False
+
+# Enable camera 3d detections
+ENABLE_CAM_3D = False
 
 # Because of the yolov5 includes, its easier to just run this directly
 # in the terminal instead of a traditional node
@@ -58,16 +65,6 @@ if BAG_SELECTOR == -1:
     # FLIP_IMAGE = True
     CONFIG_NAME = 'default_config.yaml'
 
-# MARC Rooftop data without data syncronization
-# Fusion and projection will not work
-elif BAG_SELECTOR == 0:
-    FLIP_IMAGE = True
-    BAG_NAME = 'dec7_2022/roofTestDark_1_HD_qosOverrride_true/'
-    CONFIG_NAME = 'dec7_config.yaml'
-elif BAG_SELECTOR == 1:
-    FLIP_IMAGE = True
-    BAG_NAME = 'dec7_2022/roofTestDaylight_2_FHD_qosOverrride_true/'
-    CONFIG_NAME = 'dec7_config.yaml'
 elif BAG_SELECTOR == 10:
     # Cleaned bag - mismatched frames removed
     # Good for use with metrics
@@ -86,10 +83,6 @@ elif BAG_SELECTOR == 2:
     FLIP_IMAGE = True
     BAG_NAME = 'may10_2023/q6_2_may10_2023'
     CONFIG_NAME = 'may10_config.yaml'
-elif BAG_SELECTOR == 3:
-    FLIP_IMAGE = True
-    BAG_NAME = 'may10_2023/q7_2_may10_2023'
-    CONFIG_NAME = 'may10_config.yaml'
 elif BAG_SELECTOR == 6:
     # Cleaned bag - mismatched frames removed
     # Good for use with metrics
@@ -99,14 +92,6 @@ elif BAG_SELECTOR == 7:
     # Cleaned bag - mismatched frames removed
     # Good for use with metrics
     BAG_NAME = 'cleaned_bags/oct18_r9_clean'
-    CONFIG_NAME = 'oct18_config.yaml'
-
-# Roadside data
-elif BAG_SELECTOR == 4:
-    BAG_NAME = 'oct18_2023/r3'
-    CONFIG_NAME = 'oct18_config.yaml'
-elif BAG_SELECTOR == 5:
-    BAG_NAME = 'oct18_2023/r9'
     CONFIG_NAME = 'oct18_config.yaml'
 
 # A9 data
@@ -219,15 +204,20 @@ def generate_launch_description():
         ]
     )
 
+    camera_det3D = Node(
+            package='camera_det3d',
+            executable='camera_det3d',
+            name='camera_det3d',
+            output='screen',
+            parameters=[data_dependant_params],
+        )
+
     save_csv_fusion = Node(
         package='fusion_module',
         executable='detection2csv_node',
         name='detection2csv_node',
     )
 
-    rviz_config_file = PathJoinSubstitution(
-        [FindPackageShare("lidar_pipeline"), "configs", "rviz.rviz"]
-    )
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -254,7 +244,7 @@ def generate_launch_description():
     else:
         data_source = IncludeLaunchDescription(PythonLaunchDescriptionSource(
             PathJoinSubstitution(
-                [FindPackageShare("camera_pipeline"), 'lidar_camera_launch.py'])
+                [FindPackageShare('cam_lidar_bringup'), 'lidar_camera_launch.py'])
         ))
 
     launch_list = [
@@ -274,6 +264,9 @@ def generate_launch_description():
 
     if SAVE_CSV_FUSION_OUTPUT:
         launch_list.append(save_csv_fusion)
+
+    if ENABLE_CAM_3D:
+        launch_list.append(camera_det3D)
 
     # Items above will only be launched if they are present in this list
     return LaunchDescription(launch_list)

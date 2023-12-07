@@ -18,7 +18,7 @@ def generate_launch_description():
     # Add the LiDAR launch file to this launch
     ouster_lidar = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory("camera_pipeline"),
+            get_package_share_directory("cam_lidar_bringup"), "launch",
             "ouster_driver_launch.py")])
     )
     # Items above will only be launched if they are present in this list

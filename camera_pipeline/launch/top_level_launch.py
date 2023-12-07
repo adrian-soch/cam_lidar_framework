@@ -8,19 +8,12 @@ from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/camera_pipeline/camera_pipeline'
-ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags'
+ABS_PATH_TO_ROSBAG = 'PATH_HERE'
 
 PACKAGE = 'camera_pipeline'
 
 
 def generate_launch_description():
-
-    # Add the LiDAR launch file to this launch
-    ouster_lidar = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory(PACKAGE),
-            'ouster_driver_launch.py')])
-    )
 
     # Start rviz with the desired configuration file
     rviz_node = Node(
@@ -44,8 +37,7 @@ def generate_launch_description():
     rosbag_play = ExecuteProcess(
         cmd=[[
             'ros2 bag play ',
-            ABS_PATH_TO_ROSBAGS,
-            '/dec7_2022/roofTestDark_1_HD_qosOverrride_true/',
+            ABS_PATH_TO_ROSBAG,
             ' -l'
         ]],
         shell=True
@@ -56,5 +48,4 @@ def generate_launch_description():
         rviz_node,
         execute_camera_processor,
         rosbag_play
-        # ouster_lidar
     ])
