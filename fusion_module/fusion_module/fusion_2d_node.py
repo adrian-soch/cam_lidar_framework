@@ -1,11 +1,11 @@
 #! /usr/bin/env python3
 """
-@file fusion_2d_image_coords.py
+@file fusion_2d_node.py
 
 @brief This node subscribes to 2D detections/tracks from camera and lidar sensors
-    It will associate dets based on IoU in the image plane
-    Unmatched dets + matched dets list will be tracked via SORT MOT tracker
-    Final results will be published as a Detection2DArray
+    It will associate dets based on IoU in the image plane.
+    Unmatched dets + matched dets list will be tracked via SORT MOT tracker.
+    Final results will be published as a Detection2DArray.
 
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023

@@ -161,7 +161,7 @@ class CameraDet3DNode(Node):
 
             bbox_2d = bbox_2d.xyxy[0].cpu().numpy()
             polygon = mask.xy[0]
-            self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
+            # self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
 
             # Project camera outline to 3D space
             mask3d = self.project_to_ground(polygon.T)
@@ -194,15 +194,15 @@ class CameraDet3DNode(Node):
             proj_points = np.vstack([proj_points, mask3d])
 
             l4 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-            self.get_logger().info(
-                f'Time (msec): proj {(l2-l1)*1000:.2f} lfit {(l3-l2)*1000:.2f} ref {(l4-l3)*1000:.2f} ')
+            # self.get_logger().info(
+                # f'Time (msec): proj {(l2-l1)*1000:.2f} lfit {(l3-l2)*1000:.2f} ref {(l4-l3)*1000:.2f} ')
 
         t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
         '''
         Publish image, base pc, and projected points
         '''
-        self.publish_pc(self.publisher_pcd2, proj_points, 'map')
+        # self.publish_pc(self.publisher_pcd2, proj_points, 'map')
         self.publish_image(self.img_publisher_, self.pil_img)
         self.bbox_publisher.publish(bbox_array)
         self.det_publisher.publish(det_array)
