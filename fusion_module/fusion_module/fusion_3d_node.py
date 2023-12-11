@@ -1,30 +1,33 @@
 #! /usr/bin/env python3
 """
-@file fusion_2d_image_coords.py
+@file fusion_3d_node.py
 
-@brief This node subscribes to 2D detections/tracks from camera and lidar sensors
-    It will associate dets based on IoU in the image plane
-    Unmatched dets + matched dets list will be tracked via SORT MOT tracker
-    Final results will be published as a Detection3DArray
+@brief This node subscribes to 3D detections/tracks from camera and lidar sensors
+    It will associate dets based on euclidean distance between 3D centroids.
+    Unmatched dets + matched dets list will be tracked via modified SORT MOT tracker.
+    Final results will be published as a Detection3DArray.
 
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
 
-from fusion_module.utils import createDetection3DArr, detection3DArray2Numpy
-from fusion_module.sort import Sort, iou_batch, linear_assignment
-from vision_msgs.msg import Detection3DArray
-from rclpy.node import Node
-from message_filters import ApproximateTimeSynchronizer, Subscriber
-import rclpy
-import time
-import numpy as np
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+from fusion_module.utils import createDetection3DArr, detection3DArray2Numpy
+from fusion_module.sort_centroid import Sort, iou_batch, linear_assignment
+from vision_msgs.msg import Detection3DArray
+from rclpy.node import Node
+from message_filters import ApproximateTimeSynchronizer, Subscriber
+import rclpy
+
+import numpy as np
+import time
+
 
 
 class DetectionSyncNode(Node):
