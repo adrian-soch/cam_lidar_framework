@@ -10,21 +10,22 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
-
-from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
-from fusion_module.sort import Sort, iou_batch, linear_assignment
-from vision_msgs.msg import Detection2DArray
-from rclpy.node import Node
-from message_filters import ApproximateTimeSynchronizer, Subscriber
-import rclpy
-import time
-import numpy as np
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
+import rclpy
+from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
+from fusion_module.sort import Sort, iou_batch, linear_assignment
+from vision_msgs.msg import Detection2DArray
+from rclpy.node import Node
+from message_filters import ApproximateTimeSynchronizer, Subscriber
+
+import numpy as np
+import time
 
 
 class DetectionSyncNode(Node):
@@ -110,7 +111,7 @@ class DetectionSyncNode(Node):
             len(track_msg_arr.detections), (t2-t1)*1000))
 
     def fuse(self, cam_arr, lidar_arr, iou_threshold=0.3) -> np.ndarray:
-        """Perform late fusion between 2 sets of Axis-alogned bounding boxes from 2 different sensors
+        """Perform late fusion between 2 sets of Axis-aligned bounding boxes from 2 different sensors
 
         Associate the 2 lists. For all matched detections just keep the camera detection.
         Keep all unmatched detections. This will use all camera detections
