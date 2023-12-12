@@ -14,7 +14,6 @@ def detection3DArray2Numpy(detection_list, sensor_type) -> np.ndarray:
     Returns:
         np.ndarray: [x,y,z,yaw,l,h,w]
     """
-
     entry_size = 8
     if len(detection_list) <= 0:
         return np.zeros((0, entry_size))
@@ -53,6 +52,7 @@ def createDetection3DArr(tracks, header) -> Detection3DArray:
 
     for trk in tracks:
         det = Detection3D()
+        det.header = header
         result = ObjectHypothesisWithPose()
         result.hypothesis.score = trk[-2]
         result.hypothesis.class_id = chr(int(trk[-1]))

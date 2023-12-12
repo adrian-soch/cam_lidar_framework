@@ -22,59 +22,83 @@ Based on:
 from filterpy.kalman import KalmanFilter
 from lap import lapjv
 import numpy as np
-from scipy.spatial.distance import cdist
+from scipy.spatial import distance_matrix
 
 np.random.seed(0)
+
 
 def linear_assignment(cost_matrix):
     _, x, y = lapjv(cost_matrix, extend_cost=True)
     return np.array([[y[i], i] for i in x if i >= 0])
 
-def centroid_distance_batch(dets, trackers):
-    d_pos = dets[:,:3]
-    t_pos = trackers[:,:3]
 
-    return cdist(d_pos, t_pos, metric='euclidean')
+def centroid_distance_batch(dets, trackers):
+    d_pos = dets[:, :3]
+    t_pos = trackers[:, :3]
+
+    d1 = distance_matrix(d_pos, t_pos)
+    return d1
+
+
+def iou_batch(bb_test, bb_gt):
+    """
+    From SORT: Computes IOU between two bboxes in the form [x1,y1,x2,y2]
+    """
+    bb_gt = np.expand_dims(bb_gt, 0)
+    bb_test = np.expand_dims(bb_test, 1)
+
+    xx1 = np.maximum(bb_test[..., 0], bb_gt[..., 0])
+    yy1 = np.maximum(bb_test[..., 1], bb_gt[..., 1])
+    xx2 = np.minimum(bb_test[..., 2], bb_gt[..., 2])
+    yy2 = np.minimum(bb_test[..., 3], bb_gt[..., 3])
+    w = np.maximum(0., xx2 - xx1)
+    h = np.maximum(0., yy2 - yy1)
+    wh = w * h
+    o = wh / ((bb_test[..., 2] - bb_test[..., 0]) * (bb_test[..., 3] - bb_test[..., 1])
+              + (bb_gt[..., 2] - bb_gt[..., 0]) * (bb_gt[..., 3] - bb_gt[..., 1]) - wh)
+    return (o)
+
 
 class KalmanBoxTracker(object):
     """
     This class represents the internal state of individual tracked objects observed as bbox.
     """
     count = 0
+
     def __init__(self, z, sensor_type, dt=0.1, dim_z=1):
         """
         Initialises a tracker using initial bounding box.
         """
 
         self.P_X, self.P_Y, self.P_Z, self.YAW, self.LENGTH, self.WIDTH, self.HEIGHT, self.V_X, self.V_Y, self.dW_YAW = range(
-                10)
-        
+            10)
+
         # Constant velocity model for x,y,yaw. Constant position model for the rest.
         self.kf = KalmanFilter(dim_x=10, dim_z=dim_z)
-        self.kf.F = np.array([[1,0,0,0,0,0,0,dt,0,0], # P_X
-                              [0,1,0,0,0,0,0,0,dt,0], # P_Y
-                              [0,0,1,0,0,0,0,0,0,0],  # P_Z
-                              [0,0,0,1,0,0,0,0,0,dt], # YAW
-                              [0,0,0,0,1,0,0,0,0,0],  # L
-                              [0,0,0,0,0,1,0,0,0,0],  # W
-                              [0,0,0,0,0,0,1,0,0,0],  # H
-                              [0,0,0,0,0,0,0,1,0,0],  # V_X
-                              [0,0,0,0,0,0,0,0,1,0],  # V_Y
-                              [0,0,0,0,0,0,0,0,0,1]]) # D_YAW
-        
-        self.kf.H = np.array([[1,0,0,0,0,0,0,0,0,0],
-                              [0,1,0,0,0,0,0,0,0,0],
-                              [0,0,1,0,0,0,0,0,0,0],
-                              [0,0,0,1,0,0,0,0,0,0],
-                              [0,0,0,0,1,0,0,0,0,0],
-                              [0,0,0,0,0,1,0,0,0,0],
-                              [0,0,0,0,0,0,1,0,0,0]])
+        self.kf.F = np.array([[1, 0, 0, 0, 0, 0, 0, dt, 0, 0],  # P_X
+                              [0, 1, 0, 0, 0, 0, 0, 0, dt, 0],  # P_Y
+                              [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],  # P_Z
+                              [0, 0, 0, 1, 0, 0, 0, 0, 0, dt],  # YAW
+                              [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],  # L
+                              [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],  # W
+                              [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],  # H
+                              [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],  # V_X
+                              [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],  # V_Y
+                              [0, 0, 0, 0, 0, 0, 0, 0, 0, 1]])  # D_YAW
 
-        self.kf.R[2:,2:] *= 10.
-        self.kf.P[7:,7:] *= 1000. #give high uncertainty to the unobservable initial velocities
+        self.kf.H = np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                              [0, 0, 0, 0, 0, 0, 1, 0, 0, 0]])
+
+        self.kf.R[2:, 2:] *= 10.
+        self.kf.P[7:, 7:] *= 1000.  # give high uncertainty to the unobservable initial velocities
         self.kf.P *= 10.
-        self.kf.Q[-1,-1] *= 0.01
-        self.kf.Q[7:,7:] *= 0.01
+        self.kf.Q[-1, -1] *= 0.01
+        self.kf.Q[7:, 7:] *= 0.01
 
         # Init state with measurement
         self.kf.x[:dim_z] = np.expand_dims(z[:-1], axis=1)
@@ -106,7 +130,7 @@ class KalmanBoxTracker(object):
         """
         self.kf.predict()
         self.age += 1
-        if(self.time_since_update>0):
+        if (self.time_since_update > 0):
             self.hit_streak = 0
         self.time_since_update += 1
         self.history.append(self.kf.x)
@@ -119,14 +143,14 @@ class KalmanBoxTracker(object):
         return self.kf.x[:]
 
 
-def associate_detections_to_trackers(detections,trackers,dist_threshold = 0.3):
+def associate_detections_to_trackers(detections, trackers, dist_threshold=0.3):
     """
     Assigns detections to tracked object (both represented as bounding boxes)
 
     Returns 3 lists of matches, unmatched_detections and unmatched_trackers
     """
-    if(len(trackers)==0):
-        return np.empty((0,2),dtype=int), np.arange(len(detections)), np.empty((0,5),dtype=int)
+    if (len(trackers) == 0):
+        return np.empty((0, 2), dtype=int), np.arange(len(detections)), np.empty((0, 5), dtype=int)
 
     cost_matrix = centroid_distance_batch(detections, trackers)
 
@@ -135,31 +159,31 @@ def associate_detections_to_trackers(detections,trackers,dist_threshold = 0.3):
         if a.sum(1).max() == 1 and a.sum(0).max() == 1:
             matched_indices = np.stack(np.where(a), axis=1)
         else:
-            matched_indices = linear_assignment(-cost_matrix)
+            matched_indices = linear_assignment(cost_matrix)
     else:
-        matched_indices = np.empty(shape=(0,2))
+        matched_indices = np.empty(shape=(0, 2))
 
     unmatched_detections = []
     for d, det in enumerate(detections):
-        if(d not in matched_indices[:,0]):
+        if (d not in matched_indices[:, 0]):
             unmatched_detections.append(d)
     unmatched_trackers = []
     for t, trk in enumerate(trackers):
-        if(t not in matched_indices[:,1]):
+        if (t not in matched_indices[:, 1]):
             unmatched_trackers.append(t)
 
-    #filter out matched with low IOU
+    # filter out matched with low IOU
     matches = []
     for m in matched_indices:
-        if(cost_matrix[m[0], m[1]]<dist_threshold):
+        if (cost_matrix[m[0], m[1]] < dist_threshold):
             unmatched_detections.append(m[0])
             unmatched_trackers.append(m[1])
         else:
-            matches.append(m.reshape(1,2))
-    if(len(matches)==0):
-        matches = np.empty((0,2),dtype=int)
+            matches.append(m.reshape(1, 2))
+    if (len(matches) == 0):
+        matches = np.empty((0, 2), dtype=int)
     else:
-        matches = np.concatenate(matches,axis=0)
+        matches = np.concatenate(matches, axis=0)
 
     return matches, np.array(unmatched_detections), np.array(unmatched_trackers)
 
@@ -199,7 +223,8 @@ class Sort(object):
         trks = np.ma.compress_rows(np.ma.masked_invalid(trks))
         for t in reversed(to_del):
             self.trackers.pop(t)
-        matched, unmatched_dets, unmatched_trks = associate_detections_to_trackers(dets,trks, self.dist_threshold)
+        matched, unmatched_dets, unmatched_trks = associate_detections_to_trackers(
+            dets, trks, self.dist_threshold)
 
         # update matched trackers with assigned detections
         for m in matched:
@@ -207,17 +232,20 @@ class Sort(object):
 
         # create and initialise new trackers for unmatched detections
         for i in unmatched_dets:
-            trk = KalmanBoxTracker(dets[i,:], dt=self.dt, dim_z=self.dim_z, sensor_type=dets[i,-1])
+            trk = KalmanBoxTracker(
+                dets[i, :], dt=self.dt, dim_z=self.dim_z, sensor_type=dets[i, -1])
             self.trackers.append(trk)
         i = len(self.trackers)
         for trk in reversed(self.trackers):
             d = np.array(trk.get_state()).T.reshape(-1)
             if (trk.time_since_update < self.max_age) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits):
-                ret.append(np.concatenate((d,[trk.id+1, trk.sensor_type])).reshape(1,-1)) # +1 as MOT benchmark requires positive
+                # +1 as MOT benchmark requires positive
+                ret.append(np.concatenate(
+                    (d, [trk.id+1, trk.sensor_type])).reshape(1, -1))
             i -= 1
             # remove dead tracklet
-            if(trk.time_since_update > self.max_age):
+            if (trk.time_since_update > self.max_age):
                 self.trackers.pop(i)
-        if(len(ret)>0):
+        if (len(ret) > 0):
             return np.concatenate(ret)
-        return np.empty((0,self.dim_z))
+        return np.empty((0, self.dim_z))
