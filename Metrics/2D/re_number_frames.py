@@ -1,3 +1,11 @@
+'''
+This script provides functions to read and write to a MOT format scv file.
+
+It re-numbers the first value of the MOT entry to start from 1. This is useful
+when deleteing some starting frmaes from a file with MOT detections, or if your
+file starts at frame 0 instead of 1.
+'''
+
 import os
 import argparse
 
