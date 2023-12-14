@@ -14,7 +14,7 @@ pipeline_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
 # Yolov8-segmentation model weights
 weights_path = os.path.join(
-    get_package_share_directory('camera_det3d'), 'yolov8s-seg_half_simplify.engine')
+    get_package_share_directory('camera_det3d'), 'yolov8m-seg_half.engine')
 
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 BAG_NAME = 'cleaned_bags/may10_q7_clean'
