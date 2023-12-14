@@ -187,31 +187,10 @@ class RectangleData:
         side1 = np.linalg.norm(p1-p2)
         side2 = np.linalg.norm(p2-p3)
 
-        yaw = self.euler_from_quaternion(
-            self.quat[0], self.quat[1], self.quat[2], self.quat[3])
-        size = [0,0,None]
-        if(side1 > side2) or (yaw > 0.785):
-            size = [side1, side2, None]
-        else:
-            size = [side2, side1, None]
-        self.size = size
+        self.size = [side1, side2, None]
 
     @staticmethod
     def calc_cross_point(a, b, c):
         x = (b[0] * -c[1] - b[1] * -c[0]) / (a[0] * b[1] - a[1] * b[0])
         y = (a[1] * -c[0] - a[0] * -c[1]) / (a[0] * b[1] - a[1] * b[0])
         return x, y
-    
-    @staticmethod
-    def euler_from_quaternion(x, y, z, w):
-        """
-        Convert a quaternion into euler angles (roll, pitch, yaw)
-        yaw is rotation around z in radians (counterclockwise)
-
-        Note: only returns yaw about z axis
-        """
-        t3 = +2.0 * (w * z + x * y)
-        t4 = +1.0 - 2.0 * (y * y + z * z)
-        yaw_z = np.arctan2(t3, t4)
-
-        return yaw_z  # in radians
