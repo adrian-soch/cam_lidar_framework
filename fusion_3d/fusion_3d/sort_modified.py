@@ -23,6 +23,8 @@ from filterpy.kalman import KalmanFilter
 from lap import lapjv
 import numpy as np
 from scipy.spatial import distance_matrix
+from shapely import affinity
+from shapely.geometry import Polygon
 
 np.random.seed(0)
 
@@ -40,23 +42,33 @@ def centroid_distance_batch(dets, trackers):
     return d1
 
 
-def iou_batch(bb_test, bb_gt):
-    """
-    From SORT: Computes IOU between two bboxes in the form [x1,y1,x2,y2]
-    """
-    bb_gt = np.expand_dims(bb_gt, 0)
-    bb_test = np.expand_dims(bb_test, 1)
+def iou_rotated_bbox(poly1, poly2):
+    intersection = poly1.intersection(poly2).area
+    union = poly1.union(poly2).area
+    return intersection / union
 
-    xx1 = np.maximum(bb_test[..., 0], bb_gt[..., 0])
-    yy1 = np.maximum(bb_test[..., 1], bb_gt[..., 1])
-    xx2 = np.minimum(bb_test[..., 2], bb_gt[..., 2])
-    yy2 = np.minimum(bb_test[..., 3], bb_gt[..., 3])
-    w = np.maximum(0., xx2 - xx1)
-    h = np.maximum(0., yy2 - yy1)
-    wh = w * h
-    o = wh / ((bb_test[..., 2] - bb_test[..., 0]) * (bb_test[..., 3] - bb_test[..., 1])
-              + (bb_gt[..., 2] - bb_gt[..., 0]) * (bb_gt[..., 3] - bb_gt[..., 1]) - wh)
-    return (o)
+
+def state2polygon(state) -> Polygon:
+    '''
+    Convert state vectoir to Polygon object
+    '''
+    center_x = state[0]
+    center_y = state[1]
+    angle = 0 #state[3]
+    half_width = state[4]/2.0
+    half_height = state[5]/2.0
+
+    # Create a rectangle polygon centered at the origin
+    rect = Polygon([(-half_width, -half_height),
+                    (-half_width, +half_height),
+                    (+half_width, +half_height),
+                    (+half_width, -half_height)])
+
+    # Rotate the polygon by the angle
+    rotated_rect = affinity.rotate(rect, angle, use_radians=True)
+
+    # Translate the polygon to the center coordinates
+    return affinity.translate(rotated_rect, center_x, center_y)
 
 
 class KalmanBoxTracker(object):
@@ -143,7 +155,7 @@ class KalmanBoxTracker(object):
         return self.kf.x[:]
 
 
-def associate_detections_to_trackers(detections, trackers, dist_threshold=0.3):
+def associate_detections_to_trackers(detections, trackers, threshold=0.3):
     """
     Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -152,14 +164,26 @@ def associate_detections_to_trackers(detections, trackers, dist_threshold=0.3):
     if (len(trackers) == 0):
         return np.empty((0, 2), dtype=int), np.arange(len(detections)), np.empty((0, 5), dtype=int)
 
-    cost_matrix = centroid_distance_batch(detections, trackers)
+    iou_matrix = np.zeros((len(detections), len(trackers)), dtype=np.float32)
+    det_poly_array = []
+    for det in detections:
+        det_poly_array.append(state2polygon(det))
 
-    if min(cost_matrix.shape) > 0:
-        a = (cost_matrix > dist_threshold).astype(np.int32)
+    trk_poly_array = []
+    for trk in trackers:
+        trk_poly_array.append(state2polygon(trk))
+
+    for d in range(len(detections)):
+        for t in range(len(trackers)):
+            iou_matrix[d, t] = iou_rotated_bbox(
+                det_poly_array[d], trk_poly_array[t])
+
+    if min(iou_matrix.shape) > 0:
+        a = (iou_matrix > threshold).astype(np.int32)
         if a.sum(1).max() == 1 and a.sum(0).max() == 1:
             matched_indices = np.stack(np.where(a), axis=1)
         else:
-            matched_indices = linear_assignment(cost_matrix)
+            matched_indices = linear_assignment(-iou_matrix)
     else:
         matched_indices = np.empty(shape=(0, 2))
 
@@ -175,7 +199,7 @@ def associate_detections_to_trackers(detections, trackers, dist_threshold=0.3):
     # filter out matched with low IOU
     matches = []
     for m in matched_indices:
-        if (cost_matrix[m[0], m[1]] < dist_threshold):
+        if (iou_matrix[m[0], m[1]] < threshold):
             unmatched_detections.append(m[0])
             unmatched_trackers.append(m[1])
         else:
@@ -189,13 +213,13 @@ def associate_detections_to_trackers(detections, trackers, dist_threshold=0.3):
 
 
 class Sort(object):
-    def __init__(self, max_age=3, min_hits=3, dist_threshold=3.0, dt=0.1):
+    def __init__(self, max_age=3, min_hits=3, threshold=3.0, dt=0.1):
         """
         Sets key parameters for SORT
         """
         self.max_age = max_age
         self.min_hits = min_hits
-        self.dist_threshold = dist_threshold
+        self.threshold = threshold
         self.trackers = []
         self.frame_count = 0
         self.dim_z = 7
@@ -216,7 +240,7 @@ class Sort(object):
         to_del = []
         ret = []
         for t, trk in enumerate(trks):
-            pos = self.trackers[t].predict()[0]
+            pos = self.trackers[t].predict()[:7].reshape(-1)
             trk[:] = pos
             if np.any(np.isnan(pos)):
                 to_del.append(t)
@@ -224,7 +248,7 @@ class Sort(object):
         for t in reversed(to_del):
             self.trackers.pop(t)
         matched, unmatched_dets, unmatched_trks = associate_detections_to_trackers(
-            dets, trks, self.dist_threshold)
+            dets, trks, self.threshold)
 
         # update matched trackers with assigned detections
         for m in matched:

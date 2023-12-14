@@ -30,7 +30,7 @@ import random
 import time
 
 from fusion_3d.utils import createDetection3DArr, detection3DArray2Numpy
-from fusion_3d.sort_centroid import Sort, centroid_distance_batch, linear_assignment
+from fusion_3d.sort_modified import Sort, linear_assignment, iou_rotated_bbox, state2polygon
 
 
 class DetectionSyncNode(Node):
@@ -45,11 +45,11 @@ class DetectionSyncNode(Node):
         lidar3d_track_topic = self.declare_parameter(
             'lidar3d_track_topic', 'lidar_proc/tracks').get_parameter_value().string_value
 
-        tracker_dist_thresh = self.declare_parameter(
-            'tracker_dist_thresh', 2.0).get_parameter_value().double_value
+        tracker_iou_thresh = self.declare_parameter(
+            'tracker_iou_thresh', 0.001).get_parameter_value().double_value
 
-        self.fusion_dist_thresh = self.declare_parameter(
-            'fusion_dist_thresh', 2.0).get_parameter_value().double_value
+        self.fusion_iou_thresh = self.declare_parameter(
+            'fusion_iou_thresh', 0.001).get_parameter_value().double_value
 
         self.lidar_only_override = self.declare_parameter(
             'lidar_only_override', False).get_parameter_value().bool_value
@@ -70,7 +70,7 @@ class DetectionSyncNode(Node):
 
         # Create SORT instance for fused detections
         self.tracker = Sort(max_age=2, min_hits=3,
-                            dist_threshold=tracker_dist_thresh)
+                            threshold=tracker_iou_thresh)
 
         # Create publishers
         self.track_publisher_ = self.create_publisher(
@@ -112,7 +112,7 @@ class DetectionSyncNode(Node):
         else:
             # Simple fusion with IoU based association
             fused_detections = self.fuse(
-                cam_arr=cam_dets, lidar_arr=lidar_dets, dist_threshold=self.fusion_dist_thresh)
+                cam_arr=cam_dets, lidar_arr=lidar_dets, dist_threshold=self.fusion_iou_thresh)
 
         # Update SORT with detections
         track_ids = self.tracker.update(fused_detections)
@@ -153,7 +153,19 @@ class DetectionSyncNode(Node):
         """
 
         # Get NxN matrix of IoU between detections
-        iou_matrix = centroid_distance_batch(cam_arr, lidar_arr)
+        iou_matrix = np.zeros((len(cam_arr), len(lidar_arr)), dtype=np.float32)
+        det_poly_array = []
+        for det in cam_arr:
+            det_poly_array.append(state2polygon(det))
+
+        trk_poly_array = []
+        for trk in lidar_arr:
+            trk_poly_array.append(state2polygon(trk))
+
+        for d in range(len(cam_arr)):
+            for t in range(len(lidar_arr)):
+                iou_matrix[d, t] = iou_rotated_bbox(
+                    det_poly_array[d], trk_poly_array[t])
 
         # Find all filt_match_inds
         if min(iou_matrix.shape) > 0:
@@ -161,7 +173,7 @@ class DetectionSyncNode(Node):
             if a.sum(1).max() == 1 and a.sum(0).max() == 1:
                 matched_indices = np.stack(np.where(a), axis=1)
             else:
-                matched_indices = linear_assignment(iou_matrix)
+                matched_indices = linear_assignment(-iou_matrix)
         else:
             matched_indices = np.zeros(shape=(0, 2))
 
