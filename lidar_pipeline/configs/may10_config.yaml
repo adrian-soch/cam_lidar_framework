@@ -47,6 +47,14 @@ projection_node:
 
 camera_det3d:
   ros__parameters:
+
+    # Transformation from sensor to world frame
+    lidar2world_transform:
+      # [x,y,z] in meters
+      translation: [0.0, 0.0, 11.0]
+
+      # [w,x,y,z] normalized quaternion
+      quaternion: [0.9799247, 0.0, 0.1993679, 0.0]
     # Matrix from intrinsic camera calibration
     # This day's data was recorded at 1920x1080
     camera_matrix: [1199.821557, 0.000000, 960.562236, 0.000000, 1198.033465, 551.675808, 0.000000, 0.000000, 1.000000]

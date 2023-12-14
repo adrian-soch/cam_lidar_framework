@@ -1,8 +1,8 @@
 
 import numpy as np
-
 from vision_msgs.msg import Detection2D, Detection2DArray
 from vision_msgs.msg import ObjectHypothesisWithPose
+
 
 def detection2DArray2Numpy(detection_list, sensor_type) -> np.ndarray:
     """Convert vision_msgs/Detection2DArray to numpy array

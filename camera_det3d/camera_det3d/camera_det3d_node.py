@@ -7,6 +7,8 @@
     Reference: W. Zimmer et al., “InfraDet3D: Multi-Modal 3D Object Detection based on Roadside Infrastructure Camera and LiDAR Sensors.”
         arXiv, Apr. 29, 2023. doi: 10.48550/arXiv.2305.00314.
 
+NOTE This should be all C++.
+
 
 @section Author(s)
 - Created by Adrian Sochaniwsky on 2/12/2023
@@ -14,11 +16,11 @@
 
 # Limit CPU use
 import os
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "2"
+os.environ["OPENBLAS_NUM_THREADS"] = "2"
+os.environ["MKL_NUM_THREADS"] = "2"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "2"
+os.environ["NUMEXPR_NUM_THREADS"] = "2"
 
 
 from numpy.lib.recfunctions import unstructured_to_structured
@@ -157,33 +159,35 @@ class CameraDet3DNode(Node):
         masks = result.masks
         bboxes_2d = result.boxes
         for idx, (mask, bbox_2d) in enumerate(zip(masks, bboxes_2d)):
-            l1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-
+            obj_class = bbox_2d.cls[0].cpu().numpy()
             bbox_2d = bbox_2d.xyxy[0].cpu().numpy()
             polygon = mask.xy[0]
-            self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
+            # self.draw.polygon(polygon, outline=(0, 255, 0), width=2)
 
             # Project camera outline to 3D space
             mask3d = self.project_to_ground(polygon.T)
+
+            object_height = self.get_obj_height_estimate(obj_class)
+            mask3d = self.refine_3d_countours(contour=mask3d, bbox_2d=bbox_2d, object_height=object_height)
+
+            if mask3d.shape[0] == 0:
+                continue
+
             mask3d = self.remove_noise_with_dbscan(
                 mask3d, eps=0.65, min_samples=2)
-            
-            l2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-
             # Denoising may remove all points from a countour
             if mask3d.shape[0] <= 1:
                 continue
 
             # Get bounding box with L-shape fitting on cleaned points
             bbox_3d = self.l_shape_fit.fitting(mask3d[:, :2])
+            bbox_3d.size[2] = object_height
 
             if 0.0 in bbox_3d.size:
                 continue
 
-            l3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-
             # Refine 3D BBox based on 2D BBox
-            bbox_3d = self.refine_3d_dets(bbox_3d=bbox_3d, bbox_2d=bbox_2d)
+            self.print_3d_to_image(bbox_3d=bbox_3d, bbox_2d=bbox_2d)
 
             det_array.detections.append(
                 self.create_3D_det(header=msg.header, bbox=bbox_3d))
@@ -194,8 +198,8 @@ class CameraDet3DNode(Node):
             proj_points = np.vstack([proj_points, mask3d])
 
             l4 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-            self.get_logger().info(
-                f'Time (msec): proj {(l2-l1)*1000:.2f} lfit {(l3-l2)*1000:.2f} ref {(l4-l3)*1000:.2f} ')
+            # self.get_logger().info(
+                # f'Time (msec): proj {(l2-l1)*1000:.2f} lfit {(l3-l2)*1000:.2f} ref {(l4-l3)*1000:.2f} ')
 
         t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
@@ -210,19 +214,60 @@ class CameraDet3DNode(Node):
         end = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info(
             f'Time (msec): conv {(t1-start)*1000:.1f} inf {(t2-t1)*1000:.1f} proc {(t3-t2)*1000:.1f} pub {(end-t3)*1000:.1f} total {(end-start)*1000:.1f}')
-
-    def refine_3d_dets(self, bbox_3d, bbox_2d) -> RectangleData:
-        """Height Estimation and Dimension Filtering The height for each detection is initialized from a fixed value for the object type of the detection.
-           Both the height and the location are then jointly optimized through binary search, until the estimated projected 2D object height and the original
-           mask height are the same by < 1px. The length and width values, as estimated by the L-Shape-Fitting algorithm for each 3D bottom contour,
-           are limited to minimum and maximum.`
+        
+    def refine_3d_countours(self, contour : np.ndarray, bbox_2d, object_height=0.0) -> np.ndarray:
+        """Refine the contour coordinate to increase final 3D bbox accuracy
 
         Args:
-            bbox_3d (custom class): L-shape fitting result of projected contour
+            contour (np.ndarray): Array of 2D contour points of the detection
+            bbox_2d (np.ndarray): Bbox dimensions in the form [x1,y1,x2,y2] units are pixels.
+            object_height (float, optional): Estimated object height in meters, refinement depends on this value,
+                if 0.0, all points are retained. Defaults to 0.0.
+
+        Returns:
+            np.ndarray: Refined points in 3D coordiantes
+        """
+        # Get 2D projection from 3D contour
+        p2d = self.project_to_image(contour, height=object_height)
+
+        x_offset, y_offset = 0, 2
+        x1, y1, x2, y2 = bbox_2d[0]-x_offset, bbox_2d[1] - \
+            y_offset, bbox_2d[2]+x_offset, bbox_2d[3]+y_offset
+
+        # check if re-projected point lies inside 2D BBox
+        idx_inside_points = (p2d[:,0] >= x1) & (p2d[:,0] <= x2) & (p2d[:,1] >= y1) & (p2d[:,1] <= y2)
+
+        # Get list of points that reproject inside the 2D BBox
+        p2d_refined = p2d[idx_inside_points]
+
+        # Convert back to 3D and return
+        return self.project_to_ground(p2d_refined.T, ground_plane_height=object_height)
+
+    @staticmethod
+    def get_obj_height_estimate(obj_class) -> float:
+        #  0: 'person',
+        #  1: 'bicycle',
+        #  2: 'car',
+        #  3: 'motorcycle',
+        #  5: 'bus',
+        #  7: 'truck',
+        height_dict = {'0':2.0, '1':1.4, '2':1.35, '3':1.25, '5':2.5, '7':2.69}
+
+        height = height_dict.get(str(int(obj_class)))
+        if height is None:
+            height = 1.7
+
+        return height
+
+    def print_3d_to_image(self, bbox_3d, bbox_2d) -> RectangleData:
+        """Print 3D Bbox to image for visualization.
+
+        Args:
+            bbox_3d (RectangleData): L Fitting result.
             bbox_2d (list): xyxy format of yolov8 bbox
 
         Returns:
-            custom class: Refined bbox_3d
+            RectangleData: Refined bbox_3d
         """
 
         # Prepare the 3D points
@@ -232,17 +277,10 @@ class CameraDet3DNode(Node):
 
         p3d = np.vstack([
             np.column_stack([p3d, np.zeros(p3d.shape[0])]),
-            np.column_stack([p3d, np.ones(p3d.shape[0])*2.3])
+            np.column_stack([p3d, np.ones(p3d.shape[0])*bbox_3d.size[2]])
         ])
 
-        # First translate
-        p3d -= self.translation
-
-        # Tranform to pixel coordinates
-        p2d = np.array(self.intrinsic_matrix @ self.rotation_matrix @ p3d.T)
-
-        # Divide by Z to get 2-D projection
-        p2d = np.array((p2d[:2, :] / p2d[2:]).T)
+        p2d = self.project_to_image(p3d)
 
         lines = [
             (p2d[0][0], p2d[0][1], p2d[1][0], p2d[1][1]),
@@ -264,7 +302,7 @@ class CameraDet3DNode(Node):
         for line in lines:
             self.draw.line(line, fill=(255, 0, 0), width=5)
 
-        x_offset, y_offset = 15, 15
+        x_offset, y_offset = 1, 1
         x1, y1, x2, y2 = bbox_2d[0]-x_offset, bbox_2d[1] - \
             y_offset, bbox_2d[2]+x_offset, bbox_2d[3]+y_offset
         lines2 = [
@@ -277,6 +315,27 @@ class CameraDet3DNode(Node):
             self.draw.line(line, fill=(255, 255, 0), width=5)
 
         return bbox_3d
+
+    def project_to_image(self, points_3d : np.ndarray, height=0.0) -> np.ndarray:
+        """Project 3D points to 2D image plane.
+
+        Args:
+            points_3d (np.ndarray): _description_
+            height (float, optional): Height above the ground plane to shift the points in meters. Defaults to 0.0.
+
+        Returns:
+            np.ndarray: 2xn array in pixel coordinates
+        """
+        # First translate
+        points_3d -= self.translation - np.array([0.0, 0.0, height])
+
+        # Tranform to pixel coordinates
+        points_2d = np.array(self.intrinsic_matrix @ self.rotation_matrix @ points_3d.T)
+
+        # Divide by Z to get 2D projection
+        points_2d = np.array((points_2d[:2, :] / points_2d[2:]).T)
+
+        return points_2d
 
     def project_to_ground(self, image_points: np.ndarray, ground_plane_height=0) -> np.ndarray:
         """
@@ -337,7 +396,7 @@ class CameraDet3DNode(Node):
         det.header = header
         det.bbox.size.x = float(bbox.size[0])
         det.bbox.size.y = float(bbox.size[1])
-        det.bbox.size.z = 2.3
+        det.bbox.size.z = float(bbox.size[2])
 
         det.bbox.center.position.x = bbox.center[0]
         det.bbox.center.position.y = bbox.center[1]
