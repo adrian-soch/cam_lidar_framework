@@ -158,6 +158,9 @@ class CameraDet3DNode(Node):
         proj_points = np.array([[0, 0, 0]])
         masks = result.masks
         bboxes_2d = result.boxes
+
+        if masks is None or bboxes_2d is None:
+            return
         for idx, (mask, bbox_2d) in enumerate(zip(masks, bboxes_2d)):
             obj_class = bbox_2d.cls[0].cpu().numpy()
             bbox_2d = bbox_2d.xyxy[0].cpu().numpy()
