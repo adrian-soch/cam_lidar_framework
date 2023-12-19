@@ -81,6 +81,9 @@ class CameraDet3DNode(Node):
         self.img = None
         self.draw = None
 
+        # Must be same frame as LiDAR detections
+        self.frame_id = 'map'
+
         self.get_logger().info('Setup complete.')
 
     def init_params(self):
@@ -153,6 +156,7 @@ class CameraDet3DNode(Node):
 
         det_array = Detection3DArray()
         det_array.header = msg.header
+        det_array.header.frame_id = self.frame_id
         bbox_array = MarkerArray()
 
         proj_points = np.array([[0, 0, 0]])
