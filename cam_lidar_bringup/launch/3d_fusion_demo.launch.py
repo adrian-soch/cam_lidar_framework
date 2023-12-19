@@ -5,10 +5,31 @@ from launch import LaunchDescription
 from launch.actions import ExecuteProcess
 from launch_ros.actions import Node
 
+ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
+
+DETECTION_TOPIC = 'image_proc/det3D'
+TRACK_TOPIC = 'image_proc/det3D_tracks'
+
+LIDAR_RESULT_ONLY = False
+CAM_RESULT_ONLY = False
+BAG_NAME = ''
+CONFIG = ''
+PLAY_RATE = 1
+
+DEMO_ID = 2
+
+if DEMO_ID == 1:
+    BAG_NAME = '2023-08-30_13-58-46_a9_dataset_r02_s03_camSouth1_LidarSouth'
+    CONFIG = 'r02_s03_cam1South_lidarSouth_config.yaml'
+    PLAY_RATE = 4
+if DEMO_ID == 2:
+    BAG_NAME = 'dec14_2023/dec14_2023_good'
+    CONFIG = 'dec14_config.yaml'
+
 lidar_pipeline_share_dir = get_package_share_directory('lidar_pipeline')
 # Transforms for specific dataset
 data_dependant_params = os.path.join(
-    lidar_pipeline_share_dir, 'configs', 'may10_config.yaml')
+    lidar_pipeline_share_dir, 'configs', CONFIG)
 # Lidar detection paramters
 pipeline_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
@@ -16,14 +37,6 @@ pipeline_params = os.path.join(
 weights_path = os.path.join(
     get_package_share_directory('camera_det3d'), 'yolov8m-seg_half.engine')
 
-ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_NAME = 'cleaned_bags/may10_q7_clean'
-
-DETECTION_TOPIC = 'image_proc/det3D'
-TRACK_TOPIC = 'image_proc/det3D_tracks'
-
-LIDAR_RESULT_ONLY = False
-CAM_RESULT_ONLY = False
 
 
 def generate_launch_description():
@@ -114,7 +127,7 @@ def generate_launch_description():
     )
 
     rosbag = ExecuteProcess(
-        cmd=['ros2 bag play', ABS_PATH_TO_ROSBAGS + BAG_NAME, '-l'],
+        cmd=['ros2 bag play', ABS_PATH_TO_ROSBAGS + BAG_NAME, '-l', '-r', str(PLAY_RATE)],
         shell=True)
 
     launch_list = [
