@@ -13,11 +13,10 @@ Since we are using a custom dataset with rooftop traffic data, the basic workflo
 
 ```mermaid
 graph TD;
-    RawData(Raw data: \n rosbag file)-->Clean(Bag to images and PCDs, \n and removing un-synced frames: \n synced_image_cloud_2file.cpp);
-    Clean-->Bag(Convert images + PCDs to clean bag: \n synced_file2image_cloud_msgs.cpp);
-    Bag-->Trans(Bag to images: \n data_tools convert node);
-    Trans-->Video(Images folder to video file: \n images2video.py);
-    Video-->GroundTruth(2D labeled ground truth: \n Supervisely video annotator JSON);
+    RawData(Raw data: \n rosbag file)-->Clean("Bag to images and PCDs, and removing un-synced frames (synced_image_cloud_2file.cpp): \n ros2 run data_tools image_cloud2file image points PATH");
+    Clean-->Bag("Convert images + PCDs to clean bag (synced_file2image_cloud_msgs.cpp): \n ros2 launch data_tools file2bag.launch.py");
+    Bag-->Video("Images folder to video file (images2video.py): \n python ./images2video.py PATH");
+    Video-->GroundTruth("2D labeled ground truth (https://supervisely.com): \n Supervisely video annotator JSON");
     GroundTruth-->MOTChallenge(JSON to MOT Challenge format: \n supervisely_video_ann2MOT.py);
     MOTChallenge-->Processed(Preprocess results: \n preprocessGT.py);
 ```

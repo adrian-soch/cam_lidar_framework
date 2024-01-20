@@ -4,26 +4,45 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess
 from launch_ros.actions import Node
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
 
-lidar_pipeline_share_dir = get_package_share_directory('lidar_pipeline')
-# Transforms for specific dataset
-data_dependant_params = os.path.join(
-    lidar_pipeline_share_dir, 'configs', 'may10_config.yaml')
-# Lidar detection paramters
-pipeline_params = os.path.join(
-    lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
-# Yolov8-segmentation model weights
-weights_path = os.path.join(
-    get_package_share_directory('camera_det3d'), 'yolov8m-seg_half.engine')
+rviz_config_file = PathJoinSubstitution(
+    [FindPackageShare('cam_lidar_bringup'), 'configs', '3d_demo_config.rviz']
+)
 
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
-BAG_NAME = 'cleaned_bags/may10_q7_clean'
 
 DETECTION_TOPIC = 'image_proc/det3D'
 TRACK_TOPIC = 'image_proc/det3D_tracks'
 
 LIDAR_RESULT_ONLY = False
 CAM_RESULT_ONLY = False
+BAG_NAME = ''
+CONFIG = ''
+PLAY_RATE = 1
+
+DEMO_ID = 1
+
+if DEMO_ID == 1:
+    BAG_NAME = '2023-08-30_13-58-46_a9_dataset_r02_s03_camSouth1_LidarSouth'
+    CONFIG = 'r02_s03_cam1South_lidarSouth_config.yaml'
+    PLAY_RATE = 4
+if DEMO_ID == 2:
+    # Height is too low, thus, angle is too horizontal for this 3d cam method to work
+    BAG_NAME = 'dec14_2023/dec14_2023_good'
+    CONFIG = 'dec14_config.yaml'
+
+lidar_pipeline_share_dir = get_package_share_directory('lidar_pipeline')
+# Transforms for specific dataset
+data_dependant_params = os.path.join(
+    lidar_pipeline_share_dir, 'configs', CONFIG)
+# Lidar detection paramters
+pipeline_params = os.path.join(
+    lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
+# Yolov8-segmentation model weights
+weights_path = os.path.join(
+    get_package_share_directory('camera_det3d'), 'yolov8m-seg_half.engine')
 
 
 def generate_launch_description():
@@ -114,8 +133,16 @@ def generate_launch_description():
     )
 
     rosbag = ExecuteProcess(
-        cmd=['ros2 bag play', ABS_PATH_TO_ROSBAGS + BAG_NAME, '-l'],
+        cmd=['ros2 bag play', ABS_PATH_TO_ROSBAGS +
+             BAG_NAME, '-l', '-r', str(PLAY_RATE)],
         shell=True)
+
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', rviz_config_file]
+    )
 
     launch_list = [
         camera_detection3d_node,
@@ -125,8 +152,9 @@ def generate_launch_description():
         lidar_tracker,
         lidar_tracker_viz,
         fusion_3D,
-        # fusion_viz,
+        fusion_viz,
         rosbag,
+        rviz_node
     ]
 
     return LaunchDescription(launch_list)

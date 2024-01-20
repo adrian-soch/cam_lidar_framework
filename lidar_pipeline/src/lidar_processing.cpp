@@ -187,20 +187,20 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
     frame_count_ += 1;
 
     auto stop = std::chrono::high_resolution_clock::now();
-    auto t_ms = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    RCLCPP_INFO(get_logger(), "Frame count: %d, Time (msec): %.2f", frame_count_, t_ms.count()/1000000.0);
+    auto t_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    RCLCPP_INFO(get_logger(), "Frame count: %d, Time (msec): %.2f", frame_count_, t_ns.count()/1000000.0);
 
 
-    // auto dt_convert = std::chrono::duration_cast<std::chrono::nanoseconds>(s2 - start);
-    // auto dt_vox = std::chrono::duration_cast<std::chrono::nanoseconds>(s3 - s2);
-    // auto dt_crop = std::chrono::duration_cast<std::chrono::nanoseconds>(s4 - s3);
-    // auto dt_plane = std::chrono::duration_cast<std::chrono::nanoseconds>(s5 - s4);
-    // auto dt_out = std::chrono::duration_cast<std::chrono::nanoseconds>(s6 - s5);
-    // auto dt_clus = std::chrono::duration_cast<std::chrono::nanoseconds>(s7 - s6);
-    // auto dt_bbox = std::chrono::duration_cast<std::chrono::nanoseconds>(s8 - s7);
-    // RCLCPP_INFO(get_logger(), "Conv %.2f, Vox %.2f, crop %.2f, plane %.2f, filt %.2f, clust %.2f, bbox %.2f, tot %.2f",
-    //   dt_convert.count()/1000000.0, dt_vox.count()/1000000.0, dt_crop.count()/1000000.0, dt_plane.count()/1000000.0, dt_out.count()/1000000.0,
-    //   dt_clus.count(), dt_bbox.count(), t_ms.count());
+    auto dt_convert = std::chrono::duration_cast<std::chrono::nanoseconds>(s2 - start);
+    auto dt_vox = std::chrono::duration_cast<std::chrono::nanoseconds>(s3 - s2);
+    auto dt_crop = std::chrono::duration_cast<std::chrono::nanoseconds>(s4 - s3);
+    auto dt_plane = std::chrono::duration_cast<std::chrono::nanoseconds>(s5 - s4);
+    auto dt_out = std::chrono::duration_cast<std::chrono::nanoseconds>(s6 - s5);
+    auto dt_clus = std::chrono::duration_cast<std::chrono::nanoseconds>(s7 - s6);
+    auto dt_bbox = std::chrono::duration_cast<std::chrono::nanoseconds>(s8 - s7);
+    RCLCPP_INFO(get_logger(), "Conv %.2f, Vox %.2f, crop %.2f, plane %.2f, filt %.2f, clust %.2f, bbox %.2f, tot %.2f",
+      dt_convert.count()/1000000.0, dt_vox.count()/1000000.0, dt_crop.count()/1000000.0, dt_plane.count()/1000000.0, dt_out.count()/1000000.0,
+      dt_clus.count()/1000000.0, dt_bbox.count()/1000000.0, t_ns.count()/1000000.0);
 } // LidarProcessing::cloud_callback
 
 template<typename PointT>
