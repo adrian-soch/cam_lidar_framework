@@ -7,6 +7,7 @@ from sklearn.svm import SVC
 from sklearn.inspection import DecisionBoundaryDisplay
 import matplotlib.pyplot as plt
 from joblib import dump
+import numpy as np
 
 MODEL_PATH = "/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03"
 
@@ -20,11 +21,22 @@ df['l_h_ratio'] = df['length'] / df['height']
 
 # Separate the features (X) and the target (y)
 X = df.drop(['name', 'type', 'occlusion_level'], axis=1)
-y = df['type']
+type = df['type']
+
+# font = {'size': 28}
+# plt.rc('font', **font)
+# series = pd.Series(type)
+# # get the frequency of each string
+# counts = series.value_counts(sort=True)
+# # create a bar plot from the series
+# counts.plot(kind='bar', rot=45, title='Class Count')
+# plt.show()
+
 
 # Encode the labels using label encoding
 le = sklearn.preprocessing.LabelEncoder()
-y = le.fit_transform(y)
+y = le.fit_transform(type)
+
 
 # Split the data into training and testing sets (80/20 ratio)
 X_train, X_test, y_train, y_test = train_test_split(
@@ -49,13 +61,22 @@ dump(scaler, f'{MODEL_PATH}/scaler.joblib')
 dump(pca, f'{MODEL_PATH}/pca.joblib')
 dump(svm, f'{MODEL_PATH}/svm.joblib')
 
-# # Plot the reduced data with different colors for each class
+class_names = list(le.inverse_transform([0, 1, 2, 3, 4, 5, 6, 7, 8]))
+print(class_names)
+
+# Plot the reduced data with different colors for each class
 # plt.figure(figsize=(8, 6))
-# plt.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap="rainbow")
+# colour = ['gray', 'red', 'green', 'blueviolet', 'cyan', 'orange', 'b', 'teal', 'hotpink']
+# cmap = plt.cm.get_cmap('rainbow')
+# for idx, name in enumerate(class_names):
+#     plt.scatter(X_train[y_train == idx, 0], X_train[y_train == idx, 1], c=colour[idx], label=name)
+
 # plt.xlabel("PC1")
 # plt.ylabel("PC2")
 # plt.title("PCA of training data")
+# plt.legend()
 # plt.show()
+
 
 # Print the accuracy score of the SVM classifier on the testing set
 print(f"Accuracy score: {svm.score(X_test, y_test)}")
@@ -86,13 +107,14 @@ plt.show()
 class_names = list(le.inverse_transform([0, 1, 2, 3, 4, 5, 6, 7, 8]))
 print(class_names)
 
-# disp = sklearn.metrics.ConfusionMatrixDisplay.from_predictions(
-#     y_test, predicted, display_labels=class_names,
-#         cmap=plt.cm.Blues,
-#         normalize='true')
-# disp.figure_.suptitle("Confusion Matrix")
-# print(f"Confusion matrix:\n{disp.confusion_matrix}")
-# plt.show()
+disp = sklearn.metrics.ConfusionMatrixDisplay.from_predictions(
+    y_test, predicted, display_labels=class_names,
+        cmap=plt.cm.Blues,
+        normalize='true')
+disp.ax_.set_xticklabels(disp.ax_.get_xticklabels(), rotation=45, ha='right')
+disp.figure_.suptitle("Confusion Matrix")
+print(f"Confusion matrix:\n{disp.confusion_matrix}")
+plt.show()
 
 # Outlier test
 # X_new = np.array((8, 8)).reshape(1, -1)
