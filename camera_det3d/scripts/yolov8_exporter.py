@@ -1,3 +1,12 @@
+'''
+Provides functionality for converting pytorch yolov8 weights into other formats
+
+recommended format is TensorRT for faster inference
+
+ONNX and TensorRT also have Cpp libraries that may provide
+better inference speeds
+'''
+
 from ultralytics import YOLO
 
 # Load a model, if an offical model it will auto-download
