@@ -50,8 +50,14 @@ class CameraDet3DNode(Node):
     def __init__(self):
         super().__init__('camera_det3d_node')
 
-        self.intrinsic_matrix, self.rotation_matrix, self.translation = self.init_params()
+        self.intrinsic_matrix, self.rotation_matrix, self.translation, self.c2l_trans = self.init_params()
         self.inv_intrinsic_matrix = np.linalg.inv(self.intrinsic_matrix)
+
+
+        # Hardcode translation becuase we are only using rotation matrix and not full transforms
+        #This means that datasets where camera is not close to lidar we need to shift the data
+        # This could be fixed by using full rotation + translation matricies and homogenous coordinates
+        self.c2l_trans = [0.0, -13.0, 0.0]
 
         self.cam2ground = self.rotation_matrix.T @ self.inv_intrinsic_matrix
 
@@ -137,7 +143,7 @@ class CameraDet3DNode(Node):
 
         rotation_matrix = c2l @ ldata2lsensor @ l2g.T
 
-        return intrinsic_matrix, rotation_matrix, l2g_translation
+        return intrinsic_matrix, rotation_matrix, l2g_translation, lidar2cam_trans
 
     def image_callback(self, msg):
         start = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
@@ -334,7 +340,7 @@ class CameraDet3DNode(Node):
             np.ndarray: 2xn array in pixel coordinates
         """
         # First translate
-        points_3d -= self.translation - np.array([0.0, 0.0, height])
+        points_3d -= (self.translation - np.array([0.0, 0.0, height]) + np.array(self.c2l_trans))
 
         # Tranform to pixel coordinates
         points_2d = np.array(self.intrinsic_matrix @ self.rotation_matrix @ points_3d.T)
@@ -355,7 +361,7 @@ class CameraDet3DNode(Node):
         ground_points = self.cam2ground @ augmented_points
         # Find intersection of line with ground plane i.e. z=0.
         scalar = -(self.translation[2] - ground_plane_height) / ground_points[2]
-        ground_points = ground_points.T * scalar[:, np.newaxis] + self.translation
+        ground_points = ground_points.T * scalar[:, np.newaxis] + (self.translation  + np.array(self.c2l_trans))
         return ground_points
 
     def publish_image(self, publisher, image_array) -> None:
