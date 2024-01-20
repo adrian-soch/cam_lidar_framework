@@ -40,7 +40,7 @@ Note: -1 will use the LiDAR + Webcam with live data
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 
 # 10, 7, 6, 12, 13
-BAG_SELECTOR = 14
+BAG_SELECTOR = 7
 
 # Determines what kind of output you want, Video/Rviz2/csv_tracker_data
 SAVE_OUTPUT_VIDEO = False
@@ -77,7 +77,7 @@ elif BAG_SELECTOR == 13:
     BAG_NAME = 'cleaned_bags/oct18_r1_clean'
     CONFIG_NAME = 'oct18_r1_config.yaml'
 elif BAG_SELECTOR == 14:
-    BAG_NAME = '/dec14_2023/dec14_2023_good'
+    BAG_NAME = 'cleaned_bags/dec14_2023_ok_clean'
     CONFIG_NAME = 'dec14_config.yaml'
 
 # MARC Rooftop data with syncronized lidar + camera
