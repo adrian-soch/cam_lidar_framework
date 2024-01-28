@@ -1,11 +1,9 @@
-import time
-
 from launch_ros.actions import Node
 from launch import LaunchDescription
 
-GT_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/labels_point_clouds/s110_lidar_ouster_south'
-PCD_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_south'
-FEATURE_CSV_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03'
+GT_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01/labels_point_clouds/s110_lidar_ouster_north'
+PCD_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_north'
+FEATURE_CSV_FOLDER = '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01'
 
 
 def generate_launch_description():
@@ -18,7 +16,7 @@ def generate_launch_description():
         parameters=[
                 {'gt_folder': GT_FOLDER},
                 {'pointcloud_folder': PCD_FOLDER},
-                {'path': FEATURE_CSV_FOLDER},
+                {'output_path': FEATURE_CSV_FOLDER},
         ]
     )
 
