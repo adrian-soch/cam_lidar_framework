@@ -17,8 +17,6 @@ import cv2
 
 import configs.a9_config as cfg
 
-# create a class that takes the arguments and performs the tasks
-
 
 class LidarBevCreator:
     def __init__(self, input_path, output_path):
@@ -50,6 +48,12 @@ class LidarBevCreator:
             # Get detection bboxes in the ground plane
             gt_json = self.get_gt(pc_path)
             det_list = self.convert_a9_json(gt_json)
+            '''
+            TODO: Crop labels same as the pc
+            Then convert the points to pixels using the same discretization as the PC
+
+            return type + 2d array with tuples of the 8 points
+            '''
 
             # get point cloud as np.array
             pc = self.get_pc(pc_path)
@@ -57,7 +61,6 @@ class LidarBevCreator:
             # Normalize pointcloud orientation and height, align road plane with x-y plane
             '''
             TODO add transform that rotates yaw angle for better cropping
-
             OR use a transformed cropbox that is the size of the RoI 
             '''
             pc = self.transform_pc(pc, cfg.lidar2ground)
@@ -71,7 +74,7 @@ class LidarBevCreator:
                 pc[:, 2] > cfg.boundary['maxZ']))]
 
             # Convert to BEV
-            self.create_bev(pc, visualize=True)
+            self.create_bev(pc, visualize=True, labels=det_list)
 
             if debug:
                 pcd = o3d.geometry.PointCloud()
@@ -89,7 +92,7 @@ class LidarBevCreator:
         temp = np.delete(temp, -1, axis=1)
         return temp
 
-    def create_bev(self, pc, visualize=False):
+    def create_bev(self, pc, visualize=False, labels=None):
         '''
         create 3 channel image
         1) density
@@ -151,6 +154,9 @@ class LidarBevCreator:
         # image = (RGB_Map*255).astype(np.uint8)
 
         if visualize:
+            if labels is not None:
+                self.annotate_bev(labels, image)
+
             cv2.imshow('Numpy Array as Image', image)
             if self.user_input_handler() < 0:
                 exit(0)
@@ -226,11 +232,21 @@ class LidarBevCreator:
 
         return [x1, y1, x2, y2, x3, y3, x4, y4]
 
-    def draw_r_bbox(self, corners, image):
+    def annotate_bev(self, labels, image):
+        for obj in labels:
+            colour = cfg.colours[cfg.CLASS_NAME_TO_ID[obj[0]]]
+            self.draw_r_bbox(obj[1:], image, colour)
+
+    def draw_r_bbox(self, corners, img, colour):
         '''
-        Draw rotted bbox on the psuedo image
+        Draw rotated bbox on the psuedo image
         '''
-        pass
+        corners_int = np.array(corners).astype(int)
+
+        # cv2.polylines(img, [corners_int], True, colour, 2)
+        # corners_int = corners.reshape(-1, 2).astype(int)
+        # cv2.line(img, (corners_int[0:1], corners_int[0, 1]),
+                #  (corners_int[3, 0], corners_int[3, 1]), (255, 255, 0), 2)
 
         # use corner points to draw
 
