@@ -7,6 +7,9 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 13/11/2022
 """
+
+
+
 import os
 # limit the number of cpus used by high performance libraries
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -15,6 +18,7 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
+# import numpy as np
 import cv2
 import time
 import rclpy
@@ -24,7 +28,15 @@ from sensor_msgs.msg import Image
 from vision_msgs.msg import ObjectHypothesisWithPose
 from vision_msgs.msg import Detection2D, Detection2DArray
 
+from ultralytics import YOLO
 from cv_bridge import CvBridge
+
+useYOLOv8 = True
+
+from pathlib import Path
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[0]
+WEIGHTS = ROOT / 'camera_processing' / 'weights'
 
 
 class ImageSubscriber(Node):
@@ -60,7 +72,10 @@ class ImageSubscriber(Node):
 
         self.frame_count = 0
 
-        self.tracker = vision_track.VisionTracker()
+        if useYOLOv8:
+            self.model = YOLO(os.path.join(WEIGHTS, 'yolov8m.engine'))
+        else:
+            self.tracker = vision_track.VisionTracker()
         self.get_logger().info('Vision Tracker created.')
 
     def camera_callback(self, msg):
@@ -75,7 +90,10 @@ class ImageSubscriber(Node):
         if self.flip_image is True:
             current_frame = cv2.flip(current_frame, -1)
 
-        tracks, out_img = self.tracker.update(current_frame, return_image=True)
+        if useYOLOv8:
+            tracks, out_img = self.get_detections(current_frame)
+        else:
+            tracks, out_img = self.tracker.update(current_frame, return_image=True)
 
         # Pub track results
         track_msg_arr = self.createDetection2DArr(tracks, msg.header)
@@ -90,6 +108,43 @@ class ImageSubscriber(Node):
 
         t5 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info(f'Frame count: {self.frame_count}, Time (msec): {(t5-t1)*1000:.1f}')
+
+    def get_detections(self, current_frame):
+        results = self.model.predict(
+            current_frame, save=False, imgsz=(640), conf=0.3, device='0', classes=[0, 1, 2, 3, 5, 7], verbose=False)
+        
+        # Whoever designed the output of yolov8 made it so complicated
+        results = results[0]
+        boxes = results.boxes
+
+        if boxes.shape[0] == 0:
+            return [None], current_frame
+        bbox = boxes.xyxy[0].cpu().numpy()
+        labels = results.names
+
+        # Draw the bounding boxes and labels on the image
+        detections = []
+        for box in boxes:
+            # Get the coordinates and dimensions of the box
+            x1, y1, x2, y2, _, cls= box.data[0].cpu().numpy()
+            x1 = int(x1)
+            y1 = int(y1)
+            x2 = int(x2)
+            y2 = int(y2)
+            w = x2 - x1
+            h = y2 - y1
+
+            detections.append([x1, y1, x2, y2, cls])
+
+            # Get the label and color for the box
+            label = labels[int(cls)]
+            color = (0, 255, 0) # green
+
+            # Draw the box and the label on the image
+            cv2.rectangle(current_frame, (x1, y1), (x1 + w, y1 + h), color, 2)
+            cv2.putText(current_frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+        return detections, current_frame
 
     @staticmethod
     def createDetection2DArr(tracks, header) -> Detection2DArray:
