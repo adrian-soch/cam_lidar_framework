@@ -194,7 +194,7 @@ def main(folder_path, output_name, label_type):
                     print(f"\tDimensions: ({obj.geometry.dimensions['x']}, {obj.geometry.dimensions['y']}, {obj.geometry.dimensions['z']})")
 
                     if label_type is 'MOT2D':
-                        # Get unique object ID
+                        # Get unique object ID                        # Get unique object ID
 
                         entry = MotEntry(frame=frame_count)
                         entry.id = add_key(key, object_dict)
@@ -203,10 +203,7 @@ def main(folder_path, output_name, label_type):
                         entry.geometry2bbox(obj.geometry)
                     
                         f.write(entry.toStr() + "\n")
-                    
-                    elif label_type is 'COCO':
-                        entry = CocoEntry(id=)
-                    else:
+                    elif label_type is 'KITTI3D':
                         raise NotImplementedError
 
 if __name__ == "__main__":
@@ -215,7 +212,7 @@ if __name__ == "__main__":
                         default='/home/adrian/dev/metrics/label')
     parser.add_argument("--output_name",'-o', help="Name of output file.",
                         default='custom_MOT_labels.txt')
-    parser.add_argument("--label_type",'-l', help="Type of label output, ['MOT2D', 'COCO'].",
+    parser.add_argument("--label_type",'-l', help="Type of label output, ['MOT2D', 'KITTI3D'].",
                         default='MOT2D',
                         default='custom_labels.txt')
     args = parser.parse_args()
