@@ -33,7 +33,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 
 SAVE_COCO_JSON = True
-JSON_PATH = '/home/adrian/dev/metrics'
+JSON_PATH = '/home/adrian/dev/metrics/COCO_DATA/'
 USE_YOLOV8 = False
 
 if USE_YOLOV8:
@@ -76,9 +76,7 @@ class ImageSubscriber(Node):
         self.frame_count = 0
 
         if SAVE_COCO_JSON:
-            self.det_count = 0
-            self.json_annotations = []
-            self.json_images = []
+            self.json_data = []
             self.dt = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
         if USE_YOLOV8:
@@ -140,14 +138,14 @@ class ImageSubscriber(Node):
         detections = []
         for box in boxes:
             # Get the coordinates and dimensions of the box
-            x1, y1, x2, y2, _, cls = box.data[0].cpu().numpy()
+            x1, y1, x2, y2, score, cls = box.data[0].cpu().numpy()
             x1 = int(x1)
             y1 = int(y1)
             x2 = int(x2)
             y2 = int(y2)
             w = x2 - x1
             h = y2 - y1
-            detections.append([x1, y1, x2, y2, -1, cls])
+            detections.append([x1, y1, x2, y2, score, cls])
 
             # Get the label and color for the box
             label = labels[int(cls)]
@@ -199,46 +197,22 @@ class ImageSubscriber(Node):
     def save_to_coco(self, tracks, im_w=1920, im_h=1080):
         """Convert track data to COCO json format
         """
-        self.json_images.append({"id": self.frame_count, "file_name": str(self.frame_count)+".jpg",
-                                 "height": im_h, "width": im_w, "license": None, "coco_url": None}
-                                )
-        if tracks is not None:
-            for det in tracks:
-                if det is None:
-                    continue
-                self.det_count += 1
-                width, height = float(det[2] - det[0]), float(det[3] - det[1])
-                self.json_annotations.append({"id": self.det_count, "image_id": self.frame_count,
-                                                "category_id": int(det[5]),
-                                                "bbox": [float(det[0]), float(det[1]),  # x1, y1
-                                                        width, height],
-                                                "area": float(width*height), "iscrowd": 0}
-                                                )
-
-        json_data = {
-            "info": {"year": "2024", "version": "v0.0.1", "contributor": "Adrian",
-                        "url": None, "date_created": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-                        },
-            "licenses": [],
-            "categories": [
-                {"id": 0, "name": "pedestrian", "supercategory": None},
-                {"id": 1, "name": "bicycle", "supercategory": None},
-                {"id": 2, "name": "car", "supercategory": None},
-                {"id": 3, "name": "motorcycle", "supercategory": None},
-                {"id": 5, "name": "bus", "supercategory": None},
-                {"id": 7, "name": "truck", "supercategory": None}
-            ],
-            "images": [],
-            "annotations": []
-        }
-
-        # Output the json in the COCO format
-        for image, annot in zip(self.json_images, self.json_annotations):
-            json_data["images"].append(image)
-            json_data["annotations"].append(annot)
+        if tracks is None:
+            return
+        
+        for det in tracks:
+            if det is None:
+                continue
+            width, height = float(det[2] - det[0]), float(det[3] - det[1])
+            self.json_data.append({"image_id": self.frame_count,
+                                            "category_id": int(det[5]),
+                                            "bbox": [float(det[0]), float(det[1]),  # x1, y1
+                                                    width, height],
+                                            "score": float(det[4])}
+                                            )
 
         with open(f'{JSON_PATH}/{self.dt}_COCO.json', 'w', encoding='utf-8') as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=4)
+            json.dump(self.json_data, f, ensure_ascii=False, indent=4)
 
 
 if __name__ == '__main__':

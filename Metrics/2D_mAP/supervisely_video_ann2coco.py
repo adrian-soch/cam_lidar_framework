@@ -70,6 +70,7 @@ def convert_json_to_coco(json_file):
     # For storing all detections
     coco_list = []
 
+    id_counter = 0
     # Loop through the frames in the data
     for frame in data["frames"]:
         # Get the frame index
@@ -93,7 +94,8 @@ def convert_json_to_coco(json_file):
                 print(f'Error: multiple labels for the same object within frame {frame_index}')
                 exit(-1)
 
-            id = id_dict[object_key][0]
+            id = id_counter
+            id_counter += 1
             geometry_points = figure["geometry"]["points"]
             x1, y1 = geometry_points['exterior'][0]
             x2, y2 = geometry_points['exterior'][1]
@@ -158,7 +160,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Convert supervisely json to COCO json.")
     parser.add_argument("-i", "--input", help="The path to the json file.", type=str,
-                        default='/home/adrian/dev/metrics/ground_truth/dec14_2023_ok_clean/ds0/ann/output.mp4.json')
+                        default='/home/adrian/dev/metrics/ground_truth/oct18_r9_short/ds0/ann/output.mp4.json')
     args = parser.parse_args()
 
     # Call the convert function with the json file path
