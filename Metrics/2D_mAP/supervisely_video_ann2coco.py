@@ -8,9 +8,8 @@ import argparse
 from datetime import datetime as dt
 import json
 import os
-import random
 
-CLASS_MAP = {'pedestrian':0, 'bicycle':1, 'car':2, 'motorcycle':3, 'bus':5, 'truck':7}
+CLASS_MAP = {'pedestrian':0, 'bicycle':1, 'car':2, 'motorcycle':3, 'bus':5, 'truck':7, 'person':0, 'big_truck':7}
 
 class CocoEntry:
     """Contains the values and helper functions for the detections in COCO format
@@ -54,13 +53,6 @@ class CocoEntry:
             "area": self.area,
             "iscrowd": self.iscrowd
         }
-
-def get_unique_id(key):
-    seed_int = hash(key)
-    random.seed(seed_int)
-    random_uint32 = random.getrandbits(32)
-
-    return random_uint32
 
 def convert_json_to_coco(json_file):
 
@@ -123,54 +115,30 @@ def convert_json_to_coco(json_file):
 
 def write_to_json(output_filepath, coco_list):
     json_data = {
-        "info": {
-        "year": "2024",
-        "version": "v0.0.1",
-        "contributor": "Adrian",
-        "url": None,
-        "date_created": dt.now().strftime("%Y-%m-%dT%H:%M:%S")
-    },
-    "licenses": [],
-    "categories": [
-        {
-            "id": 0,
-            "name": "pedestrian",
-            "supercategory": None
-        },
-        {
-            "id": 1,
-            "name": "bicycle",
-            "supercategory": None
-        },
-        {
-            "id": 2,
-            "name": "car",
-            "supercategory": None
-        },
-        {
-            "id": 3,
-            "name": "motorcycle",
-            "supercategory": None
-        },
-        {
-            "id": 5,
-            "name": "bus",
-            "supercategory": None
-        },
-        {
-            "id": 7,
-            "name": "truck",
-            "supercategory": None
+            "info": {"year": "2024", "version": "v0.0.1", "contributor": "Adrian",
+                     "url": None, "date_created": dt.now().strftime("%Y-%m-%dT%H:%M:%S")
+                     },
+            "licenses": [],
+            "categories": [
+                {"id": 0, "name": "pedestrian", "supercategory": None},
+                {"id": 1, "name": "bicycle", "supercategory": None},
+                {"id": 2, "name": "car", "supercategory": None},
+                {"id": 3, "name": "motorcycle", "supercategory": None},
+                {"id": 5, "name": "bus", "supercategory": None},
+                {"id": 7, "name": "truck", "supercategory": None}
+            ],
+            "images": [],
+            "annotations": []
         }
-    ],
-    "images": [],
-    "annotations": []
-    }
 
+    prev_image_id = -1
     # Output the json in the COCO format
-    # images first
     for data in coco_list:
-        json_data["images"].append(data.image_dict())
+        current_image_id = data.annotation_dict()['image_id']
+        if current_image_id != prev_image_id:
+            json_data["images"].append(data.image_dict())
+            prev_image_id = current_image_id
+
         json_data["annotations"].append(data.annotation_dict())
 
     with open(output_filepath, "w", encoding='utf-8') as f:
@@ -188,7 +156,7 @@ def get_type(list, object_key):
 def main():
     # Create an argument parser
     parser = argparse.ArgumentParser(
-        description="Convert superviselyjson to MOT csv.")
+        description="Convert supervisely json to COCO json.")
     parser.add_argument("-i", "--input", help="The path to the json file.", type=str,
                         default='/home/adrian/dev/metrics/ground_truth/dec14_2023_ok_clean/ds0/ann/output.mp4.json')
     args = parser.parse_args()
