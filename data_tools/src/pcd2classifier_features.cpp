@@ -1,6 +1,13 @@
 /**
  * @file pcd2classifier_features.cpp
  * @author Adrian Sochaniwsky
+ * 
+ * @brief This program extracts object features from the A9 dataset.
+ *      Results are stored in a csv file.
+ * 
+ * @note Use `feature_extractor.launch.py`
+ * 
+ *   Usage: ros2 run 
  */
 
 #include <ctime>
@@ -55,10 +62,10 @@ public:
         // Get the folder paths for ground_truths and point cloud files
         this->declare_parameter<std::string>("gt_folder", "");
         this->declare_parameter<std::string>("pointcloud_folder", "");
-        this->declare_parameter<std::string>("path", "");
+        this->declare_parameter<std::string>("output_path", "");
         this->get_parameter("gt_folder", gt_folder);
         this->get_parameter("pointcloud_folder", pointcloud_folder);
-        this->get_parameter("path", path_);
+        this->get_parameter("output_path", path_);
 
         // Get the frame id for image and point cloud messages
         this->declare_parameter<std::string>("frame_id", "map");
