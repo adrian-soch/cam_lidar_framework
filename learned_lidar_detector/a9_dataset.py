@@ -6,19 +6,20 @@ Based on: https://github.com/maudzung/SFA3D
 '''
 
 import argparse
+import cv2
 import os
 from glob import glob
 import json
+import open3d as o3d
 import numpy as np
 from pypcd4 import PointCloud
-
-import open3d as o3d
-import cv2
+import torch
+from torch.utils.data import Dataset
 
 import configs.a9_config as cfg
 
 
-class A9LidarBevCreator:
+class A9LidarBevCreator(Dataset):
     def __init__(self, input_path, output_path):
         # store the input and output folder paths as attributes
         input_path = input_path
@@ -36,49 +37,69 @@ class A9LidarBevCreator:
         print('Getting files from path.')
         self.lidar_list = self.get_files(self.lidar_folder, 'pcd')
 
+    def __len__(self):
+        return len(self.lidar_list)
+
+    def __getitem__(self, idx):
+        bev_image, det_list = self.get_bev_and_label(idx=idx)
+        bev_image.transpose((2, 0, 1))
+
+        # Scale labels from [0,1]
+        det_list[:,]
+
+        # convert image and OBBs to tensors
+        bev_image = torch.from_numpy(bev_image)
+        det_list = torch.from_numpy(det_list).float()
+
+        return bev_image, det_list
+
     @staticmethod
     def get_files(path, ext):
         assert os.path.isdir(path)
         return glob(os.path.join(path, f'*.{ext}'))
 
     def demo_pc_to_image(self, debug=False):
+        for idx in range(len(self.lidar_list)):
+            self.get_bev_and_label(idx=idx, visualize=True, debug=debug)
 
-        for pc_path in self.lidar_list:
+    def get_bev_and_label(self, idx, visualize=False, debug=False):
+        pc_path = self.lidar_list[idx]
+        # Get detection bboxes in the ground plane
+        gt_json = self.get_gt(pc_path)
+        det_list = self.convert_a9_json(gt_json)
 
-            # Get detection bboxes in the ground plane
-            gt_json = self.get_gt(pc_path)
-            det_list = self.convert_a9_json(gt_json)
+        # get point cloud as np.array
+        pc = self.get_pc(pc_path)
 
-            # get point cloud as np.array
-            pc = self.get_pc(pc_path)
+        # Normalize pointcloud orientation and height, align road plane with x-y plane
+        '''
+        TODO add transform that rotates yaw angle for better cropping
+        OR use a transformed cropbox that is the size of the RoI 
+        '''
+        pc = self.transform_pc(pc, cfg.lidar2ground)
 
-            # Normalize pointcloud orientation and height, align road plane with x-y plane
-            '''
-            TODO add transform that rotates yaw angle for better cropping
-            OR use a transformed cropbox that is the size of the RoI 
-            '''
-            pc = self.transform_pc(pc, cfg.lidar2ground)
+        # Crop point cloud based on paramters
+        pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
+            pc[:, 0] > cfg.boundary['maxX']))]
+        pc = pc[np.logical_not((pc[:, 1] <= cfg.boundary['minY']) | (
+            pc[:, 1] > cfg.boundary['maxY']))]
+        pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
+            pc[:, 2] > cfg.boundary['maxZ']))]
 
-            # Crop point cloud based on paramters
-            pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
-                pc[:, 0] > cfg.boundary['maxX']))]
-            pc = pc[np.logical_not((pc[:, 1] <= cfg.boundary['minY']) | (
-                pc[:, 1] > cfg.boundary['maxY']))]
-            pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
-                pc[:, 2] > cfg.boundary['maxZ']))]
-            
-            # Apply radius removal
-            self.radius_outlier_removal(pc, num_points=12, r=0.8)
+        # Apply radius removal
+        self.radius_outlier_removal(pc, num_points=12, r=0.8)
 
-            # Convert to BEV
-            self.create_bev(pc, visualize=True, labels=det_list)
+        # Convert to BEV
+        bev_image = self.create_bev(pc, visualize=visualize, labels=det_list)
 
-            if debug:
-                pcd = o3d.geometry.PointCloud()
-                pcd.points = o3d.utility.Vector3dVector(pc)
-                triad = o3d.geometry.TriangleMesh.create_coordinate_frame(
-                    size=10, origin=[0, 0, 0])
-                o3d.visualization.draw_geometries([pcd, triad])
+        if debug:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(pc)
+            triad = o3d.geometry.TriangleMesh.create_coordinate_frame(
+                size=10, origin=[0, 0, 0])
+            o3d.visualization.draw_geometries([pcd, triad])
+
+        return bev_image, det_list
 
     def transform_pc(self, pc, transform):
         # Return x,y,z,1
@@ -162,7 +183,7 @@ class A9LidarBevCreator:
 
         with open(gt_path) as f:
             return json.load(f)
-        
+
     @staticmethod
     def radius_outlier_removal(pc, num_points=12, r=0.8):
         pcd = o3d.geometry.PointCloud()
