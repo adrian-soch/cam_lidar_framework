@@ -1,8 +1,9 @@
 """
-This node subscribes to a Detection3DArray which stores tracker results.
-It will convert the Detection3D object into a csv entry and save the csv file
+This node subscribes to a Detection3DArray into Kitti 3D detection results
 
-Saves in the MOTChallenge 2D Format, using the 2D ground plane
+1 file per frame, each detection is in the following format:
+
+[class, x, y, z, l, w, h, yaw]
 
 This was created to save the results for offline evaluation.
 """
@@ -13,30 +14,7 @@ import rclpy
 from rclpy.node import Node
 from vision_msgs.msg import Detection3DArray
 
-FOLDER_PATH = '/home/adrian/dev/metrics/SORT_Results'
-
-
-class MotEntry:
-    """Contains the values and helper functions for the detections in MOT Challenge format
-        See comment at the top of the file for more details.
-    """
-
-    def __init__(self, frame, id=None, bb_left=None, bb_top=None, bb_width=None, bb_height=None, conf=-1):
-        self.frame = frame
-        self.id = id
-        self.bb_left = bb_left
-        self.bb_top = bb_top
-        self.bb_width = bb_width
-        self.bb_height = bb_height
-        self.conf = conf
-        self.x = -1
-        self.y = -1
-        self.z = -1
-
-    def toStr(self):
-        return "{},{},{:.4f},{:.4f},{:.4f},{:.4f},{},{},{},{}".format(
-            self.frame, self.id, self.bb_left, self.bb_top, self.bb_width, self.bb_height,
-            self.conf, self.x, self.y, self.z)
+FOLDER_PATH = '/home/adrian/dev/metrics/Kitti_Results'
 
 
 def create_folder_path(file_path):
@@ -62,10 +40,7 @@ class DetectorNode(Node):
 
         # Get the current date and time
         now = datetime.now()
-        time = now.strftime("%Y-%m-%d_%H-%M-%S")
-        self.out_path = os.path.join(FOLDER_PATH, time + '_tracker_output.txt')
-        create_folder_path(self.out_path)
-
+        self.time = now.strftime("%Y-%m-%d_%H-%M-%S")
         self.frame_count = 0
 
     def detection_callback(self, msg):
@@ -78,22 +53,48 @@ class DetectorNode(Node):
         for detection in msg.detections:
             # Get the position and size of the detection
             pos = detection.bbox.center.position
+            orientation = detection.bbox.center.orientation
             size = detection.bbox.size
+            obj_class = int(float(detection.id))
+            yaw = euler_from_quaternion(
+                orientation.w, orientation.x, orientation.y, orientation.z)
 
-            result = detection.results[0]
-            id = int(result.hypothesis.score)
-
-            entry = MotEntry(self.frame_count, id,
-                             bb_left=pos.y - size.y/2.0,
-                             bb_top=pos.x - size.x/2.0,
-                             bb_width=size.y,
-                             bb_height=size.x)
+            entry = f'{obj_class},{pos.x:.3f},{pos.y:.3f},{pos.z:.3f},{size.x:.3f},{size.y:.3f},{size.z:.3f},{yaw:.3f}'
             tracks.append(entry)
 
         # Print to txt file
-        with open(self.out_path, "a") as f:
+        out_path = os.path.join(
+            FOLDER_PATH, self.frame_count + '_' + self.time + 'kitti.txt')
+        if self.frame_count <= 0:
+            create_folder_path(out_path)
+        with open(out_path, "w") as f:
             for trk in tracks:
                 f.write(trk.toStr() + "\n")
+
+
+def euler_from_quaternion(qw, qx, qy, qz):
+    """
+    Convert a quaternion into euler angles (roll, pitch, yaw)
+    roll is rotation around x in radians (counterclockwise)
+    pitch is rotation around y in radians (counterclockwise)
+    yaw is rotation around z in radians (counterclockwise)
+
+    Note: only returns yaw about z axis
+    """
+    # t0 = +2.0 * (q.w * q.x + q.y * q.z)
+    # t1 = +1.0 - 2.0 * (q.x * q.x + q.y * q.y)
+    # roll_x = np.atan2(t0, t1)
+
+    # t2 = +2.0 * (q.w * q.y - q.z * q.x)
+    # t2 = +1.0 if t2 > +1.0 else t2
+    # t2 = -1.0 if t2 < -1.0 else t2
+    # pitch_y = np.asin(t2)
+
+    t3 = +2.0 * (qw * qz + qx * qy)
+    t4 = +1.0 - 2.0 * (qy * qy + qz * qz)
+    yaw_z = np.arctan2(t3, t4)
+
+    return yaw_z  # in radians
 
 
 def main(args=None):
