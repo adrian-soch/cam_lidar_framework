@@ -1,6 +1,8 @@
 import math
 import numpy as np
 
+hm_size = (152, 152)
+
 # Emergency_vehicle and van merged
 CLASS_NAME_TO_ID = {'BICYCLE':0, 'BUS':1, 'CAR':2, 'EMERGENCY_VEHICLE':3,
                    'MOTORCYCLE':4, 'PEDESTRIAN':5, 'TRAILER':6, 'TRUCK':7, 'VAN':3}
@@ -13,9 +15,9 @@ Parameters for point cloud manipulation
 '''
 boundary = {
     "minX": 0,
-    "maxX": 50,
-    "minY": -25,
-    "maxY": 25,
+    "maxX": 60,
+    "minY": -30,
+    "maxY": 30,
     "minZ": -0.2,
     "maxZ": 3.8,
 }
