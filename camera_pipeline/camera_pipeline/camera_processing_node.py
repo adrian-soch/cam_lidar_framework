@@ -32,7 +32,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 # import numpy as np
 
 
-SAVE_COCO_JSON = True
+SAVE_COCO_JSON = False
 JSON_PATH = '/home/adrian/dev/metrics/COCO_DATA/'
 USE_YOLOV8 = False
 
