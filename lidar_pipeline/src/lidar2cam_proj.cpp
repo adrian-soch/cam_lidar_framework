@@ -165,8 +165,9 @@ private:
 
         // Project to 2D, divide x, y by z
         // And add to 2D detection array
-        uint8_t counter = 0;
-        const uint8_t CUBE_ARRAY_SIZE = 8;
+        uint8_t counter{0};
+        uint8_t output_counter{0};
+        const uint8_t CUBE_ARRAY_SIZE{8};
         float x_points[CUBE_ARRAY_SIZE];
         float y_points[CUBE_ARRAY_SIZE];
         for(size_t i = 0; i < proj_cloud.size(); i++) {
@@ -185,7 +186,9 @@ private:
 
             if(counter >= CUBE_ARRAY_SIZE) {
                 // After we have a set of 8
-                vision_msgs::msg::Detection2D det = points2Bbox2d(x_points, y_points, CUBE_ARRAY_SIZE);
+                std::string id = lidar_track->detections[output_counter].id;
+                output_counter++;
+                vision_msgs::msg::Detection2D det = points2Bbox2d(x_points, y_points, CUBE_ARRAY_SIZE, id);
                 proj_dets.detections.push_back(det);
                 counter = 0;
 
@@ -276,7 +279,7 @@ private:
         return output;
     }
 
-    vision_msgs::msg::Detection2D points2Bbox2d(const float* x, const float* y, uint8_t size)
+    vision_msgs::msg::Detection2D points2Bbox2d(const float* x, const float* y, uint8_t size, std::string id)
     {
         float x_max = *std::max_element(x, x + size);
         float x_min = *std::min_element(x, x + size);
@@ -292,6 +295,8 @@ private:
         det.bbox.center.y = y_len / 2.0 + y_min;
         det.bbox.size_x   = x_len;
         det.bbox.size_y   = y_len;
+
+        det.id = id;
 
         return det;
     }
