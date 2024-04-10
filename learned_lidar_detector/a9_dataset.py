@@ -6,19 +6,20 @@ Based on: https://github.com/maudzung/SFA3D
 '''
 
 import argparse
+import cv2
 import os
 from glob import glob
 import json
+import open3d as o3d
 import numpy as np
 from pypcd4 import PointCloud
-
-import open3d as o3d
-import cv2
+import torch
+from torch.utils.data import Dataset
 
 import configs.a9_config as cfg
 
 
-class LidarBevCreator:
+class A9LidarBevCreator(Dataset):
     def __init__(self, input_path, output_path):
         # store the input and output folder paths as attributes
         input_path = input_path
@@ -36,52 +37,75 @@ class LidarBevCreator:
         print('Getting files from path.')
         self.lidar_list = self.get_files(self.lidar_folder, 'pcd')
 
+    def __len__(self):
+        return len(self.lidar_list)
+
+    def __getitem__(self, idx):
+        bev_image, det_list = self.get_bev_and_label(idx=idx)
+        bev_image.transpose((2, 0, 1))
+
+        # Scale labels from [0,1]
+        det_list[:,]
+
+        # convert image and OBBs to tensors
+        bev_image = torch.from_numpy(bev_image)
+        det_list = torch.from_numpy(det_list).float()
+
+        return bev_image, det_list
+
     @staticmethod
     def get_files(path, ext):
         assert os.path.isdir(path)
         return glob(os.path.join(path, f'*.{ext}'))
 
-    def pc_to_image(self, debug=False):
+    def demo_pc_to_image(self, debug=False):
+        for idx in range(len(self.lidar_list)):
+            self.get_bev_and_label(idx=idx, visualize=True, debug=debug)
 
-        for pc_path in self.lidar_list:
+    def get_bev_and_label(self, idx:int, visualize=False, debug=False):
+        pc_path = self.lidar_list[idx]
+        # Get detection bboxes in the ground plane
+        gt_json = self.get_gt(pc_path)
+        det_list = self.convert_a9_json(gt_json)
 
-            # Get detection bboxes in the ground plane
-            gt_json = self.get_gt(pc_path)
-            det_list = self.convert_a9_json(gt_json)
-            '''
-            TODO: Crop labels same as the pc
-            Then convert the points to pixels using the same discretization as the PC
+        # get point cloud as np.array
+        pc = self.get_pc(pc_path)
 
-            return type + 2d array with tuples of the 8 points
-            '''
+        # Normalize pointcloud orientation and height, align road plane with x-y plane
+        '''
+        TODO add transform that rotates yaw angle for better cropping
+        OR use a transformed cropbox that is the size of the RoI 
+        '''
+        pc = self.transform_pc(pc, cfg.lidar2ground)
 
-            # get point cloud as np.array
-            pc = self.get_pc(pc_path)
+        # Crop point cloud based on paramters
+        pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
+            pc[:, 0] > cfg.boundary['maxX']))]
+        pc = pc[np.logical_not((pc[:, 1] <= cfg.boundary['minY']) | (
+            pc[:, 1] > cfg.boundary['maxY']))]
+        pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
+            pc[:, 2] > cfg.boundary['maxZ']))]
 
-            # Normalize pointcloud orientation and height, align road plane with x-y plane
-            '''
-            TODO add transform that rotates yaw angle for better cropping
-            OR use a transformed cropbox that is the size of the RoI 
-            '''
-            pc = self.transform_pc(pc, cfg.lidar2ground)
+        # Apply radius removal
+        self.radius_outlier_removal(pc, num_points=12, r=0.8)
 
-            # Crop point cloud based on paramters
-            pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
-                pc[:, 0] > cfg.boundary['maxX']))]
-            pc = pc[np.logical_not((pc[:, 1] <= cfg.boundary['minY']) | (
-                pc[:, 1] > cfg.boundary['maxY']))]
-            pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
-                pc[:, 2] > cfg.boundary['maxZ']))]
+        # Convert to BEV
+        bev_image = self.create_bev(pc, visualize=visualize, labels=det_list)
 
-            # Convert to BEV
-            self.create_bev(pc, visualize=True, labels=det_list)
+        if debug:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(pc)
+            triad = o3d.geometry.TriangleMesh.create_coordinate_frame(
+                size=10, origin=[0, 0, 0])
+            o3d.visualization.draw_geometries([pcd, triad])
 
-            if debug:
-                pcd = o3d.geometry.PointCloud()
-                pcd.points = o3d.utility.Vector3dVector(pc)
-                triad = o3d.geometry.TriangleMesh.create_coordinate_frame(
-                    size=10, origin=[0, 0, 0])
-                o3d.visualization.draw_geometries([pcd, triad])
+        return bev_image, det_list
+    
+    def array_to_image(self, array):
+        image = (array*255).astype(np.uint8)
+        image = image.transpose((1, 2, 0))  # HWC to CHW
+        image = np.ascontiguousarray(image, dtype=np.uint8)
+        return image
 
     def transform_pc(self, pc, transform):
         # Return x,y,z,1
@@ -144,18 +168,11 @@ class LidarBevCreator:
         RGB_Map[2, :, :] = densityMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # r_map
         RGB_Map[1, :, :] = heightMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # g_map
         RGB_Map[0, :, :] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # b_map
-        image = (RGB_Map*255).astype(np.uint8)
-        image = image.transpose((2, 1, 0))  # HWC to CHW
-
-        # RGB_Map = np.zeros((Height - 1, Width - 1, 3))
-        # RGB_Map[:, :, 2] = densityMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # r_map
-        # RGB_Map[:, :, 1] = heightMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # g_map
-        # RGB_Map[:, :, 0] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # b_map
-        # image = (RGB_Map*255).astype(np.uint8)
 
         if visualize:
+            image = self.array_to_image(RGB_Map)
             if labels is not None:
-                self.annotate_bev(labels, image)
+                image = self.annotate_bev(labels, image)
 
             cv2.imshow('Numpy Array as Image', image)
             if self.user_input_handler() < 0:
@@ -170,6 +187,14 @@ class LidarBevCreator:
 
         with open(gt_path) as f:
             return json.load(f)
+
+    @staticmethod
+    def radius_outlier_removal(pc, num_points=12, r=0.8):
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(pc)
+        _, ind = pcd.remove_radius_outlier(nb_points=num_points, radius=r)
+        pcd = pcd.select_by_index(ind)
+        return np.asarray(pcd.points)
 
     def convert_a9_json(self, gt_json):
         '''
@@ -186,12 +211,10 @@ class LidarBevCreator:
         for item in objects.items():
             data = item[1]['object_data']
             bbox = data['cuboid']['val']
-
-            # Extract corners from json data
-            corners = self.bbox3d_to_corners(bbox)
+            bbox_bev = self.convert_labels(bbox)
+            corners = self.bbox3d_to_corners(bbox_bev)
             detection = [data['type']] + corners[:]
             det_list.append(detection)
-
         return det_list
 
     @staticmethod
@@ -205,15 +228,14 @@ class LidarBevCreator:
         return out
 
     @staticmethod
-    def bbox3d_to_corners(bbox):
+    def bbox3d_to_corners(bbox_bev):
         '''
         Take a9 label cuboid format to corners
         '''
-        x, y, z = bbox[0], bbox[1], bbox[2]
-        qx, qy, qz, qw = bbox[3], bbox[4], bbox[5], bbox[6]
-        w, l, h = bbox[7], bbox[8], bbox[9]
+        x, y, z = bbox_bev[0], bbox_bev[1], bbox_bev[2]
+        w, l, h = bbox_bev[3], bbox_bev[4], bbox_bev[5]
+        yaw = bbox_bev[6]
 
-        yaw = euler_from_quaternion(qw, qx, qy, qz)
         sin_yaw = np.sin(yaw)
         cos_yaw = np.cos(yaw)
 
@@ -232,10 +254,31 @@ class LidarBevCreator:
 
         return [x1, y1, x2, y2, x3, y3, x4, y4]
 
+    def convert_labels(self, bbox):
+        '''
+        Convert A9 label data into the psuedo image pixel space
+        '''
+        x, y, z = bbox[0], bbox[1], bbox[2]
+        qx, qy, qz, qw = bbox[3], bbox[4], bbox[5], bbox[6]
+        w, l, h = bbox[7], bbox[8], bbox[9]
+
+        yaw = euler_from_quaternion(qw, qx, qy, qz)
+
+        yaw = -yaw
+        y1 = int((x - cfg.boundary['minX']) / cfg.DISCRETIZATION)
+        x1 = int((y - cfg.boundary['minY']) / cfg.DISCRETIZATION)
+        z1 = z
+        w1 = int(w / cfg.DISCRETIZATION)
+        l1 = int(l / cfg.DISCRETIZATION)
+        h1 = h
+
+        return x1, y1, z1, w1, l1, h1, yaw
+
     def annotate_bev(self, labels, image):
         for obj in labels:
             colour = cfg.colours[cfg.CLASS_NAME_TO_ID[obj[0]]]
-            self.draw_r_bbox(obj[1:], image, colour)
+            image = self.draw_r_bbox(obj[1:], image, colour)
+        return image
 
     def draw_r_bbox(self, corners, img, colour):
         '''
@@ -243,12 +286,16 @@ class LidarBevCreator:
         '''
         corners_int = np.array(corners).astype(int)
 
-        # cv2.polylines(img, [corners_int], True, colour, 2)
-        # corners_int = corners.reshape(-1, 2).astype(int)
-        # cv2.line(img, (corners_int[0:1], corners_int[0, 1]),
-                #  (corners_int[3, 0], corners_int[3, 1]), (255, 255, 0), 2)
+        img = cv2.line(img, (corners_int[0], corners_int[1]),
+                       (corners_int[2], corners_int[3]), colour, 2)
+        img = cv2.line(img, (corners_int[2], corners_int[3]),
+                       (corners_int[4], corners_int[5]), colour, 2)
+        img = cv2.line(img, (corners_int[4], corners_int[5]),
+                       (corners_int[6], corners_int[7]), colour, 2)
+        img = cv2.line(img, (corners_int[6], corners_int[7]),
+                       (corners_int[0], corners_int[1]), colour, 2)
 
-        # use corner points to draw
+        return img
 
     def get_pc(self, lidar_file):
         pc = PointCloud.from_path(lidar_file)
@@ -281,10 +328,13 @@ def euler_from_quaternion(qw, qx, qy, qz):
 
 
 def main(args):
-    lbc = LidarBevCreator(input_path=args.input, output_path=args.output)
+    lbc = A9LidarBevCreator(input_path=args.input, output_path=args.output)
 
     # Process the point clouds into images
-    lbc.pc_to_image(debug=False)
+    # lbc.demo_pc_to_image(debug=False)
+    array, gt = lbc.get_bev_and_label(0)
+    img = lbc.array_to_image(array)
+    cv2.imwrite('./test_a9_lidar_img.jpg', img)
 
 
 # check if the script is run directly and call the main function

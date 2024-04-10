@@ -60,6 +60,8 @@ def createDetection3DArr(tracks, header, isOBB) -> Detection3DArray:
             det.bbox.center.orientation.z = q[2]
             det.bbox.center.orientation.w = q[3]
 
+            det.id = str(int(trk[7]))
+
             out.detections.append(det)
     else:
         for trk in tracks:
@@ -100,7 +102,7 @@ def detection3DArray2Numpy(detection_list, isOBB):
     """
     size = 5
     if isOBB:
-        size = 6
+        size = 7
 
     if len(detection_list) <= 0:
         return np.empty((0, size))
@@ -118,7 +120,8 @@ def detection3DArray2Numpy(detection_list, isOBB):
                             area,
                             det.bbox.size.y/det.bbox.size.x,
                             angle,
-                            det.bbox.size.z]
+                            det.bbox.size.z,
+                            int(det.id)]
             idx += 1
     else:
         for det in detection_list:

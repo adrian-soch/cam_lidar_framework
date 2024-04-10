@@ -2,6 +2,8 @@
 This node subscribes to a Detection3DArray which stores tracker results.
 It will convert the Detection3D object into a csv entry and save the csv file
 
+Saves in the MOTChallenge 2D Format, using the 2D ground plane
+
 This was created to save the results for offline evaluation.
 """
 import os

@@ -10,27 +10,59 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
-import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
-import rclpy
-from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
-from fusion_module.sort import Sort, iou_batch, linear_assignment
-from vision_msgs.msg import Detection2DArray
-from rclpy.node import Node
-from message_filters import ApproximateTimeSynchronizer, Subscriber
-
-import numpy as np
+from json import dump
 import time
+import numpy as np
+from message_filters import ApproximateTimeSynchronizer, Subscriber
+from rclpy.node import Node
+from vision_msgs.msg import Detection2DArray
+from fusion_module.sort import Sort, iou_batch, linear_assignment
+from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
+import rclpy
+import os
+
+
+class CocoDetectionSaver():
+    def __init__(self, path):
+        self.path = path
+        self.json_data = []
+        from datetime import datetime
+        self.dt = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+    def save_to_coco(self, tracks, frame_count: int) -> None:
+        """Convert track data to COCO json format
+        """
+        if tracks is None:
+            return
+
+        for det in tracks:
+            if det is None:
+                continue
+            width, height = det.bbox.size_x, det.bbox.size_y
+            self.json_data.append({"image_id": frame_count,
+                                   "category_id": int(det.id),
+                                   "bbox": [int(det.bbox.center.x - width/2),
+                                            int(det.bbox.center.y - height/2),
+                                            width, height],
+                                   "score": 0.5}
+                                  )
+
+        with open(f'{self.path}/{self.dt}_COCO.json', 'w', encoding='utf-8') as f:
+            dump(self.json_data, f, ensure_ascii=False, indent=4)
 
 
 class DetectionSyncNode(Node):
     def __init__(self):
         super().__init__('detection_sync_node')
+
+        self.coco_saver = CocoDetectionSaver(
+            '/home/adrian/dev/metrics/lidar_COCO_DATA')
 
         # Get the topic name from the ROS parameter server
         self.world_frame = self.declare_parameter(
@@ -40,10 +72,10 @@ class DetectionSyncNode(Node):
             'cam_track_topic', '/image_proc/tracks').get_parameter_value().string_value
         lidar2d_track_topic = self.declare_parameter(
             'lidar2d_track_topic', 'image_proc/lidar_track_2D').get_parameter_value().string_value
-        
+
         tracker_iou_thresh = self.declare_parameter(
             'tracker_iou_thresh', 0.001).get_parameter_value().double_value
-        
+
         self.fusion_iou_thresh = self.declare_parameter(
             'fusion_iou_thresh', 0.001).get_parameter_value().double_value
 
@@ -65,11 +97,14 @@ class DetectionSyncNode(Node):
         sync.registerCallback(self.callback)
 
         # Create SORT instance for fused detections
-        self.tracker = Sort(max_age=2, min_hits=3, iou_threshold=tracker_iou_thresh)
+        self.tracker = Sort(max_age=2, min_hits=3,
+                            iou_threshold=tracker_iou_thresh)
 
         # Create publisher
         self.track_publisher_ = self.create_publisher(
             Detection2DArray, 'image_proc/fusion_tracks', 2)
+
+        self.frame_count = 0
 
         self.get_logger().info('Fusion Module initialized.')
 
@@ -87,7 +122,10 @@ class DetectionSyncNode(Node):
             cam_2d_dets.detections, sensor_type='C')
         lidar_dets = detection2DArray2Numpy(
             lidar_2d_dets.detections, sensor_type='L')
-        
+
+        # Uncomment to save to coco
+        # self.coco_saver.save_to_coco(lidar_2d_dets.detections, frame_count=self.frame_count)
+
         if self.camera_only_override:
             fused_detections = cam_dets
         elif self.lidar_only_override:
@@ -98,12 +136,14 @@ class DetectionSyncNode(Node):
                 cam_arr=cam_dets, lidar_arr=lidar_dets, iou_threshold=self.fusion_iou_thresh)
 
         # Update SORT with detections
-        track_ids = self.tracker.update(fused_detections)
+        tracked_detections = self.tracker.update(fused_detections)
 
         # Create and Publish 2D Detections with Track IDs
         track_msg_arr = createDetection2DArr(
-            track_ids, cam_2d_dets.header)
+            tracked_detections, cam_2d_dets.header)
         self.track_publisher_.publish(track_msg_arr)
+
+        self.frame_count += 1
 
         # Get and publish the execution time
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)

@@ -145,7 +145,7 @@ void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstS
 
         detection.header.stamp = recent_cloud->header.stamp;
         detection.bbox         = o_bbox;
-        detection.id = "UNKNOWN";
+        detection.id = "-1";
 
         // Minimum volume, and remove detections with a size 0 component
         float volume = o_bbox.size.x * o_bbox.size.y * o_bbox.size.z;

@@ -90,7 +90,11 @@ class Obj_Classifier(Node):
             TODO Unknown classes or objects we dont want should be set to "DONOTTRACK"
             """
             for i, det in enumerate(detections.detections):
-                det.id = self.classes[int(predicted_classes[i])]
+                # Uncomment to use string names
+                # det.id = self.classes[int(predicted_classes[i])]
+
+                # Use int for class, but make it a string
+                det.id = str(int(predicted_classes[i]))
 
         self.det3d_pub.publish(detections)
 
