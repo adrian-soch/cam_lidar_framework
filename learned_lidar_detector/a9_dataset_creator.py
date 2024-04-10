@@ -57,6 +57,11 @@ class A9LidarBevCreator(Dataset):
     def get_files(path, ext):
         assert os.path.isdir(path)
         return glob(os.path.join(path, f'*.{ext}'))
+    
+    def create_yolo_obb_dataset(self, test_fraction=0.2, val_fraction=0.2):
+        for idx in range(len(self.lidar_list)):
+            bev_image, det_list = self.get_bev_and_label(idx=idx)
+
 
     def demo_pc_to_image(self, debug=False):
         for idx in range(len(self.lidar_list)):
@@ -87,7 +92,7 @@ class A9LidarBevCreator(Dataset):
             pc[:, 2] > cfg.boundary['maxZ']))]
 
         # Apply radius removal
-        self.radius_outlier_removal(pc, num_points=12, r=0.8)
+        pc = self.radius_outlier_removal(pc, num_points=12, r=0.8)
 
         # Convert to BEV
         bev_image = self.create_bev(pc, visualize=visualize, labels=det_list)
@@ -111,10 +116,10 @@ class A9LidarBevCreator(Dataset):
         # Return x,y,z,1
         xyz1 = np.hstack(
             [pc[:, :3], np.ones((pc.shape[0], 1), dtype=np.float32)])
-        temp = np.matmul(transform, xyz1.T).T
-        # remove coloumn of 1s
-        temp = np.delete(temp, -1, axis=1)
-        return temp
+        xyz1 = np.matmul(transform, xyz1.T).T
+
+        pc[:, :3] = xyz1[:, :3]
+        return pc
 
     def create_bev(self, pc, visualize=False, labels=None):
         '''
@@ -190,11 +195,15 @@ class A9LidarBevCreator(Dataset):
 
     @staticmethod
     def radius_outlier_removal(pc, num_points=12, r=0.8):
+        pc = pc.T if pc.shape[1] > 9 else pc
+
         pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(pc)
+        pcd.points = o3d.utility.Vector3dVector(pc[:, :3])
         _, ind = pcd.remove_radius_outlier(nb_points=num_points, radius=r)
-        pcd = pcd.select_by_index(ind)
-        return np.asarray(pcd.points)
+        # pcd = pcd.select_by_index(ind)
+        mask = np.zeros(pc.shape[0], dtype=bool)
+        mask[ind] = True
+        return pc[mask]
 
     def convert_a9_json(self, gt_json):
         '''
@@ -332,9 +341,13 @@ def main(args):
 
     # Process the point clouds into images
     # lbc.demo_pc_to_image(debug=False)
-    array, gt = lbc.get_bev_and_label(0)
-    img = lbc.array_to_image(array)
-    cv2.imwrite('./test_a9_lidar_img.jpg', img)
+
+    # Save a sample image
+    # array, gt = lbc.get_bev_and_label(0)
+    # img = lbc.array_to_image(array)
+    # cv2.imwrite('./test_a9_lidar_img.jpg', img)
+
+    lbc.create_yolo_obb_dataset()
 
 
 # check if the script is run directly and call the main function

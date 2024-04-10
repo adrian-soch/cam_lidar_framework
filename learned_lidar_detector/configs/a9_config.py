@@ -1,4 +1,3 @@
-import math
 import numpy as np
 
 hm_size = (152, 152)
