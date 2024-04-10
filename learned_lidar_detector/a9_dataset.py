@@ -62,7 +62,7 @@ class A9LidarBevCreator(Dataset):
         for idx in range(len(self.lidar_list)):
             self.get_bev_and_label(idx=idx, visualize=True, debug=debug)
 
-    def get_bev_and_label(self, idx, visualize=False, debug=False):
+    def get_bev_and_label(self, idx:int, visualize=False, debug=False):
         pc_path = self.lidar_list[idx]
         # Get detection bboxes in the ground plane
         gt_json = self.get_gt(pc_path)
@@ -100,6 +100,12 @@ class A9LidarBevCreator(Dataset):
             o3d.visualization.draw_geometries([pcd, triad])
 
         return bev_image, det_list
+    
+    def array_to_image(self, array):
+        image = (array*255).astype(np.uint8)
+        image = image.transpose((1, 2, 0))  # HWC to CHW
+        image = np.ascontiguousarray(image, dtype=np.uint8)
+        return image
 
     def transform_pc(self, pc, transform):
         # Return x,y,z,1
@@ -162,11 +168,9 @@ class A9LidarBevCreator(Dataset):
         RGB_Map[2, :, :] = densityMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # r_map
         RGB_Map[1, :, :] = heightMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # g_map
         RGB_Map[0, :, :] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # b_map
-        image = (RGB_Map*255).astype(np.uint8)
-        image = image.transpose((1, 2, 0))  # HWC to CHW
-        image = np.ascontiguousarray(image, dtype=np.uint8)
 
         if visualize:
+            image = self.array_to_image(RGB_Map)
             if labels is not None:
                 image = self.annotate_bev(labels, image)
 
@@ -327,7 +331,10 @@ def main(args):
     lbc = A9LidarBevCreator(input_path=args.input, output_path=args.output)
 
     # Process the point clouds into images
-    lbc.demo_pc_to_image(debug=False)
+    # lbc.demo_pc_to_image(debug=False)
+    array, gt = lbc.get_bev_and_label(0)
+    img = lbc.array_to_image(array)
+    cv2.imwrite('./test_a9_lidar_img.jpg', img)
 
 
 # check if the script is run directly and call the main function
