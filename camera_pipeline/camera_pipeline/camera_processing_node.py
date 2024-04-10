@@ -194,7 +194,7 @@ class ImageSubscriber(Node):
 
         return out
 
-    def save_to_coco(self, tracks, im_w=1920, im_h=1080):
+    def save_to_coco(self, tracks):
         """Convert track data to COCO json format
         """
         if tracks is None:
