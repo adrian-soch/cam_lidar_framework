@@ -14,6 +14,8 @@ import rclpy
 from rclpy.node import Node
 from vision_msgs.msg import Detection3DArray
 
+import numpy as np
+
 FOLDER_PATH = '/home/adrian/dev/metrics/Kitti_Results'
 
 
@@ -43,8 +45,10 @@ class DetectorNode(Node):
         self.time = now.strftime("%Y-%m-%d_%H-%M-%S")
         self.frame_count = 0
 
+        self.get_logger().info(f'3D Track logger initialized.')
+
     def detection_callback(self, msg):
-        self.frame_count += 1
+        self.get_logger().info(f'Saving frame {str(self.frame_count)} results.')
 
         # Hold all the tracks in a frame
         tracks = []
@@ -59,17 +63,18 @@ class DetectorNode(Node):
             yaw = euler_from_quaternion(
                 orientation.w, orientation.x, orientation.y, orientation.z)
 
-            entry = f'{obj_class},{pos.x:.3f},{pos.y:.3f},{pos.z:.3f},{size.x:.3f},{size.y:.3f},{size.z:.3f},{yaw:.3f}'
+            entry = f'{obj_class:05d} {pos.x:.3f} {pos.y:.3f} {pos.z:.3f} {size.x:.3f} {size.y:.3f} {size.z:.3f} {yaw:.3f}'
             tracks.append(entry)
 
         # Print to txt file
         out_path = os.path.join(
-            FOLDER_PATH, self.frame_count + '_' + self.time + 'kitti.txt')
+            FOLDER_PATH,self.time, str(self.frame_count) + '_' +  'kitti.txt')
         if self.frame_count <= 0:
             create_folder_path(out_path)
         with open(out_path, "w") as f:
             for trk in tracks:
-                f.write(trk.toStr() + "\n")
+                f.write(trk + "\n")
+        self.frame_count += 1
 
 
 def euler_from_quaternion(qw, qx, qy, qz):
