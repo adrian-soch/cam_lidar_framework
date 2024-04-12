@@ -1,22 +1,18 @@
 '''
 This script converts the A9 data into BEV psuedo images
 based on the config file values
-
-Based on: https://github.com/maudzung/SFA3D
 '''
 
 import argparse
 import cv2
 import os
-from glob import glob
-import json
 import open3d as o3d
 import numpy as np
 from pypcd4 import PointCloud
-import torch
 from torch.utils.data import Dataset
 
 import configs.a9_config as cfg
+from lidar_2_bev import get_gt, radius_outlier_removal, transform_pc, array_to_image, get_files, euler_from_quaternion, shuffle_list
 
 
 class A9LidarBevCreator(Dataset):
@@ -25,55 +21,68 @@ class A9LidarBevCreator(Dataset):
         input_path = input_path
         self.output_path = output_path
 
-        self.sensor_direction = 's110_lidar_ouster_north'
-
-        self.lidar_folder = os.path.join(
-            input_path, 'point_clouds', self.sensor_direction)
-        self.gt_folder = os.path.join(
-            input_path, 'labels_point_clouds', self.sensor_direction)
-        self.image_folder = os.path.join(
-            input_path, 'images', self.sensor_direction)
-
         print('Getting files from path.')
-        self.lidar_list = self.get_files(self.lidar_folder, 'pcd')
+        sensor_directions = [
+            's110_lidar_ouster_north', 's110_lidar_ouster_south']
+        self.lidar_list = []
+        for dir in sensor_directions:
+            lidar_folder = os.path.join(input_path, 'point_clouds', dir)
+            self.lidar_list += (get_files(lidar_folder, 'pcd'))
 
-    def __len__(self):
-        return len(self.lidar_list)
+    def create_yolo_obb_dataset(self, test_fraction=0.2, val_fraction=0.2):
+        assert self.output_path is not None, "Output folder must be not be None"
 
-    def __getitem__(self, idx):
-        bev_image, det_list = self.get_bev_and_label(idx=idx)
-        bev_image.transpose((2, 0, 1))
+        val_size, test_size = int(
+            len(self.lidar_list)*val_fraction), int(len(self.lidar_list)*test_fraction)
+        train_size = len(self.lidar_list) - val_size - test_size
+        assert train_size > 0, "Invalid train/val/test split."
 
-        # Scale labels from [0,1]
-        det_list[:,]
+        shuffle_list(self.lidar_list)
 
-        # convert image and OBBs to tensors
-        bev_image = torch.from_numpy(bev_image)
-        det_list = torch.from_numpy(det_list).float()
+        folders = [('train', range(0, train_size)), ('val', range(
+            train_size, val_size+train_size)), ('test', range(train_size+val_size, test_size+val_size+train_size))]
+        for folder, split_range in folders:
+            img_path = os.path.join(self.output_path, 'images', folder)
+            gt_path = os.path.join(self.output_path, 'labels', folder)
+            os.makedirs(img_path)
+            os.makedirs(gt_path)
 
-        return bev_image, det_list
+            for idx in split_range:
+                bev_image, det_list = self.get_bev_and_label(idx=idx)
+                det_list = self.normalize_labels(det_list)
+
+                file_name = str(idx).zfill(7)
+                self.write_label_file(
+                    det_list, name=gt_path + f'/{file_name}.txt')
+                cv2.imwrite(
+                    img_path + f'/{file_name}.jpg', array_to_image(bev_image))
+
+                print(f'Saving image/label {idx} to {folder}')
 
     @staticmethod
-    def get_files(path, ext):
-        assert os.path.isdir(path)
-        return glob(os.path.join(path, f'*.{ext}'))
-    
-    def create_yolo_obb_dataset(self, test_fraction=0.2, val_fraction=0.2):
-        for idx in range(len(self.lidar_list)):
-            bev_image, det_list = self.get_bev_and_label(idx=idx)
+    def normalize_labels(labels):
+        labels = np.array(labels).astype(float)
+        labels[:, [1, 3, 5, 7]] = labels[:, [1, 3, 5, 7]] / cfg.BEV_WIDTH
+        labels[:, [2, 4, 6, 8]] = labels[:, [2, 4, 6, 8]] / cfg.BEV_HEIGHT
 
+        # Clip labels
+        labels[:, [1, 3, 5, 7]] = np.clip(labels[:, [1, 3, 5, 7]], 0, 1)
+        labels[:, [2, 4, 6, 8]] = np.clip(labels[:, [2, 4, 6, 8]], 0, 1)
+        return labels.tolist()
+
+    @staticmethod
+    def write_label_file(data, name):
+        with open(name, 'w') as file:
+            for d in data:
+                entry = f'{int(d[0])} {d[1]} {d[2]} {d[3]} {d[4]} {d[5]} {d[6]} {d[7]} {d[8]} \n'
+                file.write(entry)
 
     def demo_pc_to_image(self, debug=False):
         for idx in range(len(self.lidar_list)):
             self.get_bev_and_label(idx=idx, visualize=True, debug=debug)
 
-    def get_bev_and_label(self, idx:int, visualize=False, debug=False):
+    def get_bev_and_label(self, idx: int, visualize=False, debug=False):
         pc_path = self.lidar_list[idx]
-        # Get detection bboxes in the ground plane
-        gt_json = self.get_gt(pc_path)
-        det_list = self.convert_a9_json(gt_json)
-
-        # get point cloud as np.array
         pc = self.get_pc(pc_path)
 
         # Normalize pointcloud orientation and height, align road plane with x-y plane
@@ -81,7 +90,7 @@ class A9LidarBevCreator(Dataset):
         TODO add transform that rotates yaw angle for better cropping
         OR use a transformed cropbox that is the size of the RoI 
         '''
-        pc = self.transform_pc(pc, cfg.lidar2ground)
+        pc = transform_pc(pc, cfg.lidar2ground)
 
         # Crop point cloud based on paramters
         pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
@@ -92,7 +101,13 @@ class A9LidarBevCreator(Dataset):
             pc[:, 2] > cfg.boundary['maxZ']))]
 
         # Apply radius removal
-        pc = self.radius_outlier_removal(pc, num_points=12, r=0.8)
+        pc = radius_outlier_removal(pc, num_points=12, r=0.8)
+
+        # Get detection bboxes in the ground plane
+        gt_json = get_gt(pc_path)
+        det_list = self.convert_a9_json(gt_json)
+        det_list = self.crop_labels(
+            det_list, height=cfg.BEV_HEIGHT, width=cfg.BEV_WIDTH)
 
         # Convert to BEV
         bev_image = self.create_bev(pc, visualize=visualize, labels=det_list)
@@ -105,24 +120,22 @@ class A9LidarBevCreator(Dataset):
             o3d.visualization.draw_geometries([pcd, triad])
 
         return bev_image, det_list
-    
-    def array_to_image(self, array):
-        image = (array*255).astype(np.uint8)
-        image = image.transpose((1, 2, 0))  # HWC to CHW
-        image = np.ascontiguousarray(image, dtype=np.uint8)
-        return image
 
-    def transform_pc(self, pc, transform):
-        # Return x,y,z,1
-        xyz1 = np.hstack(
-            [pc[:, :3], np.ones((pc.shape[0], 1), dtype=np.float32)])
-        xyz1 = np.matmul(transform, xyz1.T).T
+    @staticmethod
+    def crop_labels(labels, height, width):
+        labels = np.array(labels).astype(float)
+        # All 4 points must be outside image to be deleted
+        mask = ~((labels[:, 1] > width) | (labels[:, 2] > height) &
+                 (labels[:, 3] > width) | (labels[:, 4] > height) &
+                 (labels[:, 5] > width) | (labels[:, 6] > height) &
+                 (labels[:, 7] > width) | (labels[:, 8] > height))
 
-        pc[:, :3] = xyz1[:, :3]
-        return pc
+        return labels[mask].tolist()
 
     def create_bev(self, pc, visualize=False, labels=None):
         '''
+        Based on: https://github.com/maudzung/SFA3D
+        
         create 3 channel image
         1) density
         2) height map
@@ -175,7 +188,7 @@ class A9LidarBevCreator(Dataset):
         RGB_Map[0, :, :] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # b_map
 
         if visualize:
-            image = self.array_to_image(RGB_Map)
+            image = array_to_image(RGB_Map)
             if labels is not None:
                 image = self.annotate_bev(labels, image)
 
@@ -184,26 +197,6 @@ class A9LidarBevCreator(Dataset):
                 exit(0)
 
         return RGB_Map
-
-    def get_gt(self, lidar_file):
-        head, tail = os.path.split(lidar_file)
-        name, _ = os.path.splitext(tail)
-        gt_path = os.path.join(self.gt_folder, name + '.json')
-
-        with open(gt_path) as f:
-            return json.load(f)
-
-    @staticmethod
-    def radius_outlier_removal(pc, num_points=12, r=0.8):
-        pc = pc.T if pc.shape[1] > 9 else pc
-
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(pc[:, :3])
-        _, ind = pcd.remove_radius_outlier(nb_points=num_points, radius=r)
-        # pcd = pcd.select_by_index(ind)
-        mask = np.zeros(pc.shape[0], dtype=bool)
-        mask[ind] = True
-        return pc[mask]
 
     def convert_a9_json(self, gt_json):
         '''
@@ -222,7 +215,7 @@ class A9LidarBevCreator(Dataset):
             bbox = data['cuboid']['val']
             bbox_bev = self.convert_labels(bbox)
             corners = self.bbox3d_to_corners(bbox_bev)
-            detection = [data['type']] + corners[:]
+            detection = [cfg.CLASS_NAME_TO_ID[data['type']]] + corners[:]
             det_list.append(detection)
         return det_list
 
@@ -285,7 +278,7 @@ class A9LidarBevCreator(Dataset):
 
     def annotate_bev(self, labels, image):
         for obj in labels:
-            colour = cfg.colours[cfg.CLASS_NAME_TO_ID[obj[0]]]
+            colour = cfg.colours[int(obj[0])]
             image = self.draw_r_bbox(obj[1:], image, colour)
         return image
 
@@ -311,31 +304,6 @@ class A9LidarBevCreator(Dataset):
         return pc.numpy()
 
 
-def euler_from_quaternion(qw, qx, qy, qz):
-    """
-    Convert a quaternion into euler angles (roll, pitch, yaw)
-    roll is rotation around x in radians (counterclockwise)
-    pitch is rotation around y in radians (counterclockwise)
-    yaw is rotation around z in radians (counterclockwise)
-
-    Note: only returns yaw about z axis
-    """
-    # t0 = +2.0 * (q.w * q.x + q.y * q.z)
-    # t1 = +1.0 - 2.0 * (q.x * q.x + q.y * q.y)
-    # roll_x = np.atan2(t0, t1)
-
-    # t2 = +2.0 * (q.w * q.y - q.z * q.x)
-    # t2 = +1.0 if t2 > +1.0 else t2
-    # t2 = -1.0 if t2 < -1.0 else t2
-    # pitch_y = np.asin(t2)
-
-    t3 = +2.0 * (qw * qz + qx * qy)
-    t4 = +1.0 - 2.0 * (qy * qy + qz * qz)
-    yaw_z = np.arctan2(t3, t4)
-
-    return yaw_z  # in radians
-
-
 def main(args):
     lbc = A9LidarBevCreator(input_path=args.input, output_path=args.output)
 
@@ -344,7 +312,9 @@ def main(args):
 
     # Save a sample image
     # array, gt = lbc.get_bev_and_label(0)
-    # img = lbc.array_to_image(array)
+    # img = array_to_image(array)
+    # print(gt)
+    # print(len(gt))
     # cv2.imwrite('./test_a9_lidar_img.jpg', img)
 
     lbc.create_yolo_obb_dataset()
@@ -358,6 +328,6 @@ if __name__ == "__main__":
         "-i", "--input", help="The path of the A9 sequence.", type=str,
         default='/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01')
     parser.add_argument(
-        "-o", "--output", help="The path where the results are saved.", default=None)
+        "-o", "--output", help="The path where the results are saved.", default='/home/adrian/dev/A9_images_and_points/bev_lidar1')
     args = parser.parse_args()
     main(args)
