@@ -11,35 +11,44 @@ import open3d as o3d
 import numpy as np
 from pypcd4 import PointCloud
 import time
+from typing import List
 
 import configs.a9_config as cfg
 from lidar_2_bev import get_gt, radius_outlier_removal, transform_pc, array_to_image, get_files, euler_from_quaternion, shuffle_list, create_black_img, save_img
 
 
 class A9LidarBevCreator():
-    """Create bird's-eye-view (BEV) psuedo images from LiDAR point clouds
+    def __init__(self, input_list: List[str]):
+        """Create bird's-eye-view (BEV) psuedo images from LiDAR point clouds
 
         This is custom for A9 (https://innovation-mobility.com/en/project-providentia/a9-dataset/) format data.
-    """
 
-    def __init__(self, input_list):
-
+        Args:
+            input_list (List[str]): Folders with lidar point clouds (from A9 dataset)
+        """
         print('Getting files from path.')
-        sensor_directions = [
-            's110_lidar_ouster_north', 's110_lidar_ouster_south']
         self.lidar_list = []
         for seq_path in input_list:
-            for dir in sensor_directions:
-                lidar_folder = os.path.join(seq_path, 'point_clouds', dir)
-                self.lidar_list += (get_files(lidar_folder, 'pcd'))
+            self.lidar_list += (get_files(seq_path, 'pcd'))
 
         print(f'Found {len(self.lidar_list)} data samples.')
 
-    def create_yolo_obb_dataset(self, output_path, test_fraction=0.2, val_fraction=0.2, percent_background=0.07, num_workers=1):
+    def create_yolo_obb_dataset(self, output_path: str, test_fraction=0.2, val_fraction=0.2, percent_background=0.07, num_workers=1):
+        """Create a data set with train, val, test folders. Format is in the YOLOv8-OBB format.
+            The Train split proportion is automatically calculated from val and test.
+
+        Args:
+            output_path (str): Location to save the dataset.
+            test_fraction (float, optional): Test set proportion. Defaults to 0.2.
+            val_fraction (float, optional): Validation set proportion. Defaults to 0.2.
+            percent_background (float, optional): Controls the proportion of empty images in the final dataset. Defaults to 0.07.
+            num_workers (int, optional): Number of threads to use. Defaults to 1.
+        """
         assert output_path is not None, "Output folder must be not be None"
         start_time = time.time()
 
-        background_set = ['background.pcd']*int(percent_background*len(self.lidar_list))
+        background_set = ['background.pcd'] * \
+            int(percent_background*len(self.lidar_list))
         self.lidar_list += background_set
 
         val_size, test_size = int(
@@ -109,9 +118,10 @@ class A9LidarBevCreator():
             pc_path = self.lidar_list[idx]
 
         if pc_path == 'background.pcd':
-            back_img = create_black_img(height=cfg.BEV_HEIGHT, width=cfg.BEV_WIDTH)
+            back_img = create_black_img(
+                height=cfg.BEV_HEIGHT, width=cfg.BEV_WIDTH)
             return back_img, None
-        
+
         pc = self.get_pc(pc_path)
 
         # Normalize pointcloud orientation and height, align road plane with x-y plane
@@ -334,10 +344,16 @@ class A9LidarBevCreator():
 
 
 def main(args):
-    seq_list = ['/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s02',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04'
-                ]
+    seq_list = ['/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_north',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s02/point_clouds/s110_lidar_ouster_north',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_north',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04/point_clouds/s110_lidar_ouster_north',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_south',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s02/point_clouds/s110_lidar_ouster_south',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_south',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04/point_clouds/s110_lidar_ouster_south',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r00_s04/point_clouds',
+                '/home/adrian/dev/A9_images_and_points/a9_dataset_r00_s03/point_clouds']
 
     lbc = A9LidarBevCreator(input_list=seq_list)
 
@@ -345,7 +361,7 @@ def main(args):
     # lbc.demo_pc_to_image(debug=False)
 
     lbc.create_yolo_obb_dataset(
-        output_path=args.output, val_fraction=0.2, test_fraction=0.25, num_workers=20, percent_background=0.07)
+        output_path=args.output, val_fraction=0.2, test_fraction=0.25, num_workers=20, percent_background=0.075)
 
 
 # check if the script is run directly and call the main function
