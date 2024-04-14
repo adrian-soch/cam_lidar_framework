@@ -1,3 +1,4 @@
+import cv2
 import json
 from glob import glob
 import os
@@ -14,11 +15,17 @@ def get_files(path, ext:str) -> list:
     files = glob(os.path.join(path, f'*.{ext}'))
     return sorted(files)
 
+def save_img(filename:str, cv_image):
+    cv2.imwrite(filename, cv_image)
+
 def array_to_image(array) -> np.ndarray:
         image = (array*255).astype(np.uint8)
         image = image.transpose((1, 2, 0))  # HWC to CHW
         image = np.ascontiguousarray(image, dtype=np.uint8)
         return image
+
+def create_black_img(height:int, width:int) -> np.ndarray:
+    return np.zeros((3, height, width))
 
 def transform_pc(pc, transform) -> np.ndarray:
     # Return x,y,z,1
