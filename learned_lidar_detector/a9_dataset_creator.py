@@ -4,7 +4,6 @@ based on the config file values
 '''
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import cv2
 import os
 import open3d as o3d
@@ -66,8 +65,7 @@ class A9LidarBevCreator():
             os.makedirs(img_path)
             os.makedirs(gt_path)
 
-            # Define a function to process each index
-            def process_index(idx):
+            for idx in split_range:
                 bev_image, det_list = self.get_bev_and_label(idx=idx)
                 det_list = self.__normalize_labels(det_list)
 
@@ -78,9 +76,6 @@ class A9LidarBevCreator():
                     img_path, f'{file_name}.jpg'), array_to_image(bev_image))
 
                 print(f'Saving image/label {idx} to {folder}')
-
-            with ThreadPoolExecutor(max_workers=num_workers) as executor:
-                executor.map(process_index, split_range)
 
         end_time = time.time()
         print(f'Processing time: {end_time - start_time:.2f} seconds')
@@ -153,7 +148,7 @@ class A9LidarBevCreator():
 
         if debug:
             pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(pc)
+            pcd.points = o3d.utility.Vector3dVector(pc[:, :3])
             triad = o3d.geometry.TriangleMesh.create_coordinate_frame(
                 size=10, origin=[0, 0, 0])
             o3d.visualization.draw_geometries([pcd, triad])
@@ -191,9 +186,9 @@ class A9LidarBevCreator():
         PointCloud = np.hstack([PointCloud, range])
 
         PointCloud[:, 0] = np.int_(
-            np.floor(PointCloud[:, 0] / cfg.DISCRETIZATION))
+            np.floor(PointCloud[:, 0] / cfg.DISCRETIZATION) - Width*cfg.boundary['minX']/cfg.bound_size_x)
         PointCloud[:, 1] = np.int_(
-            np.floor(PointCloud[:, 1] / cfg.DISCRETIZATION) + Width / 2)
+            np.floor(PointCloud[:, 1] / cfg.DISCRETIZATION) - Height*cfg.boundary['minY']/cfg.bound_size_y)
 
         # sort-3times
         sorted_indices = np.lexsort(
@@ -328,13 +323,13 @@ class A9LidarBevCreator():
         corners_int = np.array(corners).astype(int)
 
         img = cv2.line(img, (corners_int[0], corners_int[1]),
-                       (corners_int[2], corners_int[3]), colour, 2)
+                       (corners_int[2], corners_int[3]), colour, 1)
         img = cv2.line(img, (corners_int[2], corners_int[3]),
-                       (corners_int[4], corners_int[5]), colour, 2)
+                       (corners_int[4], corners_int[5]), colour, 1)
         img = cv2.line(img, (corners_int[4], corners_int[5]),
-                       (corners_int[6], corners_int[7]), colour, 2)
+                       (corners_int[6], corners_int[7]), colour, 1)
         img = cv2.line(img, (corners_int[6], corners_int[7]),
-                       (corners_int[0], corners_int[1]), colour, 2)
+                       (corners_int[0], corners_int[1]), colour, 1)
 
         return img
 
@@ -344,16 +339,16 @@ class A9LidarBevCreator():
 
 
 def main(args):
-    seq_list = ['/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_north',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s02/point_clouds/s110_lidar_ouster_north',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_north',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04/point_clouds/s110_lidar_ouster_north',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_south',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s02/point_clouds/s110_lidar_ouster_south',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_south',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04/point_clouds/s110_lidar_ouster_south',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r00_s04/point_clouds',
-                '/home/adrian/dev/A9_images_and_points/a9_dataset_r00_s03/point_clouds']
+    seq_list = [
+        '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_north',
+        '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s02/point_clouds/s110_lidar_ouster_north',
+        '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_north',
+        '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04/point_clouds/s110_lidar_ouster_north',
+        '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_south',
+        '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s02/point_clouds/s110_lidar_ouster_south',
+        '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03/point_clouds/s110_lidar_ouster_south',
+        '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s04/point_clouds/s110_lidar_ouster_south',
+    ]
 
     lbc = A9LidarBevCreator(input_list=seq_list)
 
@@ -361,7 +356,7 @@ def main(args):
     # lbc.demo_pc_to_image(debug=False)
 
     lbc.create_yolo_obb_dataset(
-        output_path=args.output, val_fraction=0.2, test_fraction=0.25, num_workers=20, percent_background=0.075)
+    output_path=args.output, val_fraction=0.2, test_fraction=0.25, num_workers=20, percent_background=0.025)
 
 
 # check if the script is run directly and call the main function
@@ -369,6 +364,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Processes the LiDAR images into BEV psuedo images in the YOLO-obb format.")
     parser.add_argument(
-        "-o", "--output", help="The path where the results are saved.", default='/home/adrian/dev/A9_images_and_points/bev_lidar')
+        "-o", "--output", help="The path where the results are saved.", default='/home/adrian/dev/A9_images_and_points/bev_lidar_r02_only')
     args = parser.parse_args()
     main(args)
