@@ -1,8 +1,10 @@
 import numpy as np
 
+MIN_POINT_COUNT = 4
+
 # Emergency_vehicle and van merged
 CLASS_NAME_TO_ID = {'BICYCLE':0, 'BUS':1, 'CAR':2, 'EMERGENCY_VEHICLE':3,
-                   'MOTORCYCLE':4, 'PEDESTRIAN':5, 'TRAILER':6, 'TRUCK':7, 'VAN':3, 'OTHER':8}
+                   'MOTORCYCLE':4, 'PEDESTRIAN':5, 'TRAILER':6, 'TRUCK':7, 'VAN':8, 'OTHER':9}
 
 colours = [[0, 255, 255], [0, 0, 255], [255, 0, 0], [255, 120, 0],
           [255, 120, 120], [0, 120, 0], [120, 255, 255], [120, 0, 255], [255, 255, 180]]

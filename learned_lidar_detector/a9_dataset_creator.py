@@ -32,7 +32,7 @@ class A9LidarBevCreator():
 
         print(f'Found {len(self.lidar_list)} data samples.')
 
-    def create_yolo_obb_dataset(self, output_path: str, test_fraction=0.2, val_fraction=0.2, percent_background=0.07, num_workers=1):
+    def create_yolo_obb_dataset(self, output_path: str, test_fraction=0.2, val_fraction=0.2, percent_background=0.0):
         """Create a data set with train, val, test folders. Format is in the YOLOv8-OBB format.
             The Train split proportion is automatically calculated from val and test.
 
@@ -40,7 +40,7 @@ class A9LidarBevCreator():
             output_path (str): Location to save the dataset.
             test_fraction (float, optional): Test set proportion. Defaults to 0.2.
             val_fraction (float, optional): Validation set proportion. Defaults to 0.2.
-            percent_background (float, optional): Controls the proportion of empty images in the final dataset. Defaults to 0.07.
+            percent_background (float, optional): Controls the proportion of empty images in the final dataset. Defaults to 0.0.
             num_workers (int, optional): Number of threads to use. Defaults to 1.
         """
         assert output_path is not None, "Output folder must be not be None"
@@ -68,6 +68,9 @@ class A9LidarBevCreator():
             for idx in split_range:
                 bev_image, det_list = self.get_bev_and_label(idx=idx)
                 det_list = self.__normalize_labels(det_list)
+
+                if det_list is None:
+                    print('   No lables for this frame.')
 
                 file_name = str(idx).zfill(7)
                 self.__write_label_file(
@@ -139,7 +142,7 @@ class A9LidarBevCreator():
 
         # Get detection bboxes in the ground plane
         gt_json = get_gt(pc_path)
-        det_list = self.__convert_a9_json(gt_json)
+        det_list = self.__convert_a9_json(gt_json, min_points=cfg.MIN_POINT_COUNT)
         det_list = self.__crop_labels(
             det_list, height=cfg.BEV_HEIGHT, width=cfg.BEV_WIDTH)
 
@@ -164,7 +167,8 @@ class A9LidarBevCreator():
                  (labels[:, 5] > width) | (labels[:, 6] > height) &
                  (labels[:, 7] > width) | (labels[:, 8] > height))
 
-        return labels[mask].tolist()
+        out = labels[mask].tolist()
+        return None if len(out) == 0 else out
 
     def __create_bev(self, pc, visualize=False, labels=None):
         '''
@@ -232,7 +236,7 @@ class A9LidarBevCreator():
 
         return RGB_Map
 
-    def __convert_a9_json(self, gt_json):
+    def __convert_a9_json(self, gt_json, min_points=0, debug=False):
         '''
         Covnert the A9 .json gt format into lists of yolo-obb format
         list = [[class, x1, y1, x2, y2, x3, y3, x4, y4]]
@@ -246,11 +250,20 @@ class A9LidarBevCreator():
         objects = frames[frame_num]['objects']
         for item in objects.items():
             data = item[1]['object_data']
+
+            # Skip if not enough points in bbox
+            num_points = data['cuboid']['attributes']['num'][0]['val'] if data['cuboid'][
+                'attributes']['num'][0]['name'] == 'num_points' else min_points
+            if num_points < min_points:
+                if debug:
+                    print(f'    Skipping object with {num_points} points.')
+                continue
             bbox = data['cuboid']['val']
             bbox_bev = self.__convert_labels(bbox)
             corners = self.__bbox3d_to_corners(bbox_bev)
             detection = [cfg.CLASS_NAME_TO_ID[data['type']]] + corners[:]
             det_list.append(detection)
+        det_list = None if len(det_list) == 0 else det_list
         return det_list
 
     @staticmethod
@@ -352,11 +365,11 @@ def main(args):
 
     lbc = A9LidarBevCreator(input_list=seq_list)
 
-    # Process the point clouds into images
+    ## UNCOMMENT For Demo
     # lbc.demo_pc_to_image(debug=False)
 
     lbc.create_yolo_obb_dataset(
-    output_path=args.output, val_fraction=0.2, test_fraction=0.25, num_workers=20, percent_background=0.025)
+        output_path=args.output, val_fraction=0.2, test_fraction=0.25, percent_background=0.015)
 
 
 # check if the script is run directly and call the main function
@@ -364,6 +377,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Processes the LiDAR images into BEV psuedo images in the YOLO-obb format.")
     parser.add_argument(
-        "-o", "--output", help="The path where the results are saved.", default='/home/adrian/dev/A9_images_and_points/bev_lidar_r02_only')
+        "-o", "--output", help="The path where the results are saved.", default='/home/adrian/dev/A9_images_and_points/bev_lidar')
     args = parser.parse_args()
     main(args)
