@@ -3,5 +3,5 @@ train: ./images/train
 val: ./images/val
 test: ./images/test
 
-nc: 8
-names: ["BICYCLE", "BUS", "CAR", "EMERGENCY_VEHICLE", "MOTORCYCLE", "PEDESTRIAN", "TRAILER", "TRUCK"]
+nc: 9
+names: ["BICYCLE", "BUS", "CAR", "EMERGENCY_VEHICLE", "MOTORCYCLE", "PEDESTRIAN", "TRAILER", "TRUCK", "OTHER"]
