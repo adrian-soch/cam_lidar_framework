@@ -12,9 +12,10 @@ from pypcd4 import PointCloud
 import time
 from typing import List
 
-import configs.a9_config as cfg
-from lidar_2_bev import get_gt, radius_outlier_removal, transform_pc, array_to_image, get_files, euler_from_quaternion, shuffle_list, create_black_img, save_img
-
+from .configs import a9_config as cfg
+from .lidar_2_bev import get_gt, radius_outlier_removal, transform_pc, array_to_image, get_files, euler_from_quaternion, shuffle_list, create_black_img, save_img
+# from configs import a9_config as cfg
+# from lidar_2_bev import get_gt, radius_outlier_removal, transform_pc, array_to_image, get_files, euler_from_quaternion, shuffle_list, create_black_img, save_img
 
 class A9LidarBevCreator():
     def __init__(self, input_list: List[str]):
@@ -121,24 +122,7 @@ class A9LidarBevCreator():
             return back_img, None
 
         pc = self.get_pc(pc_path)
-
-        # Normalize pointcloud orientation and height, align road plane with x-y plane
-        '''
-        TODO add transform that rotates yaw angle for better cropping
-        OR use a transformed cropbox that is the size of the RoI 
-        '''
         pc = transform_pc(pc, cfg.lidar2ground)
-
-        # Crop point cloud based on paramters
-        pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
-            pc[:, 0] > cfg.boundary['maxX']))]
-        pc = pc[np.logical_not((pc[:, 1] <= cfg.boundary['minY']) | (
-            pc[:, 1] > cfg.boundary['maxY']))]
-        pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
-            pc[:, 2] > cfg.boundary['maxZ']))]
-
-        # Apply radius removal
-        pc = radius_outlier_removal(pc, num_points=12, r=0.8)
 
         # Get detection bboxes in the ground plane
         gt_json = get_gt(pc_path)
@@ -147,7 +131,7 @@ class A9LidarBevCreator():
             det_list, height=cfg.BEV_HEIGHT, width=cfg.BEV_WIDTH)
 
         # Convert to BEV
-        bev_image = self.__create_bev(pc, visualize=visualize, labels=det_list)
+        bev_image = create_bev(pc, visualize=visualize, labels=det_list)
 
         if debug:
             pcd = o3d.geometry.PointCloud()
@@ -169,72 +153,6 @@ class A9LidarBevCreator():
 
         out = labels[mask].tolist()
         return None if len(out) == 0 else out
-
-    def __create_bev(self, pc, visualize=False, labels=None):
-        '''
-        Based on: https://github.com/maudzung/SFA3D
-
-        create 3 channel image
-        1) density
-        2) height map
-        3) Options: range image (dist2sensor), surface normals?
-        '''
-        Height = cfg.BEV_HEIGHT + 1
-        Width = cfg.BEV_WIDTH + 1
-
-        # Discretize Feature Map
-        PointCloud = np.copy(pc)
-
-        range = np.sqrt(pow(PointCloud[:, 0], 2.0) +
-                        pow(PointCloud[:, 1], 2.0)).reshape(-1, 1)
-        PointCloud = np.hstack([PointCloud, range])
-
-        PointCloud[:, 0] = np.int_(
-            np.floor(PointCloud[:, 0] / cfg.DISCRETIZATION) - Width*cfg.boundary['minX']/cfg.bound_size_x)
-        PointCloud[:, 1] = np.int_(
-            np.floor(PointCloud[:, 1] / cfg.DISCRETIZATION) - Height*cfg.boundary['minY']/cfg.bound_size_y)
-
-        # sort-3times
-        sorted_indices = np.lexsort(
-            (-PointCloud[:, 2], PointCloud[:, 1], PointCloud[:, 0]))
-        PointCloud = PointCloud[sorted_indices]
-        _, unique_indices, unique_counts = np.unique(
-            PointCloud[:, 0:2], axis=0, return_index=True, return_counts=True)
-        PointCloud_top = PointCloud[unique_indices]
-
-        # Height Map, Intensity Map & Density Map
-        heightMap = np.zeros((Height, Width))
-        rangeMap = np.zeros((Height, Width))
-        densityMap = np.zeros((Height, Width))
-
-        max_height = float(np.abs(cfg.boundary['maxZ'] - cfg.boundary['minZ']))
-        heightMap[np.int_(PointCloud_top[:, 0]), np.int_(
-            PointCloud_top[:, 1])] = PointCloud_top[:, 2] / max_height
-
-        max_range = PointCloud[:, 3].max()
-        rangeMap[np.int_(PointCloud_top[:, 0]), np.int_(
-            PointCloud_top[:, 1])] = PointCloud_top[:, 3] / max_range
-
-        normalizedCounts = np.minimum(
-            1.0, np.log(unique_counts + 1) / np.log(64))
-        densityMap[np.int_(PointCloud_top[:, 0]), np.int_(
-            PointCloud_top[:, 1])] = normalizedCounts
-
-        RGB_Map = np.zeros((3, Height - 1, Width - 1))
-        RGB_Map[2, :, :] = densityMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # r_map
-        RGB_Map[1, :, :] = heightMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # g_map
-        RGB_Map[0, :, :] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # b_map
-
-        if visualize:
-            image = array_to_image(RGB_Map)
-            if labels is not None:
-                image = self.__annotate_bev(labels, image)
-
-            cv2.imshow('Numpy Array as Image', image)
-            if self.__user_input_handler() < 0:
-                exit(0)
-
-        return RGB_Map
 
     def __convert_a9_json(self, gt_json, min_points=0, debug=False):
         '''
@@ -265,16 +183,6 @@ class A9LidarBevCreator():
             det_list.append(detection)
         det_list = None if len(det_list) == 0 else det_list
         return det_list
-
-    @staticmethod
-    def __user_input_handler() -> int:
-        out = 0
-        key = cv2.waitKey(0)
-
-        # Escape key
-        if (key == 27):
-            out = -1
-        return out
 
     @staticmethod
     def __bbox3d_to_corners(bbox_bev):
@@ -322,33 +230,125 @@ class A9LidarBevCreator():
         h1 = h
 
         return x1, y1, z1, w1, l1, h1, yaw
-
-    def __annotate_bev(self, labels, image):
-        for obj in labels:
-            colour = cfg.colours[int(obj[0])]
-            image = self.__draw_r_bbox(obj[1:], image, colour)
-        return image
-
-    def __draw_r_bbox(self, corners, img, colour):
-        '''
-        Draw rotated bbox on the psuedo image
-        '''
-        corners_int = np.array(corners).astype(int)
-
-        img = cv2.line(img, (corners_int[0], corners_int[1]),
-                       (corners_int[2], corners_int[3]), colour, 1)
-        img = cv2.line(img, (corners_int[2], corners_int[3]),
-                       (corners_int[4], corners_int[5]), colour, 1)
-        img = cv2.line(img, (corners_int[4], corners_int[5]),
-                       (corners_int[6], corners_int[7]), colour, 1)
-        img = cv2.line(img, (corners_int[6], corners_int[7]),
-                       (corners_int[0], corners_int[1]), colour, 1)
-
-        return img
-
+    
     def get_pc(self, lidar_file):
         pc = PointCloud.from_path(lidar_file)
         return pc.numpy()
+    
+def create_bev(pc, visualize=False, labels=None):
+    '''
+    Based on: https://github.com/maudzung/SFA3D
+
+    create 3 channel image
+    1) density
+    2) height map
+    3) Options: range image (dist2sensor), surface normals?
+    '''
+    # Normalize pointcloud orientation and height, align road plane with x-y plane
+    '''
+    TODO add transform that rotates yaw angle for better cropping
+    OR use a transformed cropbox that is the size of the RoI 
+    '''
+
+    # Crop point cloud based on paramters
+    pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
+        pc[:, 0] > cfg.boundary['maxX']))]
+    pc = pc[np.logical_not((pc[:, 1] <= cfg.boundary['minY']) | (
+        pc[:, 1] > cfg.boundary['maxY']))]
+    pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
+        pc[:, 2] > cfg.boundary['maxZ']))]
+
+    # Apply radius removal
+    pc = radius_outlier_removal(pc, num_points=12, r=0.8)
+
+    Height = cfg.BEV_HEIGHT + 1
+    Width = cfg.BEV_WIDTH + 1
+
+    # Discretize Feature Map
+    PointCloud = np.copy(pc)
+
+    range = np.sqrt(pow(PointCloud[:, 0], 2.0) +
+                    pow(PointCloud[:, 1], 2.0)).reshape(-1, 1)
+    PointCloud = np.hstack([PointCloud, range])
+
+    PointCloud[:, 0] = np.int_(
+        np.floor(PointCloud[:, 0] / cfg.DISCRETIZATION) - Width*cfg.boundary['minX']/cfg.bound_size_x)
+    PointCloud[:, 1] = np.int_(
+        np.floor(PointCloud[:, 1] / cfg.DISCRETIZATION) - Height*cfg.boundary['minY']/cfg.bound_size_y)
+
+    # sort-3times
+    sorted_indices = np.lexsort(
+        (-PointCloud[:, 2], PointCloud[:, 1], PointCloud[:, 0]))
+    PointCloud = PointCloud[sorted_indices]
+    _, unique_indices, unique_counts = np.unique(
+        PointCloud[:, 0:2], axis=0, return_index=True, return_counts=True)
+    PointCloud_top = PointCloud[unique_indices]
+
+    # Height Map, Intensity Map & Density Map
+    heightMap = np.zeros((Height, Width))
+    rangeMap = np.zeros((Height, Width))
+    densityMap = np.zeros((Height, Width))
+
+    max_height = float(np.abs(cfg.boundary['maxZ'] - cfg.boundary['minZ']))
+    heightMap[np.int_(PointCloud_top[:, 0]), np.int_(
+        PointCloud_top[:, 1])] = PointCloud_top[:, 2] / max_height
+
+    max_range = PointCloud[:, 3].max()
+    rangeMap[np.int_(PointCloud_top[:, 0]), np.int_(
+        PointCloud_top[:, 1])] = PointCloud_top[:, 3] / max_range
+
+    normalizedCounts = np.minimum(
+        1.0, np.log(unique_counts + 1) / np.log(64))
+    densityMap[np.int_(PointCloud_top[:, 0]), np.int_(
+        PointCloud_top[:, 1])] = normalizedCounts
+
+    RGB_Map = np.zeros((3, Height - 1, Width - 1))
+    RGB_Map[2, :, :] = densityMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # r_map
+    RGB_Map[1, :, :] = heightMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # g_map
+    RGB_Map[0, :, :] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # b_map
+
+    if visualize:
+        image = array_to_image(RGB_Map)
+        if labels is not None:
+            image = annotate_bev(labels, image)
+
+        cv2.imshow('Numpy Array as Image', image)
+        if user_input_handler() < 0:
+            exit(0)
+
+    return RGB_Map
+    
+def user_input_handler() -> int:
+    out = 0
+    key = cv2.waitKey(0)
+
+    # Escape key
+    if (key == 27):
+        out = -1
+    return out
+
+def annotate_bev(labels, image):
+    for obj in labels:
+        colour = cfg.colours[int(obj[0])]
+        image = draw_r_bbox(obj[1:], image, colour)
+    return image
+
+def draw_r_bbox(corners, img, colour):
+    '''
+    Draw rotated bbox on the psuedo image
+    '''
+    corners_int = np.array(corners).astype(int)
+
+    img = cv2.line(img, (corners_int[0], corners_int[1]),
+                    (corners_int[2], corners_int[3]), colour, 1)
+    img = cv2.line(img, (corners_int[2], corners_int[3]),
+                    (corners_int[4], corners_int[5]), colour, 1)
+    img = cv2.line(img, (corners_int[4], corners_int[5]),
+                    (corners_int[6], corners_int[7]), colour, 1)
+    img = cv2.line(img, (corners_int[6], corners_int[7]),
+                    (corners_int[0], corners_int[1]), colour, 1)
+
+    return img
 
 
 def main(args):
@@ -366,7 +366,7 @@ def main(args):
     lbc = A9LidarBevCreator(input_list=seq_list)
 
     ## UNCOMMENT For Demo
-    # lbc.demo_pc_to_image(debug=False)
+    lbc.demo_pc_to_image(debug=False)
 
     lbc.create_yolo_obb_dataset(
         output_path=args.output, val_fraction=0.2, test_fraction=0.25, percent_background=0.015)
