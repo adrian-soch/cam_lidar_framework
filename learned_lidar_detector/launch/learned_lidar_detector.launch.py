@@ -40,7 +40,7 @@ Note: -1 will use the LiDAR + Webcam with live data
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 
 # 10, 7, 6, 12, 13
-BAG_SELECTOR = 7
+BAG_SELECTOR = 9
 
 # Determines what kind of output you want, Video/Rviz2/csv_tracker_data
 SHOW_RVIZ = True
@@ -117,13 +117,16 @@ def generate_launch_description():
         ]
     )
 
+    share_dir = get_package_share_directory('learned_lidar_detector')
+    model_path = os.path.join(share_dir, 'best.engine')
     lidar_perception_node = Node(
         package='learned_lidar_detector',
         executable='learned_lidar_detector',
         output='screen',
         parameters=[
             data_dependant_params,
-            {'lidar_topic': 'points'}
+            {'lidar_topic': 'points'},
+            {'model_path': model_path}
         ]
     )
 
@@ -140,7 +143,7 @@ def generate_launch_description():
         parameters=[
             {'topic_name': 'ld_proc/dets'},
             {'bbox_marker_topic': 'ld_proc/bboxs'},
-            {'tracklet_topic': 'ls_proc/tracklets'}
+            {'tracklet_topic': 'ld_proc/tracklets'}
         ]
     )
 
