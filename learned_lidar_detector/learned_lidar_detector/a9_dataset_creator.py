@@ -249,6 +249,7 @@ def create_bev(pc, visualize=False, labels=None):
     TODO add transform that rotates yaw angle for better cropping
     OR use a transformed cropbox that is the size of the RoI 
     '''
+    t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
     # Crop point cloud based on paramters
     pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
@@ -257,9 +258,13 @@ def create_bev(pc, visualize=False, labels=None):
         pc[:, 1] > cfg.boundary['maxY']))]
     pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
         pc[:, 2] > cfg.boundary['maxZ']))]
+    
+    # t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
     # Apply radius removal
     pc = radius_outlier_removal(pc, num_points=12, r=0.8)
+
+    # t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
     Height = cfg.BEV_HEIGHT + 1
     Width = cfg.BEV_WIDTH + 1
@@ -272,9 +277,9 @@ def create_bev(pc, visualize=False, labels=None):
     PointCloud = np.hstack([PointCloud, range])
 
     PointCloud[:, 0] = np.int_(
-        np.floor(PointCloud[:, 0] / cfg.DISCRETIZATION) - Width*cfg.boundary['minX']/cfg.bound_size_x)
+        np.floor(PointCloud[:, 0] / cfg.DISCRETIZATION) - Height*cfg.boundary['minX']/cfg.bound_size_x)
     PointCloud[:, 1] = np.int_(
-        np.floor(PointCloud[:, 1] / cfg.DISCRETIZATION) - Height*cfg.boundary['minY']/cfg.bound_size_y)
+        np.floor(PointCloud[:, 1] / cfg.DISCRETIZATION) - Width*cfg.boundary['minY']/cfg.bound_size_y)
 
     # sort-3times
     sorted_indices = np.lexsort(
@@ -306,6 +311,9 @@ def create_bev(pc, visualize=False, labels=None):
     RGB_Map[2, :, :] = densityMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # r_map
     RGB_Map[1, :, :] = heightMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # g_map
     RGB_Map[0, :, :] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]  # b_map
+
+    t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+    print(f'Time (msec): {(t2-t1)*1000:.2f}')
 
     if visualize:
         image = array_to_image(RGB_Map)
