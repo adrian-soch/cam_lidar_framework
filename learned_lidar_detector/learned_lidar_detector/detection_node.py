@@ -1,24 +1,30 @@
+# limit the number of cpus used by high performance libraries
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "2"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter, ParameterType
+from rcl_interfaces.msg import ParameterDescriptor
 from sensor_msgs.msg import PointCloud2
 from vision_msgs.msg import Detection3DArray, Detection3D
-from rclpy.parameter import Parameter
 from vision_msgs.msg import ObjectHypothesisWithPose
-from rcl_interfaces.msg import ParameterDescriptor
-from rclpy.parameter import ParameterType
-
-import learned_lidar_detector.configs.a9_config as cfg
-from learned_lidar_detector.a9_dataset_creator import create_bev, transform_pc, array_to_image
-# import configs.a9_config as cfg
-# from a9_dataset_creator import create_bev, transform_pc, array_to_image
-
-import ros2_numpy
 
 import numpy as np
-from scipy.spatial.transform import Rotation as R
 from numpy.lib.recfunctions import structured_to_unstructured, unstructured_to_structured
+from scipy.spatial.transform import Rotation as R
 import time
 from ultralytics import YOLO
+
+import ros2_numpy
+from learned_lidar_detector.a9_dataset_creator import transform_pc, array_to_image, radius_outlier_removal
+import learned_lidar_detector.configs.a9_config as cfg
+# import configs.a9_config as cfg
+# from a9_dataset_creator import create_bev, transform_pc, array_to_image
 
 
 class LidarProcessingNode(Node):
@@ -28,9 +34,9 @@ class LidarProcessingNode(Node):
         self.declare_parameter('lidar_topic', 'points')
         self.declare_parameter('detection_topic', 'ld_proc/dets')
         self.declare_parameter('pc_topic', 'ld_proc/cloud')
-        self.declare_parameter('confidence', 0.4)
+        self.declare_parameter('confidence', 0.6)
         self.declare_parameter(
-            'model_path', '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/learned_lidar_detector/weights/best.pt')
+            'model_path', Parameter.Type.STRING)
 
         lidar_topic = self.get_parameter(
             'lidar_topic').get_parameter_value().string_value
@@ -76,11 +82,6 @@ class LidarProcessingNode(Node):
         self.declare_parameter('lidar2world_transform.translation', descriptor=ParameterDescriptor(
             type=ParameterType.PARAMETER_DOUBLE_ARRAY))
 
-        # self.declare_parameter('lidar2world_transform.quaternion', [
-        #                        0.9938165, 0.0, 0.1110353, 0.0])
-        # self.declare_parameter(
-        #     'lidar2world_transform.translation', [0.0, 0.0, 12.0])
-
         l2g_quat = self.get_parameter(
             'lidar2world_transform.quaternion').get_parameter_value().double_array_value
 
@@ -111,21 +112,20 @@ class LidarProcessingNode(Node):
         pc = transform_pc(pc, self.transform)
 
         # Crop point cloud based on paramters
-        # pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
-        #     pc[:, 0] > cfg.boundary['maxX']))]
-        # pc = pc[np.logical_not((pc[:, 1] <= cfg.boundary['minY']) | (
-        #     pc[:, 1] > cfg.boundary['maxY']))]
-        # pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
-        #     pc[:, 2] > cfg.boundary['maxZ']))]
+        pc = pc[np.logical_not((pc[:, 0] <= cfg.boundary['minX']) | (
+            pc[:, 0] > cfg.boundary['maxX']))]
+        pc = pc[np.logical_not((pc[:, 1] <= cfg.boundary['minY']) | (
+            pc[:, 1] > cfg.boundary['maxY']))]
+        pc = pc[np.logical_not((pc[:, 2] <= cfg.boundary['minZ']) | (
+            pc[:, 2] > cfg.boundary['maxZ']))]
 
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-        
-        bev_img = create_bev(pc)
+
+        bev_img = self.fast_bev(pc)
 
         t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
-        results = self.model(array_to_image(
-            bev_img), device='cuda:0',  imgsz=(1024), conf=self.confidence, verbose=False)
+        results = self.model(array_to_image(bev_img), device='cuda:0',  imgsz=(1024), conf=self.confidence, verbose=False)
         obb_results = results[0].obb.cpu().numpy()
         class_dict = results[0].names
 
@@ -152,8 +152,8 @@ class LidarProcessingNode(Node):
             result.hypothesis.score = float(det.conf[0])
             detection.results.append(result)
 
-            detection.bbox.size.x = h
-            detection.bbox.size.y = w
+            detection.bbox.size.x = w
+            detection.bbox.size.y = h
             detection.bbox.size.z = self.height_from_class(cls)
 
             detection.bbox.center.position.x = x
@@ -169,7 +169,7 @@ class LidarProcessingNode(Node):
 
         self.det3d_pub.publish(detection_array)
         self.publish_pc(self.pc_pub, pc, self.world_frame)
-        
+
         t5 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info(
             f'Time (msec): pre {(t2-t1)*1000:.2f} bev {(t3-t2)*1000:.2f} ref {(t4-t3)*1000:.2f} pub {(t5-t4)*1000:.2f}')
@@ -181,11 +181,21 @@ class LidarProcessingNode(Node):
         return CLASS_NAME_TO_HEIGHT[cls]
 
     def px_to_meters(self, xywhr: np.ndarray) -> np.ndarray:
+        """Convert BEV psuedo image coordinates into meters
+
+        Args:
+            xywhr (np.ndarray): OBB from YOLO model
+
+        Returns:
+            np.ndarray: OBB in meters/radians
+        """
         x, y, w, h, r = xywhr
-        Height = cfg.BEV_HEIGHT + 1
-        Width = cfg.BEV_WIDTH + 1
-        y = (y + Height*cfg.boundary['minY'] / cfg.bound_size_y) * cfg.DISCRETIZATION
-        x = (x + Width*cfg.boundary['minX'] / cfg.bound_size_x) * cfg.DISCRETIZATION
+
+        # Weird switcharoo for correct mapping, don't ask
+        r *= -1.0
+        y = (y * cfg.DISCRETIZATION) + cfg.boundary['minX']
+        x = (x * cfg.DISCRETIZATION) + cfg.boundary['minY']
+        x, y = y, x
 
         w *= cfg.DISCRETIZATION
         h *= cfg.DISCRETIZATION
@@ -212,7 +222,7 @@ class LidarProcessingNode(Node):
         q[3] = sy * cp * cr - cy * sp * sr
 
         return q
-    
+
     @staticmethod
     def publish_pc(publisher, cloud, frame_id: str) -> None:
         pc = unstructured_to_structured(cloud, dtype=np.dtype(
@@ -220,6 +230,57 @@ class LidarProcessingNode(Node):
         msg = ros2_numpy.msgify(PointCloud2, pc)
         msg.header.frame_id = frame_id
         publisher.publish(msg)
+
+    def fast_bev(self, pc):
+        t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+
+        range = np.sqrt(pow(pc[:, 0], 2.0) +
+                        pow(pc[:, 1], 2.0)).reshape(-1, 1)
+        pc = np.hstack([pc, range])
+
+        # Apply radius removal
+        pc = radius_outlier_removal(pc, num_points=12, r=0.8)
+
+        Height = cfg.BEV_HEIGHT + 1
+        Width = cfg.BEV_WIDTH + 1
+        pc[:, :2] = np.int_(
+            np.floor(pc[:, :2] / cfg.DISCRETIZATION) - np.array([Width, Height]) * np.array(
+                [cfg.boundary['minX'], cfg.boundary['minY']]) / np.array([cfg.bound_size_x, cfg.bound_size_y])
+        )
+
+        sorted_indices = np.lexsort(
+            (-pc[:, 2], pc[:, 1], pc[:, 0]))
+        pc = pc[sorted_indices]
+
+        # Getting unique points with counts
+        _, unique_indices, unique_counts = np.unique(
+            pc[:, :2], axis=0, return_index=True, return_counts=True
+        )
+        PointCloud_top = pc[unique_indices]
+
+        # Pre-computed constants
+        max_height = float(np.abs(cfg.boundary['maxZ'] - cfg.boundary['minZ']))
+        max_range = pc[:, 3].max()
+
+        # Maps initialization
+        heightMap = np.zeros((Height, Width))
+        rangeMap = np.zeros((Height, Width))
+        densityMap = np.zeros((Height, Width))
+
+        # Filling the maps
+        heightMap[tuple(PointCloud_top[:, :2].T.astype(int))] = PointCloud_top[:, 2] / max_height
+        rangeMap[tuple(PointCloud_top[:, :2].T.astype(int))] = PointCloud_top[:, 3] / max_range
+        densityMap[tuple(PointCloud_top[:, :2].T.astype(int))] = np.minimum(1.0, np.log(unique_counts + 1) / np.log(64))
+
+        RGB_Map = np.zeros((3, Height - 1, Width - 1))
+        RGB_Map[2, :, :] = densityMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]
+        RGB_Map[1, :, :] = heightMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]
+        RGB_Map[0, :, :] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]
+
+        t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+        self.get_logger().info(f'Time (msec): {(t2-t1)*1000:.2f}')
+
+        return RGB_Map
 
 
 def main(args=None):
