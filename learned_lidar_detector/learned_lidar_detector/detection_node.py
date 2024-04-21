@@ -151,6 +151,7 @@ class LidarProcessingNode(Node):
             result.hypothesis.class_id = cls
             result.hypothesis.score = float(det.conf[0])
             detection.results.append(result)
+            detection.id = str(int(det.cls[0]))
 
             detection.bbox.size.x = w
             detection.bbox.size.y = h

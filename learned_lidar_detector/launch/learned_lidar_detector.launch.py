@@ -118,7 +118,7 @@ def generate_launch_description():
     )
 
     share_dir = get_package_share_directory('learned_lidar_detector')
-    model_path = os.path.join(share_dir, 'yolov8n-obb_range.pt')
+    model_path = os.path.join(share_dir, 'yolov8n-obb_range.engine')
     lidar_perception_node = Node(
         package='learned_lidar_detector',
         executable='learned_lidar_detector',
@@ -130,19 +130,38 @@ def generate_launch_description():
         ]
     )
 
-    # lidar_tracker = Node(
-    #     package='obj_tracker',
-    #     executable='object_tracker',
-    #     output='screen',
-    # )
-
     lidar_viz = Node(
         package='obj_tracker',
         executable='tracker_bbox_viz',
+        name='lidar_det_viz',
         output='screen',
         parameters=[
             {'topic_name': 'ld_proc/dets'},
             {'bbox_marker_topic': 'ld_proc/bboxs'},
+            {'tracklet_topic': 'ld_proc/tracklets'}
+        ]
+    )
+
+    lidar_tracker = Node(
+        package='obj_tracker',
+        executable='object_tracker',
+        name='learned_lidar_tracker',
+        output='screen',
+        parameters=[
+            {'detection_topic': 'ld_proc/dets'},
+            {'det_pub_topic': 'ld_proc/tracks'},
+            {'marker_pub_topic': 'ld_proc/id_markers'}
+        ]
+    )
+
+    lidar_tracker_viz = Node(
+        package='obj_tracker',
+        executable='tracker_bbox_viz',
+        name='lidar_track_viz',
+        output='screen',
+        parameters=[
+            {'topic_name': 'ld_proc/tracks'},
+            {'bbox_marker_topic': 'ld_proc/track_bboxs'},
             {'tracklet_topic': 'ld_proc/tracklets'}
         ]
     )
@@ -176,7 +195,9 @@ def generate_launch_description():
         ))
 
     launch_list = [
-        perception_node,
+        # perception_node,
+        lidar_tracker,
+        lidar_tracker_viz,
         lidar_perception_node,
         data_source,
     ]
