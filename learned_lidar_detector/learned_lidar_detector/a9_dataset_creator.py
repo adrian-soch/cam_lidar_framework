@@ -3,6 +3,14 @@ This script converts the A9 data into BEV psuedo images
 based on the config file values
 '''
 
+# limit the number of cpus used by high performance libraries
+import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 import argparse
 import cv2
 from glob import glob

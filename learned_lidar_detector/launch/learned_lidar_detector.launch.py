@@ -118,7 +118,7 @@ def generate_launch_description():
     )
 
     share_dir = get_package_share_directory('learned_lidar_detector')
-    model_path = os.path.join(share_dir, 'best.engine')
+    model_path = os.path.join(share_dir, 'yolov8n-obb_range.pt')
     lidar_perception_node = Node(
         package='learned_lidar_detector',
         executable='learned_lidar_detector',
@@ -176,7 +176,7 @@ def generate_launch_description():
         ))
 
     launch_list = [
-        # perception_node,
+        perception_node,
         lidar_perception_node,
         data_source,
     ]

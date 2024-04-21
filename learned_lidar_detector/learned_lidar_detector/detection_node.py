@@ -2,7 +2,7 @@
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "2"
+os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
@@ -21,10 +21,8 @@ import time
 from ultralytics import YOLO
 
 import ros2_numpy
-from learned_lidar_detector.a9_dataset_creator import transform_pc, array_to_image, radius_outlier_removal
+from learned_lidar_detector.lidar_2_bev import transform_pc, array_to_image, fast_bev
 import learned_lidar_detector.configs.a9_config as cfg
-# import configs.a9_config as cfg
-# from a9_dataset_creator import create_bev, transform_pc, array_to_image
 
 
 class LidarProcessingNode(Node):
@@ -121,7 +119,9 @@ class LidarProcessingNode(Node):
 
         t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
-        bev_img = self.fast_bev(pc)
+        bev_img = fast_bev(pc=pc, im_width=cfg.BEV_WIDTH, im_height=cfg.BEV_HEIGHT, discretization=cfg.DISCRETIZATION,
+                           min_x=cfg.boundary['minX'], max_x=cfg.boundary['maxX'], min_y=cfg.boundary['minY'], max_y=cfg.boundary['maxY'],
+                           min_z=cfg.boundary['minZ'], max_z=cfg.boundary['maxZ'])
 
         t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
@@ -230,58 +230,6 @@ class LidarProcessingNode(Node):
         msg = ros2_numpy.msgify(PointCloud2, pc)
         msg.header.frame_id = frame_id
         publisher.publish(msg)
-
-    def fast_bev(self, pc):
-        t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-
-        range = np.sqrt(pow(pc[:, 0], 2.0) +
-                        pow(pc[:, 1], 2.0)).reshape(-1, 1)
-        pc = np.hstack([pc, range])
-
-        # Apply radius removal
-        pc = radius_outlier_removal(pc, num_points=12, r=0.8)
-
-        Height = cfg.BEV_HEIGHT + 1
-        Width = cfg.BEV_WIDTH + 1
-        pc[:, :2] = np.int_(
-            np.floor(pc[:, :2] / cfg.DISCRETIZATION) - np.array([Width, Height]) * np.array(
-                [cfg.boundary['minX'], cfg.boundary['minY']]) / np.array([cfg.bound_size_x, cfg.bound_size_y])
-        )
-
-        sorted_indices = np.lexsort(
-            (-pc[:, 2], pc[:, 1], pc[:, 0]))
-        pc = pc[sorted_indices]
-
-        # Getting unique points with counts
-        _, unique_indices, unique_counts = np.unique(
-            pc[:, :2], axis=0, return_index=True, return_counts=True
-        )
-        PointCloud_top = pc[unique_indices]
-
-        # Pre-computed constants
-        max_height = float(np.abs(cfg.boundary['maxZ'] - cfg.boundary['minZ']))
-        max_range = pc[:, 3].max()
-
-        # Maps initialization
-        heightMap = np.zeros((Height, Width))
-        rangeMap = np.zeros((Height, Width))
-        densityMap = np.zeros((Height, Width))
-
-        # Filling the maps
-        heightMap[tuple(PointCloud_top[:, :2].T.astype(int))] = PointCloud_top[:, 2] / max_height
-        rangeMap[tuple(PointCloud_top[:, :2].T.astype(int))] = PointCloud_top[:, 3] / max_range
-        densityMap[tuple(PointCloud_top[:, :2].T.astype(int))] = np.minimum(1.0, np.log(unique_counts + 1) / np.log(64))
-
-        RGB_Map = np.zeros((3, Height - 1, Width - 1))
-        RGB_Map[2, :, :] = densityMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]
-        RGB_Map[1, :, :] = heightMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]
-        RGB_Map[0, :, :] = rangeMap[:cfg.BEV_HEIGHT, :cfg.BEV_WIDTH]
-
-        t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-        self.get_logger().info(f'Time (msec): {(t2-t1)*1000:.2f}')
-
-        return RGB_Map
-
 
 def main(args=None):
     rclpy.init(args=args)
