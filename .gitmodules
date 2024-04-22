@@ -4,9 +4,3 @@
 [submodule "obj_tracker/obj_tracker/sort"]
 	path = obj_tracker/obj_tracker/sort
 	url = https://github.com/adrian-soch/sort.git
-[submodule "camera_pipeline/camera_pipeline/camera_processing/yolov5"]
-	path = camera_pipeline/camera_pipeline/camera_processing/yolov5
-	url = https://github.com/adrian-soch/yolov5.git
-[submodule "camera_pipeline/camera_pipeline/camera_processing/yolov7"]
-	path = camera_pipeline/camera_pipeline/camera_processing/yolov7
-	url = https://github.com/WongKinYiu/yolov7.git

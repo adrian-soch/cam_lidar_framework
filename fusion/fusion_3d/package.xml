@@ -1,16 +1,17 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>obj_tracker</name>
+  <name>fusion_3d</name>
   <version>0.0.0</version>
-  <description>Perfroms object tracking on 2D axis aligned or oriented bounding box data.</description>
+  <description>Fuses 3D image detections and 3D LiDAR detections into 1 track list.</description>
   <maintainer email="adrian-soch@github.com">adrian</maintainer>
   <license>MIT</license>
 
   <depend>python3-numpy</depend>
+  <depend>message_filters</depend>
   <depend>rclpy</depend>
-  <depend>visualization_msgs</depend>
   <depend>vision_msgs</depend>
+  <depend>visualization_msgs</depend>
   <depend>tf_transformations</depend>
 
   <test_depend>ament_copyright</test_depend>

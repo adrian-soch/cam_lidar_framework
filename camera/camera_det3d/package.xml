@@ -1,17 +1,19 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>obj_tracker</name>
+  <name>camera_det3d</name>
   <version>0.0.0</version>
-  <description>Perfroms object tracking on 2D axis aligned or oriented bounding box data.</description>
+  <description>Perfroms image-based 3D object detection.</description>
   <maintainer email="adrian-soch@github.com">adrian</maintainer>
   <license>MIT</license>
 
   <depend>python3-numpy</depend>
   <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>vision_msgs</depend>
-  <depend>tf_transformations</depend>
+  <depend>cv_bridge</depend>
+  <depend>ros2_numpy</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

@@ -11,59 +11,43 @@ This repositiory contains ROS 2 packages for realtime Camera-LiDAR Fusion for st
 ## Directory
 
 ```
-.
-├── cam2image               USB Camera driver
-│   ├── include
-│   ├── launch
-│   └── src
-├── camera_det3d            3D Camera object detection module
+├── camera                          Camera Pipeline packages
 │   ├── camera_det3d
-│   ├── launch
-│   ├── resource
-│   └── test
-├── camera_pipeline         2D Camera object detection and tracking module
-│   ├── camera_pipeline
-│   ├── config
-│   ├── launch
-│   ├── resource
-│   └── test
-├── cam_lidar_bringup       System Bringup folder   **START HERE**
+│   └── camera_det2d
+├── cam_lidar_bringup               System Bringup folder   **START HERE**
+│   ├── configs
 │   └── launch
-├── data_tools              Tools for converting and processing data
+├── data_tools                      Tools for converting and processing data
 │   ├── data_tools
 │   ├── launch
 │   ├── scripts
 │   └── src
-├── Docs                    Additional information
+├── Docs                            Additional information
 │   ├── Archive
 │   └── readme_images
-├── fusion_module           LiDAR + Camera Fusion module
-│   ├── fusion_module
-│   ├── resource
-│   └── test
-├── lidar_pipeline          LiDAR Object Detection Module
-│   ├── configs
-│   ├── include
-│   ├── launch
-│   └── src
-├── Metrics                 Evaluation scripts anf information
-│   ├── Archive
-│   └── hota
-├── obj_classifier          LiDAR Object Classification Module
-│   ├── obj_classifier
-│   ├── resource
-│   └── test
-├── obj_tracker             LiDAR Object Tracking Module
+├── drivers                         Hardware Drivers
+│   ├── cam2image
+    └── ouster_driver
+├── fusion
+│   ├── fusion_3d                   3D LiDAR + Camera Fusion module
+│   └── fusion_2d               2D LiDAR + Camera Fusion module
+├── lidar
+│   ├── learned_lidar_detector      Learned LiDAR Object Detection Module
+│   ├── lidar_pipeline              Traditional LiDAR Object Detection Module
+│   ├── lidar_obj_classifier              LiDAR Object Classification Module
+│   └── pipeline_interfaces         Custom interfaces for LiDAR modules
+├── Metrics                         Evaluation scripts and information
+│   ├── 2D_HOTA
+│   ├── 2D_mAP
+│   ├── 3D_F1
+│   └── Archive
+├── obj_tracker                     Object Tracking Module
 │   ├── obj_tracker
 │   ├── resource
 │   └── test
-├── pipeline_interfaces     Custom interfaces for LiDAR modules
-│   ├── msg
-│   └── srv
-└── ros2_numpy              Tools for converting msgs to numpy (Submodule)
+└── ros2_numpy                      Tools for converting msgs to numpy (Submodule)
     ├── ros2_numpy
     └── test
-
 ```
 <!---
 tree -d -L 2 -I __pycache__
@@ -102,9 +86,11 @@ pip install opencv-python
 pip install opencv-contrib-python
 ```
 
-### 2.1 Yolov5/7/8 requirements
+### 2.1 Python requirements
 
-See [requirements.txt](camera_pipeline/camera_pipeline/camera_processing/yolov5/requirements.txt). Additional depencicies may have been missed. Install as required.
+```
+numpy, opencv, json, ultralytics
+```
 
 ## 3. C++ requirements
 
