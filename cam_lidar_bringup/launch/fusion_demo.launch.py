@@ -52,7 +52,7 @@ CAM_RESULT_ONLY = False
 
 # Path to YOLOv5, YOLOv8, or YOLOv9 model [.pt or .engine]
 MODEL_NAME = 'yolov8m.pt'
-MODEL_PATH = os.path.join(get_package_share_directory('camera_pipeline'), MODEL_NAME)
+MODEL_PATH = os.path.join(get_package_share_directory('camera_det2d'), MODEL_NAME)
 
 # Enable camera 3d detections
 ENABLE_CAM_3D = False
@@ -153,8 +153,8 @@ def generate_launch_description():
         ]
     )
 
-    camera_pipeline = Node(
-        package='camera_pipeline',
+    camera_det2d = Node(
+        package='camera_det2d',
         executable='camera_processor',
         parameters=[
             {'image_topic': 'image'},
@@ -257,7 +257,7 @@ def generate_launch_description():
         lidar_classifier,
         lidar2image_node,
         perception_node,
-        camera_pipeline,
+        camera_det2d,
         fusion_2D,
         fusion_viz,
         data_source,

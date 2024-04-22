@@ -7,11 +7,11 @@ import os.path
 Options: YOLOv5, YOLOv8, YOLOv9
 '''
 MODEL_NAME = 'yolov8m.pt'
-MODEL_PATH = os.path.join(get_package_share_directory('camera_pipeline'), MODEL_NAME)
+MODEL_PATH = os.path.join(get_package_share_directory('camera_det2d'), MODEL_NAME)
 
 def generate_launch_description():
-    camera_pipeline = Node(
-        package='camera_pipeline',
+    camera_det2d = Node(
+        package='camera_det2d',
         executable='camera_processor',
         parameters=[
             {'image_topic': 'image'},
@@ -22,4 +22,4 @@ def generate_launch_description():
         ]
     )
 
-    return LaunchDescription([camera_pipeline])
+    return LaunchDescription([camera_det2d])

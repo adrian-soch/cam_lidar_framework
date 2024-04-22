@@ -13,7 +13,7 @@ This repositiory contains ROS 2 packages for realtime Camera-LiDAR Fusion for st
 ```
 ├── camera                          Camera Pipeline packages
 │   ├── camera_det3d
-│   └── camera_pipeline
+│   └── camera_det2d
 ├── cam_lidar_bringup               System Bringup folder   **START HERE**
 │   ├── configs
 │   └── launch

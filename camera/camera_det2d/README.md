@@ -1,33 +1,23 @@
-# camera_pipeline
+# camera_det2d
 
 ## Directory Structure
 ```
-├── camera_pipeline
-│   ├── config
-│   │   └── rviz
-│   ├── camera_pipeline
-│   │   ├── camera_processing
-│   │   │   ├── trackers
-│   │   │   ├── weights
-│   │   │   └── yolov5
-│   │   └── lidar_processing
-│   │       └── utils
-│   ├── launch
-│   ├── resource
-│   └── test
+├── camera_det2d
+├── config
+│   └── rviz
+├── launch
+├── resource
+├── scripts
+├── test
+└── weights
+
 ```
 <!---
 tree -d -L 3 -I __pycache__
 --->
 
-> **Note:** This is setup like a ROS2 package, but you do not need to build it to run the scripts. However, building is requried to use the launch files.
-
 # Setup
 
-<!-- To get started
-```
-git clone --recurse-submodules https://github.com/adrian-soch/camera_pipeline.git
-``` -->
 
 <!-- ### ROS2 Packages
 
@@ -43,37 +33,16 @@ colcon build
 ### Install Python requirements
 ```
 # PyTorch CPU Version
-pip install torch torchvision
-
-# GPU Version go here: https://pytorch.org/get-started/locally/
-
+pip install ultralytics
 pip install numpy
-
-# OpenCV CPU Version
 pip install opencv-python
 pip install opencv-contrib-python
 ```
 
-### Yolov5 requirements
-```
-numpy>=1.18.5
-opencv-python>=4.1.1
-Pillow>=7.1.2
-psutil  # system resources
-PyYAML>=5.3.1
-requests>=2.23.0
-scipy>=1.4.1
-```
-
 If I missed any requirements that cause an error at runtime, just install any packages that are missing.
 
-<!-- ## OPTIONAL
-```
-cd <ROS2_WORKSPACE>/src
-git clone --recurse-submodules https://github.com/adrian-soch/camera_pipeline.git
-cd <ROS2_WS>
-colcon build
-```
+## OPTIONAL
+
 # Development notes
 
 After updating files you must
@@ -81,12 +50,7 @@ After updating files you must
 cd <ROS2 WORSKAPCE>
 colcon build
 . install/setup.bash
-``` -->
-
-<!-- #### Optional
-To clean the ros2 workspace run `rm -rf log/ install/ build/`. Warning `rm -rf` means deleting a folder without the ability to recover it.
-
-> Use git and commit often. -->
+```
 
 # Visualizing Data
 
@@ -107,19 +71,17 @@ Before you start you need to source ros2 in all the terminal you want to run a c
 #### Image detection and tracking:
 ```
 # Play the rosbag
-ros2 bag play <Path to rosbag>/<bag name>.db3
+ros2 bag play <Path to rosbag folder>
 
-# Start the python code
-cd <Path to camera_pipeline>/camera_pipeline
-python3 camera_processing_node.py
+# Start the node
+ros2 launch camera_det2d cam_processor_launch.py
 ```
-To modify the parameters go to `camera_pipeline/camera_processing/vision_track.py`.
-
+To modify model inference parameters, you can directly modify the model prediction call.
 
 #### Starting the LiDAR
 ```
 # Ensure your source ROS2 and run `. install/setup.bash`
-ros2 launch camera_pipeline ouster_driver_launch.py
+ros2 launch camera_det2d ouster_driver_launch.py
 ``'
 
 ## References

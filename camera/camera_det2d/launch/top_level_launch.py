@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 ABS_PATH_TO_ROSBAG = 'PATH_HERE'
-PACKAGE = 'camera_pipeline'
+PACKAGE = 'camera_det2d'
 
 
 def generate_launch_description():

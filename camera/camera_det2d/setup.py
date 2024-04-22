@@ -3,7 +3,7 @@ from glob import glob
 from setuptools import setup
 from setuptools import find_packages
 
-package_name = 'camera_pipeline'
+package_name = 'camera_det2d'
 
 setup(
     name=package_name,
@@ -28,7 +28,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'camera_processor = camera_pipeline.camera_processing_node:main'
+            'camera_processor = camera_det2d.camera_processing_node:main'
         ],
     },
 )
