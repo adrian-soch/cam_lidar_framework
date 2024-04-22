@@ -83,11 +83,11 @@ def convert_json_to_coco(json_file):
         for figure in frame["figures"]:
 
             object_key = figure["objectKey"]
-            
+
             # Check if the figure key is already in the set
             if object_key not in id_dict:
                 id_dict[object_key] = (len(id_dict) + 1, frame_index)
-                
+
             if object_key not in seen_keys:
                 seen_keys.add(object_key)
             else:
@@ -112,7 +112,7 @@ def convert_json_to_coco(json_file):
             detection = CocoEntry(id=id, image_id=frame_index, type=type, bb_left=x1, bb_top=y1, bb_width=width,
                         bb_height=height, image_width=image_width, image_height=image_height)
             coco_list.append(detection)
-            
+
     return coco_list
 
 def write_to_json(output_filepath, coco_list):

@@ -4,7 +4,7 @@
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
  * @version 0.1
  * @date 2023-05-25
- * 
+ *
  * @copyright Copyright (c) 2023
 """
 

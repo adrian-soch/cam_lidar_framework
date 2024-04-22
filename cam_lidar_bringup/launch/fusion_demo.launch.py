@@ -34,7 +34,6 @@ BAG_PLAY_LOOP = True
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
-
 Note: -1 will use the LiDAR + Webcam with live data
 '''
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
@@ -51,13 +50,12 @@ SHOW_RVIZ = True
 LIDAR_RESULT_ONLY = False
 CAM_RESULT_ONLY = False
 
+# Path to YOLOv5, YOLOv8, or YOLOv9 model [.pt or .engine]
+MODEL_NAME = 'yolov8m.pt'
+MODEL_PATH = os.path.join(get_package_share_directory('camera_pipeline'), MODEL_NAME)
+
 # Enable camera 3d detections
 ENABLE_CAM_3D = False
-
-# Because of the yolov5 includes, its easier to just run this directly
-# in the terminal instead of a traditional node
-ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/camera_pipeline/camera_pipeline'
-
 '''
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 '''
@@ -155,13 +153,17 @@ def generate_launch_description():
         ]
     )
 
-    execute_camera_processor = ExecuteProcess(
-        cmd=['python3 ./camera_processing_node.py' +
-             ' --ros-args -p flip_image:=' + str(FLIP_IMAGE)],
-        cwd=[ABS_PATH_TO_CAMERA_PIPELINE],
-        shell=True,
-        name='camera_processor',
-        emulate_tty=True
+    camera_pipeline = Node(
+        package='camera_pipeline',
+        executable='camera_processor',
+        parameters=[
+            {'image_topic': 'image'},
+            {'detection_topic': 'image_proc/dets'},
+            {'out_image_topic': 'image_proc/result'},
+            {'confidence': 0.3},
+            {'model_path': MODEL_PATH},
+            {'flip_image': FLIP_IMAGE}
+        ]
     )
 
     lidar_classifier = Node(
@@ -255,7 +257,7 @@ def generate_launch_description():
         lidar_classifier,
         lidar2image_node,
         perception_node,
-        execute_camera_processor,
+        camera_pipeline,
         fusion_2D,
         fusion_viz,
         data_source,

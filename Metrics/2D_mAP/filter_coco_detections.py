@@ -58,7 +58,7 @@ for idx, ann in enumerate(annotations):
 
 
 # Remove the detections outside the RoI
-        
+
 for index in sorted(idx_to_remove, reverse=True):
     del annotations[index]
 

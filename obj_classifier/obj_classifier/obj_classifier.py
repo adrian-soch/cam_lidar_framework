@@ -18,6 +18,7 @@ from message_filters import ApproximateTimeSynchronizer, Subscriber
 
 from pipeline_interfaces.msg import PointCloud2Array
 
+
 class Obj_Classifier(Node):
 
     def __init__(self):
@@ -29,7 +30,7 @@ class Obj_Classifier(Node):
 
         detection_topic = self.declare_parameter(
             'detection_topic', '/lidar_proc/o_detections').get_parameter_value().string_value
-        
+
         pointcloud_topic = self.declare_parameter(
             'pointcloud_topic', 'lidar_proc/obj_clouds').get_parameter_value().string_value
 
@@ -53,8 +54,8 @@ class Obj_Classifier(Node):
         self.svm = load(model_path + '/svm.joblib')
 
         self.classes = ['BICYCLE', 'BUS', 'CAR', 'EMERGENCY_VEHICLE',
-                   'MOTORCYCLE', 'PEDESTRIAN', 'TRAILER', 'TRUCK', 'VAN']
-        
+                        'MOTORCYCLE', 'PEDESTRIAN', 'TRAILER', 'TRUCK', 'VAN']
+
         self.get_logger().info('Classifier Module initialized.')
 
     def callback(self, detections, pointclouds):
@@ -62,7 +63,7 @@ class Obj_Classifier(Node):
 
         # If no detections just publish the same array without modification
         if len(detections.detections) > 0:
-            
+
             feature_vectors = np.empty((len(detections.detections), 7))
             for i, (det, pc) in enumerate(zip(detections.detections, pointclouds.pointclouds)):
                 num_points = pc.row_step*pc.height
@@ -73,12 +74,13 @@ class Obj_Classifier(Node):
                 x = det.bbox.center.position.x
                 y = det.bbox.center.position.y
                 z = det.bbox.center.position.z
-                dist2sensor = np.linalg.norm([x,y,z])
+                dist2sensor = np.linalg.norm([x, y, z])
 
                 w_h_ratio = width/height
                 l_h_ratio = length/height
 
-                feature_vectors[i, :] = [num_points, length, width, height, dist2sensor, w_h_ratio, l_h_ratio]
+                feature_vectors[i, :] = [num_points, length,
+                                         width, height, dist2sensor, w_h_ratio, l_h_ratio]
 
             feature_vectors = self.scaler.transform(feature_vectors)
             feature_vectors = self.pca.transform(feature_vectors)

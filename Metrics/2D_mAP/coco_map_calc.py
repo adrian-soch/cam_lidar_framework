@@ -22,7 +22,7 @@ mAP_list = []
 
 # Loop through the data array
 for pair in files:
-    # Load the GT and Det json files using COCO    
+    # Load the GT and Det json files using COCO
     coco_gt = COCO(pair[0]) # GT file
     coco_dt = coco_gt.loadRes(pair[1])
 
@@ -43,7 +43,7 @@ for pair in files:
     '''
     https://github.com/cocodataset/cocoapi/issues/572
 
-    
+
     For each image find the TP and FN, then add up
 
     #now I will use the dict produced by the evaluate() function to calculate all

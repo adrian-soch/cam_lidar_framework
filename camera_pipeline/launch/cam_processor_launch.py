@@ -1,23 +1,25 @@
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+import os.path
 
-ABS_PATH_TO_CAMERA_PIPELINE = '/home/adrian/dev/ros2_ws/src/cam_lidar_tools/camera_pipeline/camera_pipeline'
-
+'''
+Options: YOLOv5, YOLOv8, YOLOv9
+'''
+MODEL_NAME = 'yolov8m.pt'
+MODEL_PATH = os.path.join(get_package_share_directory('camera_pipeline'), MODEL_NAME)
 
 def generate_launch_description():
-    # Run the camera processing script in the correct folder
-    #   becuase there are many includes and colcon build doesnt like
-    #   running it as a fomrmal package
-    execute_camera_processor = ExecuteProcess(
-        cmd=[[
-            'python3 ./camera_processing_node.py'
-        ]],
-        cwd=[ABS_PATH_TO_CAMERA_PIPELINE],
-        shell=True,
-        name='camera_processor',
-        emulate_tty=True
+    camera_pipeline = Node(
+        package='camera_pipeline',
+        executable='camera_processor',
+        parameters=[
+            {'image_topic': 'image'},
+            {'detection_topic': 'image_proc/dets'},
+            {'out_image_topic': 'image_proc/result'},
+            {'confidence': 0.3},
+            {'model_path': MODEL_PATH}
+        ]
     )
 
-    return LaunchDescription([
-        execute_camera_processor,
-    ])
+    return LaunchDescription([camera_pipeline])

@@ -9,7 +9,7 @@ Z = np.sqrt(X*Y)
 
 plt.figure()
 cp = plt.contour(X, Y, Z, 15, colors='gray')
-plt.clabel(cp, inline=True, 
+plt.clabel(cp, inline=True,
           fontsize=10)
 
 x = [27.6, 55.6, 57.0]

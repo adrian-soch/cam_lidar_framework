@@ -9,19 +9,19 @@
         This can be changed to axis aligned detections
 
     NOTE: Relative imports only work when running via ROS
-        to run via python the relative import must be removed
+        to run via python the relative import must be removed.
         Relative import is `.` in front of the imported module
- * 
+ *
  * @copyright Copyright (c) 2023
 """
-
+# fmt: off
 # This limits CPU usage
 import os
-os.environ["OMP_NUM_THREADS"] = "1" 
+os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1" 
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 from .obj_tracker_utils import *
 
@@ -31,6 +31,7 @@ from rclpy.node import Node
 from rclpy.duration import Duration
 from vision_msgs.msg import Detection3DArray
 from visualization_msgs.msg import Marker, MarkerArray
+# fmt: on
 
 
 class ObjectTracker(Node):
@@ -41,10 +42,10 @@ class ObjectTracker(Node):
         # Get the topic name from the ROS parameter server
         self.world_frame = self.declare_parameter(
             'world_frame', 'map').get_parameter_value().string_value
-        
+
         det_pub_topic = self.declare_parameter(
             'det_pub_topic', 'lidar_proc/tracks').get_parameter_value().string_value
-        
+
         marker_pub_topic = self.declare_parameter(
             'marker_pub_topic', 'lidar_proc/track_markers').get_parameter_value().string_value
 
@@ -60,7 +61,8 @@ class ObjectTracker(Node):
             from .sort import sort as s
 
         # create instance of SORT
-        self.tracker = s.Sort(max_age=3, min_hits=3, iou_threshold=0.01, dt=0.1, output_unmatched=False)
+        self.tracker = s.Sort(
+            max_age=3, min_hits=3, iou_threshold=0.01, dt=0.1, output_unmatched=False)
 
         self.subscription = self.create_subscription(
             Detection3DArray,
@@ -73,7 +75,7 @@ class ObjectTracker(Node):
             Detection3DArray, det_pub_topic, 2)
         self.marker_publisher_ = self.create_publisher(
             MarkerArray, marker_pub_topic, 2)
-        
+
         self.get_logger().info('Tracker Module initialized.')
 
     def callback(self, msg):

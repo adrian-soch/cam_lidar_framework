@@ -1,2 +1,0 @@
-dataloader: a9_dataset.py:A9LidarBevCreator # path to custom dataloader class
-nc: 8 # number of classes

@@ -10,6 +10,8 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
+# fmt: off
+import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -17,15 +19,17 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 from json import dump
-import time
 import numpy as np
-from message_filters import ApproximateTimeSynchronizer, Subscriber
+import time
+
+import rclpy
 from rclpy.node import Node
+from message_filters import ApproximateTimeSynchronizer, Subscriber
 from vision_msgs.msg import Detection2DArray
+
 from fusion_module.sort import Sort, iou_batch, linear_assignment
 from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
-import rclpy
-import os
+# fmt: on
 
 
 class CocoDetectionSaver():
@@ -68,8 +72,8 @@ class DetectionSyncNode(Node):
         self.world_frame = self.declare_parameter(
             'world_frame', 'map').get_parameter_value().string_value
 
-        cam_track_topic = self.declare_parameter(
-            'cam_track_topic', '/image_proc/tracks').get_parameter_value().string_value
+        cam_det_topic = self.declare_parameter(
+            'cam_det_topic', 'image_proc/dets').get_parameter_value().string_value
         lidar2d_track_topic = self.declare_parameter(
             'lidar2d_track_topic', 'image_proc/lidar_track_2D').get_parameter_value().string_value
 
@@ -90,7 +94,7 @@ class DetectionSyncNode(Node):
             exit(-1)
 
         # Create subscribers and the approximate syncronizer message filter
-        cam_sub = Subscriber(self, Detection2DArray, cam_track_topic)
+        cam_sub = Subscriber(self, Detection2DArray, cam_det_topic)
         lidar_sub = Subscriber(self, Detection2DArray, lidar2d_track_topic)
         sync = ApproximateTimeSynchronizer(
             [cam_sub, lidar_sub], queue_size=10, slop=0.030)

@@ -13,7 +13,7 @@ NOTE This should be all C++.
 @section Author(s)
 - Created by Adrian Sochaniwsky on 2/12/2023
 """
-
+# fmt: off
 # Limit CPU use
 import os
 os.environ["OMP_NUM_THREADS"] = "2"
@@ -44,6 +44,7 @@ from rclpy.parameter import ParameterType
 
 from camera_det3d.l_shape import LShapeFitting, RectangleData
 from ultralytics import YOLO
+# fmt: on
 
 
 class CameraDet3DNode(Node):
@@ -53,9 +54,8 @@ class CameraDet3DNode(Node):
         self.intrinsic_matrix, self.rotation_matrix, self.translation, self.c2l_trans = self.init_params()
         self.inv_intrinsic_matrix = np.linalg.inv(self.intrinsic_matrix)
 
-
         # Hardcode translation becuase we are only using rotation matrix and not full transforms
-        #This means that datasets where camera is not close to lidar we need to shift the data
+        # This means that datasets where camera is not close to lidar we need to shift the data
         # This could be fixed by using full rotation + translation matricies and homogenous coordinates
         self.c2l_trans = [0.0, -13.0, 0.0]
 
@@ -69,7 +69,7 @@ class CameraDet3DNode(Node):
             MarkerArray, '/image_proc/cam_bbox3D', 2)
         self.det_publisher = self.create_publisher(
             Detection3DArray, 'image_proc/det3D', 2)
-        
+
         weights = self.declare_parameter(
             'weights', 'yolov8m-seg.pt').get_parameter_value().string_value
 
@@ -181,7 +181,8 @@ class CameraDet3DNode(Node):
             mask3d = self.project_to_ground(polygon.T)
 
             object_height = self.get_obj_height_estimate(obj_class)
-            mask3d = self.refine_3d_countours(contour=mask3d, bbox_2d=bbox_2d, object_height=object_height)
+            mask3d = self.refine_3d_countours(
+                contour=mask3d, bbox_2d=bbox_2d, object_height=object_height)
 
             if mask3d.shape[0] == 0:
                 continue
@@ -212,7 +213,7 @@ class CameraDet3DNode(Node):
 
             l4 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
             # self.get_logger().info(
-                # f'Time (msec): proj {(l2-l1)*1000:.2f} lfit {(l3-l2)*1000:.2f} ref {(l4-l3)*1000:.2f} ')
+            # f'Time (msec): proj {(l2-l1)*1000:.2f} lfit {(l3-l2)*1000:.2f} ref {(l4-l3)*1000:.2f} ')
 
         t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
@@ -227,8 +228,8 @@ class CameraDet3DNode(Node):
         end = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info(
             f'Time (msec): conv {(t1-start)*1000:.1f} inf {(t2-t1)*1000:.1f} proc {(t3-t2)*1000:.1f} pub {(end-t3)*1000:.1f} total {(end-start)*1000:.1f}')
-        
-    def refine_3d_countours(self, contour : np.ndarray, bbox_2d, object_height=0.0) -> np.ndarray:
+
+    def refine_3d_countours(self, contour: np.ndarray, bbox_2d, object_height=0.0) -> np.ndarray:
         """Refine the contour coordinate to increase final 3D bbox accuracy
 
         Args:
@@ -248,7 +249,8 @@ class CameraDet3DNode(Node):
             y_offset, bbox_2d[2]+x_offset, bbox_2d[3]+y_offset
 
         # check if re-projected point lies inside 2D BBox
-        idx_inside_points = (p2d[:,0] >= x1) & (p2d[:,0] <= x2) & (p2d[:,1] >= y1) & (p2d[:,1] <= y2)
+        idx_inside_points = (p2d[:, 0] >= x1) & (
+            p2d[:, 0] <= x2) & (p2d[:, 1] >= y1) & (p2d[:, 1] <= y2)
 
         # Get list of points that reproject inside the 2D BBox
         p2d_refined = p2d[idx_inside_points]
@@ -264,7 +266,8 @@ class CameraDet3DNode(Node):
         #  3: 'motorcycle',
         #  5: 'bus',
         #  7: 'truck',
-        height_dict = {'0':2.0, '1':1.4, '2':1.35, '3':1.25, '5':2.5, '7':2.69}
+        height_dict = {'0': 2.0, '1': 1.4, '2': 1.35,
+                       '3': 1.25, '5': 2.5, '7': 2.69}
 
         height = height_dict.get(str(int(obj_class)))
         if height is None:
@@ -329,7 +332,7 @@ class CameraDet3DNode(Node):
 
         return bbox_3d
 
-    def project_to_image(self, points_3d : np.ndarray, height=0.0) -> np.ndarray:
+    def project_to_image(self, points_3d: np.ndarray, height=0.0) -> np.ndarray:
         """Project 3D points to 2D image plane.
 
         Args:
@@ -340,10 +343,12 @@ class CameraDet3DNode(Node):
             np.ndarray: 2xn array in pixel coordinates
         """
         # First translate
-        points_3d -= (self.translation - np.array([0.0, 0.0, height]) + np.array(self.c2l_trans))
+        points_3d -= (self.translation -
+                      np.array([0.0, 0.0, height]) + np.array(self.c2l_trans))
 
         # Tranform to pixel coordinates
-        points_2d = np.array(self.intrinsic_matrix @ self.rotation_matrix @ points_3d.T)
+        points_2d = np.array(self.intrinsic_matrix @
+                             self.rotation_matrix @ points_3d.T)
 
         # Divide by Z to get 2D projection
         points_2d = np.array((points_2d[:2, :] / points_2d[2:]).T)
@@ -360,8 +365,11 @@ class CameraDet3DNode(Node):
             (image_points, np.ones(image_points.shape[1])))
         ground_points = self.cam2ground @ augmented_points
         # Find intersection of line with ground plane i.e. z=0.
-        scalar = -(self.translation[2] - ground_plane_height) / ground_points[2]
-        ground_points = ground_points.T * scalar[:, np.newaxis] + (self.translation  + np.array(self.c2l_trans))
+        scalar = -(self.translation[2] -
+                   ground_plane_height) / ground_points[2]
+        ground_points = ground_points.T * \
+            scalar[:, np.newaxis] + \
+            (self.translation + np.array(self.c2l_trans))
         return ground_points
 
     def publish_image(self, publisher, image_array) -> None:

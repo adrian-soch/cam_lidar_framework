@@ -1,6 +1,6 @@
 """
 This script converts supervisorly file output to MOT format. Since the Lidar Pointcloud has 3D detections
-we will use 2D bounding box from the (x,y) plane (ground plane projection) 
+we will use 2D bounding box from the (x,y) plane (ground plane projection)
 to leverage the preexisting scripts for calculating the metrics
 
 Inputs: 1) Path to the folder that contains the .json files from the superviesrly export
@@ -13,9 +13,9 @@ Outputs:
         from https://motchallenge.net/:
 
  #########################################################################################
- #########################################################################################  
- #########################################################################################   
-   
+ #########################################################################################
+ #########################################################################################
+
 NOTE Instead of camera coordinates and pixels, we are using lidar coordiantes and meters.
 
 NOTE Make sure your algorithm is making the same bbox labelling assumptions as this script,
@@ -33,9 +33,9 @@ NOTE Make sure your algorithm is making the same bbox labelling assumptions as t
 
 <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
 The conf value contains the detection confidence in the det.txt files. For the ground truth, it acts as a flag whether the entry
- is to be considered. A value of 0 means that this particular instance is ignored in the evaluation, while any other 
- value can be used to mark it as active. For submitted results, all lines in the .txt file are considered. The world 
- coordinates x,y,z are ignored for the 2D challenge and can be filled with -1. Similarly, the bounding boxes are ignored 
+ is to be considered. A value of 0 means that this particular instance is ignored in the evaluation, while any other
+ value can be used to mark it as active. For submitted results, all lines in the .txt file are considered. The world
+ coordinates x,y,z are ignored for the 2D challenge and can be filled with -1. Similarly, the bounding boxes are ignored
  for the 3D challenge. However, each line is still required to contain 10 values.
 
 All frame numbers, target IDs and bounding boxes are 1-based. Here is an example:

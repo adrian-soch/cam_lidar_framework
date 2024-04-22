@@ -17,9 +17,9 @@ Ethernet and power into the box. Cable from box to LiDAR. Plug into an outlet, e
 - Turn off Wifi.
 - In Ethernet settings. Set ethernet device to static IP 10.5.5.90, netmask is 24, Gateway empty.
 - Open `os1-991920100080.local` in browser.
-- Find the configuration tab, confirm the IP of the *UDP Destination Address* to 10.5.5.90 
+- Find the configuration tab, confirm the IP of the *UDP Destination Address* to 10.5.5.90
 - Copy param and launch file from here [https://github.com/ros-drivers/ros2\_ouster\_drivers/tree/ros2/ros2_ouster](https://github.com/ros-drivers/ros2_ouster_drivers/tree/ros2/ros2_ouster)
-    
+
 
 ### Optional - Update Firmware
 
@@ -30,7 +30,7 @@ Minimum V2.1 required. Currently only V2.4 is available from Ouster website.
 
 ## Logitech Brio Webcam
 
-To list availbale webcams on the device: 
+To list availbale webcams on the device:
 ```
 sudo apt-get install v4l-utils
 v4l2-ctl --list-devices

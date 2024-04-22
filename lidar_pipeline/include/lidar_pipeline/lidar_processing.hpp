@@ -191,10 +191,10 @@ private:
 
     /**
      * @brief Fit an L-Shape to the object cloud
-     * 
-     * @tparam PointT 
-     * @param cloud_cluster 
-     * @return vision_msgs::msg::BoundingBox3D 
+     *
+     * @tparam PointT
+     * @param cloud_cluster
+     * @return vision_msgs::msg::BoundingBox3D
      */
     template<typename PointT>
     vision_msgs::msg::BoundingBox3D

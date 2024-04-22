@@ -23,7 +23,7 @@ class FusionVisualizer(Node):
         self.declare_parameter('save_video', False)
         save_video = self.get_parameter(
             'save_video').get_parameter_value().bool_value
-        
+
         self.declare_parameter('video_name', 'video')
         self.video_name = self.get_parameter(
             'video_name').get_parameter_value().string_value

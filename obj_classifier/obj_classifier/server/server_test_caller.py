@@ -3,7 +3,9 @@ from pipeline_interfaces.srv import Classifier
 import rclpy
 from rclpy.node import Node
 
-labels = ['BICYCLE', 'BUS', 'CAR', 'EMERGENCY_VEHICLE', 'MOTORCYCLE', 'PEDESTRIAN', 'TRAILER', 'TRUCK', 'VAN']
+labels = ['BICYCLE', 'BUS', 'CAR', 'EMERGENCY_VEHICLE',
+          'MOTORCYCLE', 'PEDESTRIAN', 'TRAILER', 'TRUCK', 'VAN']
+
 
 class MinimalClientAsync(Node):
 
