@@ -259,7 +259,7 @@ class A9LidarBevCreator():
         # Normalize pointcloud orientation and height, align road plane with x-y plane
         '''
         TODO add transform that rotates yaw angle for better cropping
-        OR use a transformed cropbox that is the size of the RoI 
+        OR use a transformed cropbox that is the size of the RoI
         '''
         t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 

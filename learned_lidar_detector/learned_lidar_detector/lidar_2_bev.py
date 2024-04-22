@@ -1,4 +1,4 @@
-""" 
+"""
 Functions for converting Point clouds into BEV psuedo images
 """
 import numpy as np
