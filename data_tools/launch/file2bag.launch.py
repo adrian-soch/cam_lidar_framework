@@ -4,7 +4,7 @@ This launches 2 nodes:
 1) a node that reads from a folder of pcd files and a folder of
 images and publishes them.
 
-2) Starts a rosbag2 bag recording 
+2) Starts a rosbag2 bag recording
 '''
 import time
 

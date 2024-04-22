@@ -28,5 +28,3 @@ img_concat = np.hstack((img, img_warped))
 plt.imshow(img)
 plt.imshow(img_concat)
 plt.show()
-
-

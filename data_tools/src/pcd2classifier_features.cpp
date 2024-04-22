@@ -1,13 +1,13 @@
 /**
  * @file pcd2classifier_features.cpp
  * @author Adrian Sochaniwsky
- * 
+ *
  * @brief This program extracts object features from the A9 dataset.
  *      Results are stored in a csv file.
- * 
+ *
  * @note Use `feature_extractor.launch.py`
- * 
- *   Usage: ros2 run 
+ *
+ *   Usage: ros2 run
  */
 
 #include <ctime>

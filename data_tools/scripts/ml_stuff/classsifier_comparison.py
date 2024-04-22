@@ -1,6 +1,6 @@
 # This limits CPU usage
 import os
-os.environ["OMP_NUM_THREADS"] = "1" 
+os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
@@ -51,7 +51,7 @@ class ModelComparer:
             # Read the csv data from a file
             df_list.append(pd.read_csv(file))
         return pd.concat(df_list)
-    
+
     @staticmethod
     def process_pd(df):
          # Add other features
@@ -69,7 +69,7 @@ class ModelComparer:
         '''
         df = self.get_pd(data_files)
         ho_test = self.get_pd(test_files)
-       
+
         df = self.process_pd(df)
         ho_test = self.process_pd(ho_test)
         ho_y = ho_test['type']
@@ -97,7 +97,7 @@ class ModelComparer:
         # Split the data into training and testing sets
         X_train, X_test, y_train, y_test = train_test_split(
             X.values, y, test_size=0.4, random_state=42)
-        
+
         # X_test = ho_test
         # y_test = ho_y
 
@@ -203,7 +203,7 @@ class ModelComparer:
         plt.show()
 
     def plot_conf_mat(self, predicted, name, cmd_line=False):
-        
+
         disp = sklearn.metrics.ConfusionMatrixDisplay.from_predictions(
             self.y_test, predicted, display_labels=self.class_names,
             cmap=plt.cm.Blues,
@@ -228,7 +228,7 @@ class ModelComparer:
         end = time()
 
         return (end - start)/num_iter
-    
+
 
 
 def main():
@@ -241,7 +241,7 @@ def main():
         '/home/adrian/dev/A9_images_and_points/r02_s02_south_2024-1-26_20-17-21_features.csv',
         '/home/adrian/dev/A9_images_and_points/r02_s03_south2023-9-6_11-40-1_features.csv',
         '/home/adrian/dev/A9_images_and_points/r02_s04_south_2024-1-25_9-56-45_features.csv',
-        
+
     ]
 
     test = [
