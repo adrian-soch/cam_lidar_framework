@@ -69,7 +69,7 @@ class CameraDet3DNode(Node):
             MarkerArray, '/image_proc/cam_bbox3D', 2)
         self.det_publisher = self.create_publisher(
             Detection3DArray, 'image_proc/det3D', 2)
-        
+
         weights = self.declare_parameter(
             'weights', 'yolov8m-seg.pt').get_parameter_value().string_value
 
@@ -227,7 +227,7 @@ class CameraDet3DNode(Node):
         end = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
         self.get_logger().info(
             f'Time (msec): conv {(t1-start)*1000:.1f} inf {(t2-t1)*1000:.1f} proc {(t3-t2)*1000:.1f} pub {(end-t3)*1000:.1f} total {(end-start)*1000:.1f}')
-        
+
     def refine_3d_countours(self, contour : np.ndarray, bbox_2d, object_height=0.0) -> np.ndarray:
         """Refine the contour coordinate to increase final 3D bbox accuracy
 
