@@ -16,6 +16,6 @@
 3. In another terminal play your ros bag, optionally adding `-l` to loop the bag if it is short in duration.
 4. Change the parameters for translation and orientation in `RQT` until the ground plane is level with the grid in `Rviz2`.
 5. Change the paramters for the crop box until the cube contains the region you are interested in.
-6. Record the results and manually enter them into a configuration file just like `lidar_pipeline/configs/dec7_config.yaml`.
+6. Record the results and manually enter them into a configuration file just like `trad_lidar_detector/configs/dec7_config.yaml`.
 
 > **Note:** results are printed to the terminal.

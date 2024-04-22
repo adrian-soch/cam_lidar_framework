@@ -13,12 +13,12 @@
 #include <pcl_ros/transforms.hpp>
 
 // Application Specific Includes
-#include "lidar_pipeline/l_fitting.hpp"
-#include "lidar_pipeline/lidar_processing.hpp"
+#include "trad_lidar_detector/l_fitting.hpp"
+#include "trad_lidar_detector/lidar_processing.hpp"
 
 #define AABB_ENABLE 0
 
-namespace lidar_pipeline
+namespace trad_lidar_detector
 {
 void LidarProcessing::cloud_callback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr recent_cloud)
 {
@@ -488,4 +488,4 @@ void LidarProcessing::publishPointCloudArray(
     array_msg.header.stamp    = stamp_;
     publisher->publish(array_msg);
 }
-} // end namespace lidar_pipeline
+} // end namespace trad_lidar_detector

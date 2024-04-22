@@ -33,7 +33,7 @@ if DEMO_ID == 2:
     BAG_NAME = 'dec14_2023/dec14_2023_good'
     CONFIG = 'dec14_config.yaml'
 
-lidar_pipeline_share_dir = get_package_share_directory('lidar_pipeline')
+lidar_pipeline_share_dir = get_package_share_directory('trad_lidar_detector')
 # Transforms for specific dataset
 data_dependant_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', CONFIG)
@@ -83,7 +83,7 @@ def generate_launch_description():
     )
 
     lidar_detector = Node(
-        package='lidar_pipeline',
+        package='trad_lidar_detector',
         executable='perception_node',
         name='perception_node',
         output='screen',

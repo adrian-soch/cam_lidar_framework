@@ -5,7 +5,7 @@ from launch import LaunchDescription
 def generate_launch_description():
 
     transform_explorer = Node(
-        package='lidar_pipeline',
+        package='trad_lidar_detector',
         executable='transform_explorer_node',
         name='transform_explorer_node',
         output='screen'

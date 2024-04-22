@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>lidar_pipeline</name>
+  <name>trad_lidar_detector</name>
   <version>0.0.1</version>
   <description>Performs 3D object detection on PointCloud data using a traditional clustering-based approach.</description>
   <author email="sochania@mcmaster.ca">asochaniwsky</author>

@@ -1,12 +1,12 @@
-# lidar_pipeline
+# trad_lidar_detector
 
 ## Directory Structure
 
 ```
-├── lidar_pipeline
+├── trad_lidar_detector
 │   ├── configs
 │   ├── include
-│   │   └── lidar_pipeline
+│   │   └── trad_lidar_detector
 │   ├── launch
 │   └── src
 ```
@@ -23,7 +23,7 @@ Only `sudo apt install ros-galactic-pcl-ros` must be installed separately, the r
 Recommended addition arguments for `colcon build`:
 
 ```
-colcon build --packages-select lidar_pipeline --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+colcon build --packages-select trad_lidar_detector --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
 ---
@@ -46,9 +46,9 @@ Using VSCode, debugging a ROS2 node is easy.
 
 Terminal 1:
 ```
-colcon build --packages-select lidar_pipeline --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+colcon build --packages-select trad_lidar_detector --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
-ros2 run --prefix 'gdbserver localhost:3000' lidar_pipeline perception_node
+ros2 run --prefix 'gdbserver localhost:3000' trad_lidar_detector perception_node
 ```
 In VSCode:
 ```
@@ -62,7 +62,7 @@ Create VSCode `launch.json`
             "type": "cppdbg",
             "miDebuggerServerAddress": "localhost:3000",
             "cwd": "/",
-            "program": "/home/adrian/dev/ros2_ws/install/lidar_pipeline/lib/lidar_pipeline/perception_node"
+            "program": "/home/adrian/dev/ros2_ws/install/trad_lidar_detector/lib/trad_lidar_detector/perception_node"
         }
     ]
 }

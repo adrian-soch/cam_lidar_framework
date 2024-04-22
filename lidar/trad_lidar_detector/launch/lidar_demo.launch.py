@@ -19,7 +19,7 @@ example:
 ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
 BAG_NAME = 'may10_2023/q7_2_may10_2023'
 
-share_dir = get_package_share_directory('lidar_pipeline')
+share_dir = get_package_share_directory('trad_lidar_detector')
 pipeline_params = os.path.join(
     share_dir, 'configs', 'lidar_pipeline_config.yaml')
 data_dependant_params = os.path.join(share_dir, 'configs', 'may10_config.yaml')
@@ -28,7 +28,7 @@ data_dependant_params = os.path.join(share_dir, 'configs', 'may10_config.yaml')
 def generate_launch_description():
 
     perception_node = Node(
-        package='lidar_pipeline',
+        package='trad_lidar_detector',
         executable='perception_node',
         name='perception_node',
         output='screen',
@@ -63,7 +63,7 @@ def generate_launch_description():
     )
 
     rviz_config_file = PathJoinSubstitution(
-        [FindPackageShare("lidar_pipeline"), "configs", "rviz.rviz"]
+        [FindPackageShare("trad_lidar_detector"), "configs", "rviz.rviz"]
     )
     rviz_node = Node(
         package='rviz2',

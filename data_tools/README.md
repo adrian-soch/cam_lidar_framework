@@ -14,4 +14,4 @@ Use `synced_image_cloud_2file.cpp` for saving pointclouds and images to seperate
 
 To quickly rifgure out the parameters of a cuboid object in the 3D pointcloud space, run `roi_visualizer_node.py`. Then use `rqt_gui` and the `Parameter Reconfigure` tab to make change the poaranters and see live updates in Rviz to the cuboid object.
 
-This is mainly used for determining the paramters to the `crop box` object in the lidar_pipeline.
+This is mainly used for determining the paramters to the `crop box` object in the trad_lidar_detector.
