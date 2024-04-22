@@ -47,8 +47,8 @@ class Obj_Classifier(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    obj_classifier = Obj_Classifier()
-    rclpy.spin(obj_classifier)
+    lidar_obj_classifier = Obj_Classifier()
+    rclpy.spin(lidar_obj_classifier)
     rclpy.shutdown()
 
 

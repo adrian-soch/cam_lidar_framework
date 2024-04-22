@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'obj_classifier'
+package_name = 'lidar_obj_classifier'
 
 setup(
     name=package_name,
@@ -20,8 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'object_classifier = obj_classifier.obj_classifier:main',
-            'classifier_validation = obj_classifier.classifier_validation:main',
+            'object_classifier = lidar_obj_classifier.lidar_obj_classifier:main',
+            'classifier_validation = lidar_obj_classifier.classifier_validation:main',
         ],
     },
 )

@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 """
- * @file obj_classifier.py
+ * @file lidar_obj_classifier.py
  * @brief Perform lidar object classification
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
 
@@ -88,14 +88,8 @@ class Obj_Classifier(Node):
             # Predict the class of the feature vector using the SVM model
             predicted_classes = self.svm.predict(feature_vectors)
 
-            """
-            TODO Unknown classes or objects we dont want should be set to "DONOTTRACK"
-            """
+            # Update object IDs for all detections
             for i, det in enumerate(detections.detections):
-                # Uncomment to use string names
-                # det.id = self.classes[int(predicted_classes[i])]
-
-                # Use int for class, but make it a string
                 det.id = str(int(predicted_classes[i]))
 
         self.det3d_pub.publish(detections)
@@ -106,8 +100,8 @@ class Obj_Classifier(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    obj_classifier = Obj_Classifier()
-    rclpy.spin(obj_classifier)
+    lidar_obj_classifier = Obj_Classifier()
+    rclpy.spin(lidar_obj_classifier)
     rclpy.shutdown()
 
 

@@ -34,7 +34,7 @@ This repositiory contains ROS 2 packages for realtime Camera-LiDAR Fusion for st
 ├── lidar
 │   ├── learned_lidar_detector      Learned LiDAR Object Detection Module
 │   ├── lidar_pipeline              Traditional LiDAR Object Detection Module
-│   ├── obj_classifier              LiDAR Object Classification Module
+│   ├── lidar_obj_classifier              LiDAR Object Classification Module
 │   └── pipeline_interfaces         Custom interfaces for LiDAR modules
 ├── Metrics                         Evaluation scripts and information
 │   ├── 2D_HOTA

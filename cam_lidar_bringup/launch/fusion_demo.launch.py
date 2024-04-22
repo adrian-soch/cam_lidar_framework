@@ -167,7 +167,7 @@ def generate_launch_description():
     )
 
     lidar_classifier = Node(
-        package='obj_classifier',
+        package='lidar_obj_classifier',
         executable='object_classifier',
         name='lidar_obj_classifier',
         output='screen',
