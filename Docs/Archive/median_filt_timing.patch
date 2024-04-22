@@ -5,7 +5,7 @@ index 20469c2..46f2edd 100644
 @@ -169,15 +169,25 @@ private:
          pcl::PointCloud<pcl::PointXYZI> cloud;
          pcl::fromROSMsg(transformed_cloud, cloud);
- 
+
 +        /* ========================================
 +         * Median Filter
 +         * ========================================*/
@@ -29,12 +29,12 @@ index 20469c2..46f2edd 100644
          voxel_filter.setLeafSize(voxel_leaf_size, voxel_leaf_size, voxel_leaf_size);
 -        // voxel_filter.set
          voxel_filter.filter(*cloud_voxel_filtered);
- 
+
          /* ========================================
 @@ -193,27 +203,17 @@ private:
          // crop.setKeepOrganized(true);
          crop.filter(xyz_filtered_cloud);
- 
+
 -        /* ========================================
 -         * Median Filter
 -         * ========================================*/
@@ -51,7 +51,7 @@ index 20469c2..46f2edd 100644
 +        auto stop1 = std::chrono::high_resolution_clock::now();
 +        auto t_ms1 = std::chrono::duration_cast<std::chrono::milliseconds>(stop1 - start);
 +        RCLCPP_INFO(get_logger(), "Filt time (msec): %ld", t_ms1.count());
- 
+
          /* ========================================
           * STATISTICAL OUTLIER REMOVAL
           * ========================================*/
@@ -72,4 +72,3 @@ index 20469c2..46f2edd 100644
 +        this->publishPointCloud(plane_pub_, *median_filtered);
          this->publishPointCloud(euclidean_pub_, *clusters[0]);
          this->publishPointCloud(stat_pub_, *sor_cloud_filtered);
- 

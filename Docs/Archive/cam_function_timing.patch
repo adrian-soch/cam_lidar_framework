@@ -9,7 +9,7 @@ index 8e7524b..47912f3 100644
 +    auto start = std::chrono::high_resolution_clock::now();
 +    timerCallback();
 +    auto stop = std::chrono::high_resolution_clock::now();
- 
+
 +    auto t_ms = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 +    RCLCPP_INFO(get_logger(), "Time: %ld", t_ms.count());
 +

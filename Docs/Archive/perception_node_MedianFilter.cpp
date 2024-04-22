@@ -4,12 +4,12 @@
  * @author Adrian Sochaniwsky (sochania@mcmaster.ca)
  * @version 0.1
  * @date 2023-01-12
- * 
+ *
  * #######################################################
  * #######################################################
  * #######################################################
  * #######################################################
- * 
+ *
  * @note
  * - Voxel grid filter does not preserve the organized pointcloud!
  * - OpenMP Helps paralellize the computations really easily
@@ -29,7 +29,7 @@ if (OPENMP_FOUND)
 endif()
  */
 
-#include <iostream> 
+#include <iostream>
 
 #include "rclcpp/rclcpp.hpp"
 #include <rclcpp/qos.hpp>
@@ -283,7 +283,7 @@ private:
         // sor.setStddevMulThresh(1.0);
         // sor.setKeepOrganized(false);
         // sor.filter(sor_cloud_filtered);
-        
+
         // std::cout << "Post stat outlier height: " << sor_cloud_filtered.height << std::endl;
         // std::cout << "Post stat outlier size: " << sor_cloud_filtered.size() << std::endl;
 
@@ -361,7 +361,7 @@ private:
         std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> clusters;
         CubePoints max_min_pts;
         CubePointsPCL max_min_pts2;
-        
+
         for (const auto &cluster : cluster_indices)
         {
             pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_cluster(new pcl::PointCloud<pcl::PointXYZI>);
@@ -372,7 +372,7 @@ private:
 
             max_min_pts.max_pts.push_back(maxPt);
             max_min_pts.min_pts.push_back(minPt);
-          
+
             // Put each cluster into a vector
             for (const auto &idx : cluster.indices)
             {
@@ -419,13 +419,13 @@ private:
             max_min_pts2.max_pts.push_back(maxp);
             max_min_pts2.min_pts.push_back(minp);
         }
-        
+
         /* ========================================
          * Compute Bounding Boxes
          * ========================================*/
         std::vector<geometry_msgs::msg::Point> line_list = minMax2lines(max_min_pts);
         std::vector<geometry_msgs::msg::Point> line_list2 = minMax2lines(max_min_pts2);
-        
+
 
         /* ========================================
          * CONVERT PointCloud2 PCL->ROS, PUBLISH CLOUD
