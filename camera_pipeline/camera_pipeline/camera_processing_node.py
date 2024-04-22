@@ -7,7 +7,7 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 13/11/2022
 """
-
+# fmt: off
 # limit the number of cpus used by high performance libraries
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -27,6 +27,7 @@ from vision_msgs.msg import Detection2D, Detection2DArray
 import cv2
 import time
 from ultralytics import YOLO
+# fmt: on
 
 
 class CameraProcessor(Node):
@@ -161,12 +162,14 @@ class CameraProcessor(Node):
             out.detections.append(det)
         return out
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = CameraProcessor()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

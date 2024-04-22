@@ -14,7 +14,7 @@
  *
  * @copyright Copyright (c) 2023
 """
-
+# fmt: off
 # This limits CPU usage
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -31,6 +31,7 @@ from rclpy.node import Node
 from rclpy.duration import Duration
 from vision_msgs.msg import Detection3DArray
 from visualization_msgs.msg import Marker, MarkerArray
+# fmt: on
 
 
 class ObjectTracker(Node):
@@ -60,7 +61,8 @@ class ObjectTracker(Node):
             from .sort import sort as s
 
         # create instance of SORT
-        self.tracker = s.Sort(max_age=3, min_hits=3, iou_threshold=0.01, dt=0.1, output_unmatched=False)
+        self.tracker = s.Sort(
+            max_age=3, min_hits=3, iou_threshold=0.01, dt=0.1, output_unmatched=False)
 
         self.subscription = self.create_subscription(
             Detection3DArray,

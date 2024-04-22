@@ -16,12 +16,15 @@ import os
 import time
 import uuid
 
+
 class MyNode(Node):
 
     def __init__(self):
         super().__init__('my_node')
-        self.image_sub = self.create_subscription(Image, 'image', self.image_callback, 10)
-        self.points_sub = self.create_subscription(PointCloud2, 'points', self.points_callback, 10)
+        self.image_sub = self.create_subscription(
+            Image, 'image', self.image_callback, 10)
+        self.points_sub = self.create_subscription(
+            PointCloud2, 'points', self.points_callback, 10)
         # get the output folder from the ros parameter
         default_folder = '/home/adrian/dev/ros2_ws'
         self.output_folder = self.declare_parameter(
@@ -37,19 +40,24 @@ class MyNode(Node):
 
     def image_callback(self, msg):
         # do something with the image
-        self.get_logger().info(f'Received image at {msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}')
+        self.get_logger().info(
+            f'Received image at {msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}')
         # write the image timestamp to the csv file using the with statement
         with open(self.csv_file.name, 'a') as f:
             csv_writer = csv.writer(f)
-            csv_writer.writerow([f'{msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}', ''])
+            csv_writer.writerow(
+                [f'{msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}', ''])
 
     def points_callback(self, msg):
         # do something with the pointcloud
-        self.get_logger().info(f'Received pointcloud at {msg.header.stamp.sec:}.{msg.header.stamp.nanosec:09d}')
+        self.get_logger().info(
+            f'Received pointcloud at {msg.header.stamp.sec:}.{msg.header.stamp.nanosec:09d}')
         # write the pointcloud timestamp to the csv file using the with statement
         with open(self.csv_file.name, 'a') as f:
             csv_writer = csv.writer(f)
-            csv_writer.writerow(['', f'{msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}'])
+            csv_writer.writerow(
+                ['', f'{msg.header.stamp.sec}.{msg.header.stamp.nanosec:09d}'])
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -62,6 +70,7 @@ def main(args=None):
         pass
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

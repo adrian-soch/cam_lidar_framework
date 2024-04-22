@@ -87,7 +87,7 @@ class Obj_Classifier(Node):
             #                   height, dist2sensor, w_h_ratio, l_h_ratio]
 
             feature_vector = np.array((num_points, length, width,
-                              height, dist2sensor, w_h_ratio, l_h_ratio)).reshape(1, -1)
+                                       height, dist2sensor, w_h_ratio, l_h_ratio)).reshape(1, -1)
             self.get_logger().info(f'Features {int(num_points)}.')
 
             feature_vector = self.scaler.transform(feature_vector)

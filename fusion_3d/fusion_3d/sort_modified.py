@@ -54,7 +54,7 @@ def state2polygon(state) -> Polygon:
     '''
     center_x = state[0]
     center_y = state[1]
-    angle = 0 #state[3]
+    angle = 0  # state[3]
     half_width = state[4]/2.0
     half_height = state[5]/2.0
 

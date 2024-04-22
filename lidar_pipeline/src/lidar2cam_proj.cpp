@@ -43,7 +43,7 @@ public:
 
         // Get Topics
         this->declare_parameter("lidar_track_topic", "/lidar_proc/tracks");
-        this->declare_parameter("cam_track_topic", "/image_proc/tracks");
+        this->declare_parameter("cam_track_topic", "image_proc/dets");
         this->declare_parameter("cam_result_topic", "/image_proc/result");
 
         this->get_parameter("lidar_track_topic", lidar_track_topic);

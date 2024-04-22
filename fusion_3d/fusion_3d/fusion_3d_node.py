@@ -10,7 +10,7 @@
 @section Author(s)
 - Created by Adrian Sochaniwsky on 25/09/2023
 """
-
+# fmt: off
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -28,9 +28,11 @@ from visualization_msgs.msg import Marker, MarkerArray
 import numpy as np
 import random
 import time
+from typing import List
 
 from fusion_3d.utils import createDetection3DArr, detection3DArray2Numpy
 from fusion_3d.sort_modified import Sort, linear_assignment, iou_rotated_bbox, state2polygon
+# fmt: on
 
 
 class DetectionSyncNode(Node):
@@ -215,11 +217,12 @@ class DetectionSyncNode(Node):
 
         unmatched_lidar_dets = np.empty((0, 8))
         for i in unmatched_lidar_dets_inds:
-            unmatched_lidar_dets = np.vstack([unmatched_lidar_dets, lidar_arr[i, :]])
+            unmatched_lidar_dets = np.vstack(
+                [unmatched_lidar_dets, lidar_arr[i, :]])
 
-        return np.vstack([fused_dets,unmatched_cam_dets,unmatched_lidar_dets])
+        return np.vstack([fused_dets, unmatched_cam_dets, unmatched_lidar_dets])
 
-    def track2MarkerArrays(self, dets: Detection3DArray) -> [MarkerArray, MarkerArray, MarkerArray]:
+    def track2MarkerArrays(self, dets: Detection3DArray) -> List[MarkerArray]:
         """Create ROS 2 markers for track results
 
         Args:

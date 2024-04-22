@@ -1,3 +1,4 @@
+# fmt: off
 # limit the number of cpus used by high performance libraries
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -23,6 +24,7 @@ from ultralytics import YOLO
 import ros2_numpy
 from learned_lidar_detector.lidar_2_bev import transform_pc, array_to_image, fast_bev
 import learned_lidar_detector.configs.a9_config as cfg
+# fmt: on
 
 
 class LidarProcessingNode(Node):
@@ -125,7 +127,8 @@ class LidarProcessingNode(Node):
 
         t3 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
 
-        results = self.model(array_to_image(bev_img), device='cuda:0',  imgsz=(1024), conf=self.confidence, verbose=False)
+        results = self.model(array_to_image(bev_img), device='cuda:0',  imgsz=(
+            1024), conf=self.confidence, verbose=False)
         obb_results = results[0].obb.cpu().numpy()
         class_dict = results[0].names
 
@@ -231,6 +234,7 @@ class LidarProcessingNode(Node):
         msg = ros2_numpy.msgify(PointCloud2, pc)
         msg.header.frame_id = frame_id
         publisher.publish(msg)
+
 
 def main(args=None):
     rclpy.init(args=args)
