@@ -27,8 +27,8 @@ from rclpy.node import Node
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 from vision_msgs.msg import Detection2DArray
 
-from fusion_module.sort import Sort, iou_batch, linear_assignment
-from fusion_module.utils import createDetection2DArr, detection2DArray2Numpy
+from fusion_2d.sort import Sort, iou_batch, linear_assignment
+from fusion_2d.utils import createDetection2DArr, detection2DArray2Numpy
 # fmt: on
 
 

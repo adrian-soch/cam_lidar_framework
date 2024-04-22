@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'fusion_module'
+package_name = 'fusion_2d'
 
 setup(
     name=package_name,
@@ -20,9 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'fusion_node = fusion_module.fusion_2d_node:main',
-            'fusion_viz_node = fusion_module.fusion_visualizer_node:main',
-            'detection2csv_node = fusion_module.detection2csv_node:main'
+            'fusion_node = fusion_2d.fusion_2d_node:main',
+            'fusion_viz_node = fusion_2d.fusion_visualizer_node:main',
+            'detection2csv_node = fusion_2d.detection2csv_node:main'
         ],
     },
 )

@@ -1,4 +1,4 @@
-# Fusion_Module
+# fusion_2d
 
 This package contains a python node for late fusion of LiDAR and Camera detections/tracks and another node for visualizing the fusion results via Rviz2.
 

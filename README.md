@@ -30,7 +30,7 @@ This repositiory contains ROS 2 packages for realtime Camera-LiDAR Fusion for st
     └── ouster_driver
 ├── fusion
 │   ├── fusion_3d                   3D LiDAR + Camera Fusion module
-│   └── fusion_module               2D LiDAR + Camera Fusion module
+│   └── fusion_2d               2D LiDAR + Camera Fusion module
 ├── lidar
 │   ├── learned_lidar_detector      Learned LiDAR Object Detection Module
 │   ├── lidar_pipeline              Traditional LiDAR Object Detection Module

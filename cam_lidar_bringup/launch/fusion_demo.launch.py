@@ -188,7 +188,7 @@ def generate_launch_description():
     )
 
     fusion_2D = Node(
-        package='fusion_module',
+        package='fusion_2d',
         executable='fusion_node',
         name='fusion_2D_node',
         parameters=[
@@ -199,7 +199,7 @@ def generate_launch_description():
 
     video_name = BAG_NAME.split('/')[-1]
     fusion_viz = Node(
-        package='fusion_module',
+        package='fusion_2d',
         executable='fusion_viz_node',
         name='fusion_viz_node',
         parameters=[
@@ -218,7 +218,7 @@ def generate_launch_description():
         )
 
     save_csv_fusion = Node(
-        package='fusion_module',
+        package='fusion_2d',
         executable='detection2csv_node',
         name='detection2csv_node',
     )
