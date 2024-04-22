@@ -87,7 +87,7 @@ private:
 
     // Get the frame from the video capture.
     cap >> frame;
-    
+
     // If no frame was grabbed, return early
     if (frame.empty()) {
       return;
@@ -216,7 +216,7 @@ private:
       oss << "Invalid Flip setting '" << flip_ << "'";
       throw std::runtime_error(oss.str());
     }
-    
+
   }
 
   /// Convert an OpenCV matrix encoding type to a string format recognized by sensor_msgs::Image.
