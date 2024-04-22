@@ -29,7 +29,7 @@ class Obj_Classifier(Node):
 
         detection_topic = self.declare_parameter(
             'detection_topic', '/lidar_proc/o_detections').get_parameter_value().string_value
-        
+
         pointcloud_topic = self.declare_parameter(
             'pointcloud_topic', 'lidar_proc/obj_clouds').get_parameter_value().string_value
 
@@ -54,7 +54,7 @@ class Obj_Classifier(Node):
 
         self.classes = ['BICYCLE', 'BUS', 'CAR', 'EMERGENCY_VEHICLE',
                    'MOTORCYCLE', 'PEDESTRIAN', 'TRAILER', 'TRUCK', 'VAN']
-        
+
         self.get_logger().info('Classifier Module initialized.')
 
     def callback(self, detections, pointclouds):
@@ -62,7 +62,7 @@ class Obj_Classifier(Node):
 
         # If no detections just publish the same array without modification
         if len(detections.detections) > 0:
-            
+
             feature_vectors = np.empty((len(detections.detections), 7))
             for i, (det, pc) in enumerate(zip(detections.detections, pointclouds.pointclouds)):
                 num_points = pc.row_step*pc.height

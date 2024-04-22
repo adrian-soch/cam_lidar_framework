@@ -5,7 +5,7 @@ It will publish the tracking results as marker array to be visualized in rviz
 To see the result:
     1. open Rviz.
     2. add the marker topic that is published here.
-    3. set the frame in rviz to the one that the markers are set to. 
+    3. set the frame in rviz to the one that the markers are set to.
 """
 import rclpy
 from rclpy.node import Node
@@ -23,10 +23,10 @@ class DetectorNode(Node):
         # Get the topic name from the ROS parameter server
         topic_name = self.declare_parameter(
             'topic_name', '/lidar_proc/tracks').get_parameter_value().string_value
-        
+
         bbox_marker_topic = self.declare_parameter(
             'bbox_marker_topic', 'lidar_proc/tracker_bboxs').get_parameter_value().string_value
-        
+
         tracklet_topic = self.declare_parameter(
             'tracklet_topic', '/lidar_proc/tracklets').get_parameter_value().string_value
 

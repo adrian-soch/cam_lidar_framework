@@ -70,7 +70,7 @@ class Obj_Classifier(Node):
 
         for i, (det, pc) in enumerate(zip(detections.detections, pointclouds.pointclouds)):
             np_pc = ros2_numpy.numpify(pc)
-            
+
             num_points = np_pc.size
             length = det.bbox.size.x
             width = det.bbox.size.y
@@ -85,7 +85,7 @@ class Obj_Classifier(Node):
 
             # feature_vector = [num_points, length, width,
             #                   height, dist2sensor, w_h_ratio, l_h_ratio]
-            
+
             feature_vector = np.array((num_points, length, width,
                               height, dist2sensor, w_h_ratio, l_h_ratio)).reshape(1, -1)
             self.get_logger().info(f'Features {int(num_points)}.')
