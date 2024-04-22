@@ -6,10 +6,27 @@ import open3d as o3d
 import time
 
 
-def fast_bev(self, pc: np.ndarray, im_width: float, im_height: float, discretization: float, min_x: float,
-             max_x: float, min_y: float, max_y: float, min_z: float, max_z: float):
-    t1 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
+def fast_bev(pc: np.ndarray, im_width: int, im_height: int, discretization: float, min_x: float,
+             max_x: float, min_y: float, max_y: float, min_z: float, max_z: float) -> np.ndarray:
+    """Convert point cloud into a Birds-Eye-View psuedo image.
 
+    Note: only square images supported.
+
+    Args:
+        pc (np.ndarray): Input Point Cloud
+        im_width (int): Image width
+        im_height (int): Image height
+        discretization (float): Maters per pixel value
+        min_x (float): Min pointcloud x distance from sensor (meters)
+        max_x (float): Max pointcloud x distance from sensor (meters)
+        min_y (float): Min pointcloud y distance from sensor (meters)
+        max_y (float): Max pointcloud y distance from sensor (meters)
+        min_z (float): Min pointcloud z distance from sensor (meters)
+        max_z (float): Max pointcloud z distance from sensor (meters)
+
+    Returns:
+        np.ndarray: Output image
+    """
     X_RANGE = max_x - min_x
     Y_RANGE = max_y - min_y
 
@@ -58,9 +75,6 @@ def fast_bev(self, pc: np.ndarray, im_width: float, im_height: float, discretiza
     RGB_Map[2, :, :] = densityMap[:im_height, :im_width]
     RGB_Map[1, :, :] = heightMap[:im_height, :im_width]
     RGB_Map[0, :, :] = rangeMap[:im_height, :im_width]
-
-    t2 = time.clock_gettime(time.CLOCK_THREAD_CPUTIME_ID)
-    self.get_logger().info(f'Time (msec): {(t2-t1)*1000:.2f}')
 
     return RGB_Map
 

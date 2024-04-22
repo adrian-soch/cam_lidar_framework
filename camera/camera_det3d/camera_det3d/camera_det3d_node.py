@@ -204,7 +204,7 @@ class CameraDet3DNode(Node):
             self.print_3d_to_image(bbox_3d=bbox_3d, bbox_2d=bbox_2d)
 
             det_array.detections.append(
-                self.create_3D_det(header=msg.header, bbox=bbox_3d))
+                self.create_3D_det(header=msg.header, bbox=bbox_3d, obj_cls=obj_class))
             bbox_array.markers.append(self.create_marker(
                 bbox=bbox_3d, index=idx, frame_id='map'))
 
@@ -412,9 +412,10 @@ class CameraDet3DNode(Node):
         return core_samples
 
     @staticmethod
-    def create_3D_det(header, bbox):
+    def create_3D_det(header, bbox, obj_cls=-1) -> Detection3D:
         det = Detection3D()
         det.header = header
+        det.id = str(int(obj_cls))
         det.bbox.size.x = float(bbox.size[0])
         det.bbox.size.y = float(bbox.size[1])
         det.bbox.size.z = float(bbox.size[2])
