@@ -16,8 +16,8 @@ setup(
     zip_safe=True,
     maintainer='adrian',
     maintainer_email='sochania@mcmaster.ca',
-    description='2D Object Tracking',
-    license='TODO: License declaration',
+    description='2D Object tracking on axis aligned or oriented bounding box data.',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

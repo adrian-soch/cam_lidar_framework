@@ -3,9 +3,9 @@
 <package format="3">
   <name>pipeline_interfaces</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="adr.soch@outlook.com">adrian</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Provides an interface for the traditional lidar detector and the lidar object classification nodes.</description>
+  <maintainer email="adrian-soch@github.com">adrian</maintainer>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <build_depend>rosidl_default_generators</build_depend>

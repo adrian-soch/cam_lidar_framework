@@ -3,7 +3,6 @@ Functions for converting Point clouds into BEV psuedo images
 """
 import numpy as np
 import open3d as o3d
-import time
 
 
 def fast_bev(pc: np.ndarray, im_width: int, im_height: int, discretization: float, min_x: float,

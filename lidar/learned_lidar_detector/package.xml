@@ -3,9 +3,16 @@
 <package format="3">
   <name>learned_lidar_detector</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="adr.soch@outlook.com">adrian</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Performs 3D object detection on PointCloud data using a data-based approach.</description>
+  <maintainer email="adrian-soch@github.com">adrian</maintainer>
+  <license>MIT</license>
+
+  <depend>python3-numpy</depend>
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>vision_msgs</depend>
+  <depend>ros2_numpy</depend>
+  <depend>rcl_interfaces</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

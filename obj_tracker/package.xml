@@ -3,9 +3,15 @@
 <package format="3">
   <name>obj_tracker</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="adr.soch@outlook.com">adrian</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Perfroms object tracking on 2D axis aligned or oriented bounding box data.</description>
+  <maintainer email="adrian-soch@github.com">adrian</maintainer>
+  <license>MIT</license>
+
+  <depend>python3-numpy</depend>
+  <depend>rclpy</depend>
+  <depend>visualization_msgs</depend>
+  <depend>vision_msgs</depend>
+  <depend>tf_transformations</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

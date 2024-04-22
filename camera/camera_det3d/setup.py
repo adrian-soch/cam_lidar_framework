@@ -23,7 +23,7 @@ setup(
     maintainer='adrian',
     maintainer_email='sochania@mcmaster.ca',
     description='Mono Camera 3D Object Detection',
-    license='TODO: License declaration',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

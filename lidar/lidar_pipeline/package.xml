@@ -2,9 +2,7 @@
 <package format="3">
   <name>lidar_pipeline</name>
   <version>0.0.1</version>
-  <description>
-     The lidar_pipeline package
-  </description>
+  <description>Performs 3D object detection on PointCloud data using a traditional clustering-based approach.</description>
   <author email="sochania@mcmaster.ca">asochaniwsky</author>
   <maintainer email="sochania@mcmaster.ca">asochaniwsky</maintainer>
   <license>BSD</license>

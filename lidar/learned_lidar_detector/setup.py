@@ -23,7 +23,7 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='adrian',
-    maintainer_email='adr.soch@outlook.com',
+    maintainer_email='adrian-soch@github.com',
     description='3D LiDAR Object detector using YOLOv8-obb and psuedo images',
     license='MIT',
     tests_require=['pytest'],

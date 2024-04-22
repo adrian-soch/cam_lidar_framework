@@ -3,10 +3,14 @@
 <package format="3">
   <name>lidar_obj_classifier</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="adr.soch@outlook.com">adrian</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Perfrom object classifcation for on point cloud data.</description>
+  <maintainer email="adrian-soch@github.com">adrian</maintainer>
+  <license>MIT</license>
 
+  <depend>python3-numpy</depend>
+  <depend>rclpy</depend>
+  <depend>vision_msgs</depend>
+  <depend>message_filters</depend>
   <exec_depend>pipeline_interfaces</exec_depend>
 
   <test_depend>ament_copyright</test_depend>

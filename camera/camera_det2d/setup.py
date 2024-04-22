@@ -22,9 +22,9 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='adrian',
-    maintainer_email='adr.soch@outlook.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    maintainer_email='adrian-soch@github.com',
+    description='Perfroms image-based 2D object detection.',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

@@ -14,9 +14,9 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='adrian',
-    maintainer_email='adr.soch@outlook.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    maintainer_email='adrian-soch@github.com',
+    description='Fuses 2D image detections and projected 2D LiDAR detections into 1 track list.',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

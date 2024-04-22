@@ -3,15 +3,14 @@
 <package format="3">
   <name>camera_det2d</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="adr.soch@outlook.com">adrian</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Perfroms image-based 2D object detection.</description>
+  <maintainer email="adrian-soch@github.com">adrian</maintainer>
+  <license>MIT</license>
 
   <depend>rclpy</depend>
-  <depend>image_transport</depend>
   <depend>cv_bridge</depend>
   <depend>sensor_msgs</depend>
-  <depend>std_msgs</depend>
+  <depend>vision_msgs</depend>
   <depend>opencv2</depend>
 
   <test_depend>ament_copyright</test_depend>
