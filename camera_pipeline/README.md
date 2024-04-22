@@ -76,7 +76,7 @@ colcon build
 ```
 # Development notes
 
-After updating files you must 
+After updating files you must
 ```
 cd <ROS2 WORSKAPCE>
 colcon build
@@ -100,7 +100,7 @@ Before you start you need to source ros2 in all the terminal you want to run a c
      - Change topic->Reliability to Best effort.
      - For data without a transform, in another terminal:
   ```ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 0 world map```. Here `map` is found from the frame_id from the command `ros2 topic echo /<Topic name>`.
-  - 
+  -
 
 # Running the Code
 

@@ -86,7 +86,7 @@ Tested on:
 |  NVIDIA Quadro T1200 |
 | CUDA Version: 11.7 |
 
-## 1. ROS 2 Galactic 
+## 1. ROS 2 Galactic
 Install ROS 2 Galactic.
 
 ## 2. Install Python requirements
@@ -147,4 +147,3 @@ colcon build
 ## Colcon build fails?
 - Check that the libraries you import are in your `CMakeLists.txt` (C++) or `setup.py` (Python) files.
 - Certain warnings disappear if you build a 2nd time.
-
