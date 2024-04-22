@@ -43,11 +43,11 @@ def convert_json_to_csv(json_file):
             for figure in frame["figures"]:
 
                 figure_key = figure["objectKey"]
-                
+
                 # Check if the figure key is already in the set
                 if figure_key not in id_dict:
                     id_dict[figure_key] = (len(id_dict) + 1, frame_index)
-                    
+
                 if figure_key not in seen_keys:
                     seen_keys.add(figure_key)
                 else:

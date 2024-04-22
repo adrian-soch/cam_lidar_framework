@@ -3,7 +3,7 @@ This script removes MOT BBoxes that are not inside the polygopn determiend by th
 
 The csv file is in the MOT format
     frame_num, id, bb_left, bb_top, bb_width, bb_height, conf, -1, -1, -1
-    
+
 Images x,y coords are indexed from 0, starting at the top left.
 '''
 
@@ -33,7 +33,7 @@ def main(args):
     lines = get_lines(args.file_path,)
     normalized_lines = normalize_frame_numbers(lines)
     write_lines(result_name, normalized_lines)
-    
+
     # Define a list of points as tuples, must be clockwise
 
     # may10 short_range

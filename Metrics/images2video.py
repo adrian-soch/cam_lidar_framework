@@ -1,12 +1,12 @@
 '''
-This script takes a folder of images and creates a video from them. The finished video 
+This script takes a folder of images and creates a video from them. The finished video
 is placed in the same folder as the images.
 
 The expected format of the image names is `FRAME#_SEC_NANOSEC.jpg` an example is:
     `000125_1670443549_590421097.jpg`
 
 Files are sorted based on their frame number.
-    
+
 '''
 
 import argparse
