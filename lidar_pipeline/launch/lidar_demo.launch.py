@@ -11,7 +11,7 @@ from launch_ros.substitutions import FindPackageShare
 
 '''
 Rosbag and param file must match for proper functionality
-example: 
+example:
     bag: q7_2_may10_2023
     data_dependant_params file: may10_config.yaml
 '''

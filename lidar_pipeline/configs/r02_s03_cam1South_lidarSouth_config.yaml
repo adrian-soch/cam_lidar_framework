@@ -65,4 +65,3 @@ camera_det3d:
     lidarData2lidarSensor_extrinsic:
       rotation: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
       translation: [0.0, 0.0, 0.0]
-
