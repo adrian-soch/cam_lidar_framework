@@ -11,7 +11,7 @@
   <depend>cv_bridge</depend>
   <depend>sensor_msgs</depend>
   <depend>vision_msgs</depend>
-  <depend>opencv2</depend>
+  <depend>libopencv-dev</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
