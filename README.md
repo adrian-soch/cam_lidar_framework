@@ -53,66 +53,43 @@ This repositiory contains ROS 2 packages for realtime Camera-LiDAR Fusion for st
 tree -d -L 2 -I __pycache__
 --->
 
-<!-- ## RQT Graph
-
 ![image](./Docs/readme_images/rosgraph.png) -->
 
 ---
 
-# Setup
-
+# Install
 Tested on:
 
-| Ubunbtu 20.04 |
+| Ubunbtu 22 |
 |:-------------:|
 |  i7-11800H @ 2.30GHz × 16|
 |   32 GB RAM   |
 |  NVIDIA Quadro T1200 |
-| CUDA Version: 11.7 |
+| CUDA Version: 11.8? - just let apt decide what it installs |
 
-## 1. ROS 2 Galactic
-Install ROS 2 Galactic.
+> If you prefer to use ROS 2 Galctic, a few changes in the code are required (vision_msgs/msg/Detection2D has a slightly different definition)
 
-## 2. Install Python requirements
-```
-# PyTorch
-# GPU Version
-# See: https://pytorch.org/get-started/locally/
+1. **ROS 2 Humble**: Follow https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html.
+2. Clone repo: 
+    ```
+    cd <ROS2_WS>/src
+    git clone --recurse-submodules https://github.com/adrian-soch/cam_lidar_tools.git
+    ```
+3. Run rosdep tool to automatically download ROS dependencies `rosdep install --from-paths . -y --ignore-src`.
+4. `sudo apt install nvidia-cudnn`
+5. Python deps:
+    ```
+    pip3 install ros2-numpy==0.0.4 \
+    transforms3d==0.4.1 \
+    ultralytics==8.2.2 \
+    open3d==0.18.0 \
+    filterpy==1.4.5 \
+    lap==0.4.0 \
+    shapely>=2.0.4 \
+    numpy==1.23.5
+    ```
 
-pip install numpy
-
-# OpenCV CPU Version
-pip install opencv-python
-pip install opencv-contrib-python
-```
-
-### 2.1 Python requirements
-
-```
-numpy, opencv, json, ultralytics
-```
-
-## 3. C++ requirements
-
-```
-sudo apt install libtins-dev
-```
-## 4. ROS2 requirements
-Install via `apt`:
-```
-ros-galactic-pcl-ros
-ros-galactic-ament-cmake-nose
-```
-
-## 5. Clone and build repo
-
-```
-cd <ROS2_WS>/src
-git clone --recurse-submodules https://github.com/adrian-soch/cam_lidar_tools.git
-cd ..
-colcon build
-```
-> Always source the ROS2 install and the local ros2 worksapce via `source /opt/ros/galactic/setup.bash` and `. install/setup.bash` respectively.
+> Always source the ROS2 install and the local ros2 worksapce via `source /opt/ros/humble/setup.bash` and `. install/setup.bash` respectively.
 
 ---
 # Running the code
