@@ -70,7 +70,7 @@ class CameraProcessor(Node):
         self.model = YOLO(model_path)
 
         self.frame_count = 0
-        self.get_logger().info('Vision Tracker created.')
+        self.get_logger().info('Camera-based object detection node created.')
 
     def camera_callback(self, msg):
         """
@@ -155,8 +155,9 @@ class CameraProcessor(Node):
 
             x_len = float(res[2] - res[0])
             y_len = float(res[3] - res[1])
-            det.bbox.center.x = x_len/2.0 + res[0]
-            det.bbox.center.y = y_len/2.0 + res[1]
+            # Remove `position` for ROS 2 Galactic
+            det.bbox.center.position.x = x_len/2.0 + res[0]
+            det.bbox.center.position.y = y_len/2.0 + res[1]
             det.bbox.size_x = x_len
             det.bbox.size_y = y_len
             out.detections.append(det)
