@@ -16,7 +16,6 @@ from vision_msgs.msg import Detection3DArray, Detection3D
 from vision_msgs.msg import ObjectHypothesisWithPose
 
 import numpy as np
-from numpy.lib.recfunctions import structured_to_unstructured, unstructured_to_structured
 from scipy.spatial.transform import Rotation as R
 import time
 from ultralytics import YOLO
@@ -53,15 +52,15 @@ class LidarProcessingNode(Node):
             PointCloud2,
             lidar_topic,
             self.lidar_callback,
-            1)
+            5)
         self.det3d_pub = self.create_publisher(
             Detection3DArray,
             detection_topic,
-            1)
+            5)
         self.pc_pub = self.create_publisher(
             PointCloud2,
             pc_topic,
-            1)
+            5)
 
         self.model = YOLO(model_path, task='obb')
         '''
@@ -103,12 +102,9 @@ class LidarProcessingNode(Node):
         pc = ros2_numpy.numpify(msg)
 
         # Only retain x, y, z, intensity
-        pc = pc.reshape(pc.size)
-        # pc = pc[['x', 'y', 'z', 'intensity']]
-        pc = pc[['x', 'y', 'z']]
+        # pc = pc['xyz', 'intensity']
+        pc = pc['xyz']
 
-        # Convert to unstructured so we can operate easier
-        pc = structured_to_unstructured(pc)
         pc = transform_pc(pc, self.transform)
 
         # Crop point cloud based on paramters
@@ -229,8 +225,7 @@ class LidarProcessingNode(Node):
 
     @staticmethod
     def publish_pc(publisher, cloud, frame_id: str) -> None:
-        pc = unstructured_to_structured(cloud, dtype=np.dtype(
-            [('x', '<f4'), ('y', '<f4'), ('z', '<f4')]))
+        pc = {'xyz': cloud}
         msg = ros2_numpy.msgify(PointCloud2, pc)
         msg.header.frame_id = frame_id
         publisher.publish(msg)
