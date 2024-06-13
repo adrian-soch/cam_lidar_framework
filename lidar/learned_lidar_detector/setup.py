@@ -25,7 +25,7 @@ setup(
     maintainer='adrian',
     maintainer_email='adrian-soch@github.com',
     description='3D LiDAR Object detector using YOLOv8-obb and psuedo images',
-    license='MIT',
+    license='AL2',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
