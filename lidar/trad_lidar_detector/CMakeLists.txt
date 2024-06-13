@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(lidar_pipeline)
+project(trad_lidar_detector)
 add_definitions(-std=c++17)
 
 # Default to C99

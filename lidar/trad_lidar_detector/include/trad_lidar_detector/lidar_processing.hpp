@@ -17,11 +17,11 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 
 // Application specific headers
-#include "lidar_pipeline/pcl_dbscan.hpp"
-#include "lidar_pipeline/point_cloud_utils.hpp"
+#include "trad_lidar_detector/pcl_dbscan.hpp"
+#include "trad_lidar_detector/point_cloud_utils.hpp"
 #include "pipeline_interfaces/msg/point_cloud2_array.hpp"
 
-namespace lidar_pipeline
+namespace trad_lidar_detector
 {
 class LidarProcessing : public rclcpp::Node
 {

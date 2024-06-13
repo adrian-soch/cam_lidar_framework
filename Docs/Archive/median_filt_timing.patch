@@ -1,7 +1,7 @@
-diff --git a/lidar_pipeline/src/perception_node.cpp b/lidar_pipeline/src/perception_node.cpp
+diff --git a/trad_lidar_detector/src/perception_node.cpp b/trad_lidar_detector/src/perception_node.cpp
 index 20469c2..46f2edd 100644
---- a/lidar_pipeline/src/perception_node.cpp
-+++ b/lidar_pipeline/src/perception_node.cpp
+--- a/trad_lidar_detector/src/perception_node.cpp
++++ b/trad_lidar_detector/src/perception_node.cpp
 @@ -169,15 +169,25 @@ private:
          pcl::PointCloud<pcl::PointXYZI> cloud;
          pcl::fromROSMsg(transformed_cloud, cloud);

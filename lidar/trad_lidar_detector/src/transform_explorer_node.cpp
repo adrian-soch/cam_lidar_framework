@@ -3,7 +3,7 @@
  * @author Adrian Sochaniwsky
  */
 
-#include "lidar_pipeline/point_cloud_utils.hpp"
+#include "trad_lidar_detector/point_cloud_utils.hpp"
 
 #include "rclcpp/rclcpp.hpp"
 #include <builtin_interfaces/msg/time.hpp>

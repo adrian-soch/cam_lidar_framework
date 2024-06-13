@@ -12,7 +12,7 @@ from launch.actions import TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import PathJoinSubstitution
 
-lidar_pipeline_share_dir = get_package_share_directory('lidar_pipeline')
+lidar_pipeline_share_dir = get_package_share_directory('trad_lidar_detector')
 pipeline_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
 
@@ -133,7 +133,7 @@ data_dependant_params = os.path.join(
 def generate_launch_description():
 
     perception_node = Node(
-        package='lidar_pipeline',
+        package='trad_lidar_detector',
         executable='perception_node',
         name='perception_node',
         output='screen',
@@ -144,7 +144,7 @@ def generate_launch_description():
     )
 
     lidar2image_node = Node(
-        package='lidar_pipeline',
+        package='trad_lidar_detector',
         executable='projection_node',
         name='projection_node',
         output='screen',
