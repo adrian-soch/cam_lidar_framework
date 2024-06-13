@@ -7,7 +7,7 @@ images and publishes them.
 2) Starts a rosbag2 bag recording
 '''
 import time
-
+from os import path
 from launch import LaunchDescription
 
 from launch_ros.actions import Node
@@ -19,7 +19,7 @@ IMAGE_FOLDER = '/home/adrian/dev/bags/cleaned_bags/dec7_dhd1_rebag/images'
 PCD_FOLDER = '/home/adrian/dev/bags/cleaned_bags/dec7_dhd1_rebag/pcds'
 
 current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
-folder_name = ABS_PATH_TO_ROSBAGS + '/' + 'dec7_dhd1_clean'
+folder_name = path.join(ABS_PATH_TO_ROSBAGS,'dec7_dhd1_clean')
 
 use_system_time = True
 
