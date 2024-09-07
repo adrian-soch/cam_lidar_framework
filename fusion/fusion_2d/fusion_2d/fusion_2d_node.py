@@ -51,8 +51,8 @@ class CocoDetectionSaver():
             width, height = det.bbox.size_x, det.bbox.size_y
             self.json_data.append({"image_id": frame_count,
                                    "category_id": int(det.id),
-                                   "bbox": [int(det.bbox.center.x - width/2),
-                                            int(det.bbox.center.y - height/2),
+                                   "bbox": [int(det.bbox.center.position.x - width/2),
+                                            int(det.bbox.center.position.y - height/2),
                                             width, height],
                                    "score": 0.5}
                                   )

@@ -13,6 +13,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import PathJoinSubstitution
 
 lidar_pipeline_share_dir = get_package_share_directory('trad_lidar_detector')
+lidar_classifier_share_dir = get_package_share_directory('lidar_obj_classifier')
 pipeline_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
 
@@ -36,7 +37,7 @@ BAG_PLAY_LOOP = True
 Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 Note: -1 will use the LiDAR + Webcam with live data
 '''
-ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
+ABS_PATH_TO_ROSBAGS = '/media/adrian/ed5feae6-7808-425e-b80f-f8bc175919dc/home/adrian/dev/bags/'
 
 # 10, 7, 6, 12, 13
 BAG_SELECTOR = 7
@@ -171,6 +172,9 @@ def generate_launch_description():
         executable='object_classifier',
         name='lidar_obj_classifier',
         output='screen',
+        parameters=[
+            {'model_path': lidar_classifier_share_dir}
+        ]
     )
 
     lidar_tracker = Node(

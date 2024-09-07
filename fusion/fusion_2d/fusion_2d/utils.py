@@ -25,10 +25,10 @@ def detection2DArray2Numpy(detection_list, sensor_type) -> np.ndarray:
         half_x = det.bbox.size_x/2
         half_y = det.bbox.size_y/2
         out_arr[i] = [
-            det.bbox.center.x - half_x,
-            det.bbox.center.y - half_y,
-            det.bbox.center.x + half_x,
-            det.bbox.center.y + half_y,
+            det.bbox.center.position.x - half_x,
+            det.bbox.center.position.y - half_y,
+            det.bbox.center.position.x + half_x,
+            det.bbox.center.position.y + half_y,
             float(ord(sensor_type))]
 
     return out_arr
@@ -58,8 +58,8 @@ def createDetection2DArr(tracks, header) -> Detection2DArray:
         x_len = trk[2] - trk[0]
         y_len = trk[3] - trk[1]
 
-        det.bbox.center.x = x_len/2.0 + trk[0]
-        det.bbox.center.y = y_len/2.0 + trk[1]
+        det.bbox.center.position.x = x_len/2.0 + trk[0]
+        det.bbox.center.position.y = y_len/2.0 + trk[1]
         det.bbox.size_x = x_len
         det.bbox.size_y = y_len
 

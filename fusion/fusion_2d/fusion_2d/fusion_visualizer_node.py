@@ -67,8 +67,8 @@ class FusionVisualizer(Node):
             # Get the bounding box coordinates
 
             try:
-                x = int(detection.bbox.center.x - detection.bbox.size_x / 2)
-                y = int(detection.bbox.center.y - detection.bbox.size_y / 2)
+                x = int(detection.bbox.center.position.x - detection.bbox.size_x / 2)
+                y = int(detection.bbox.center.position.y - detection.bbox.size_y / 2)
                 w = int(detection.bbox.size_x)
                 h = int(detection.bbox.size_y)
             except ValueError:
