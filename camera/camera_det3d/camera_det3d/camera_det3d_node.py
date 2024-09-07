@@ -23,7 +23,6 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "2"
 os.environ["NUMEXPR_NUM_THREADS"] = "2"
 
 
-from numpy.lib.recfunctions import unstructured_to_structured
 import numpy as np
 from PIL import ImageDraw, Image as Im
 import time
@@ -378,8 +377,7 @@ class CameraDet3DNode(Node):
 
     @staticmethod
     def publish_pc(publisher, cloud, frame_id: str) -> None:
-        pc = unstructured_to_structured(cloud, dtype=np.dtype(
-            [('x', '<f4'), ('y', '<f4'), ('z', '<f4')]))
+        pc = {'xyz': cloud}
         msg = ros2_numpy.msgify(PointCloud2, pc)
         msg.header.frame_id = frame_id
         publisher.publish(msg)

@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 data_dependant_params = os.path.join(
     get_package_share_directory('trad_lidar_detector'), 'configs', 'may10_config.yaml')
 weights_path = os.path.join(
-    get_package_share_directory('camera_det3d'), 'yolov8m-seg_half.engine')
+    get_package_share_directory('camera_det3d'), 'yolov8s-seg.pt')
 
 print(weights_path)
 

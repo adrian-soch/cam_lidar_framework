@@ -11,7 +11,7 @@ rviz_config_file = PathJoinSubstitution(
     [FindPackageShare('cam_lidar_bringup'), 'configs', '3d_demo_config.rviz']
 )
 
-ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
+ABS_PATH_TO_ROSBAGS = '/media/adrian/ed5feae6-7808-425e-b80f-f8bc175919dc/home/adrian/dev/bags/'
 
 DETECTION_TOPIC = 'image_proc/det3D'
 TRACK_TOPIC = 'image_proc/det3D_tracks'
@@ -40,9 +40,10 @@ data_dependant_params = os.path.join(
 # Lidar detection paramters
 pipeline_params = os.path.join(
     lidar_pipeline_share_dir, 'configs', 'lidar_pipeline_config.yaml')
+
 # Yolov8-segmentation model weights
 weights_path = os.path.join(
-    get_package_share_directory('camera_det3d'), 'yolov8m-seg_half.engine')
+    get_package_share_directory('camera_det3d'), 'yolov8s-seg.pt')
 
 
 def generate_launch_description():
