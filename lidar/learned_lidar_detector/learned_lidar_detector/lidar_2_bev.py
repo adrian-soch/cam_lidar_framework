@@ -33,9 +33,6 @@ def fast_bev(pc: np.ndarray, im_width: int, im_height: int, discretization: floa
                     pow(pc[:, 1], 2.0)).reshape(-1, 1)
     pc = np.hstack([pc, range])
 
-    # Apply radius removal
-    pc = radius_outlier_removal(pc, num_points=12, r=0.8)
-
     HEIGHT = im_height + 1
     WIDTH = im_width + 1
     pc[:, :2] = np.int_(

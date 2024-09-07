@@ -37,7 +37,7 @@ Use `BAG_SELECTOR` to pick the desired bag + config to run the pipeline
 
 Note: -1 will use the LiDAR + Webcam with live data
 '''
-ABS_PATH_TO_ROSBAGS = '/home/adrian/dev/bags/'
+ABS_PATH_TO_ROSBAGS = '/media/adrian/ed5feae6-7808-425e-b80f-f8bc175919dc//home/adrian/dev/bags/'
 
 # 10, 7, 6, 12, 13
 BAG_SELECTOR = 9
@@ -118,7 +118,7 @@ def generate_launch_description():
     )
 
     share_dir = get_package_share_directory('learned_lidar_detector')
-    model_path = os.path.join(share_dir, 'yolov8n-obb_range.engine')
+    model_path = os.path.join(share_dir, 'yolov8n-obb_range.pt')
     lidar_perception_node = Node(
         package='learned_lidar_detector',
         executable='learned_lidar_detector',

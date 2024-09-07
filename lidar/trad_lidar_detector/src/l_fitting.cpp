@@ -1,5 +1,6 @@
 #include "trad_lidar_detector/l_fitting.hpp"
 #include <cmath>
+#include <cfloat>
 #include <Eigen/Core>
 #include <vector>
 
