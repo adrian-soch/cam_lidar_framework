@@ -1,3 +1,5 @@
+from os import path
+from glob import glob
 from setuptools import setup
 
 package_name = 'lidar_obj_classifier'
@@ -10,6 +12,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (path.join('share', package_name),
+         glob('weights/*.*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

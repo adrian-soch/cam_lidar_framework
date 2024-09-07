@@ -13,7 +13,9 @@ import time
 
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from vision_msgs.msg import Detection3DArray
+
 from message_filters import ApproximateTimeSynchronizer, Subscriber
 
 from pipeline_interfaces.msg import PointCloud2Array
@@ -34,8 +36,8 @@ class Obj_Classifier(Node):
         pointcloud_topic = self.declare_parameter(
             'pointcloud_topic', 'lidar_proc/obj_clouds').get_parameter_value().string_value
 
-        model_path = self.declare_parameter(
-            'model_path', '/home/adrian/dev/A9_images_and_points/a9_dataset_r02_s03').get_parameter_value().string_value
+        self.declare_parameter('model_path', Parameter.Type.STRING)
+        model_path = self.get_parameter('model_path').get_parameter_value().string_value
 
         self.detection_sub = Subscriber(
             self, Detection3DArray, detection_topic)
