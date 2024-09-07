@@ -2,7 +2,14 @@
 
 This repositiory contains ROS 2 packages for realtime Camera-LiDAR Fusion for static roadside traffic monitoring applications.
 
->It is the implemetation as described in my thesis [A LIGHTWEIGHT CAMERA-LIDAR FUSION FRAMEWORK FOR TRAFFIC MONITORING APPLICATIONS](http://hdl.handle.net/11375/29905).
+> Official Implementation of [A Camera-LiDAR Fusion Framework for Traffic Monitoring](https://ieeexplore.ieee.org/document/10598852)
+```
+A. Sochaniwsky et al., "A Camera-LiDAR Fusion Framework for Traffic Monitoring,"
+2024 IEEE Transportation Electrification Conference and Expo (ITEC), Chicago, IL, USA, 2024,
+pp. 1-6, doi: 10.1109/ITEC60657.2024.10598852.
+```
+
+> For more details please refer to my thesis: [A LIGHTWEIGHT CAMERA-LIDAR FUSION FRAMEWORK FOR TRAFFIC MONITORING APPLICATIONS](http://hdl.handle.net/11375/29905).
 
 <p align="center">
         <img src="./Docs/readme_images/fusion_demo.png" alt="drawing" width="1000"/>
