@@ -2,6 +2,8 @@
 
 This repositiory contains ROS 2 packages for realtime Camera-LiDAR Fusion for static roadside traffic monitoring applications.
 
+>It is the implemetation as described in my thesis [A LIGHTWEIGHT CAMERA-LIDAR FUSION FRAMEWORK FOR TRAFFIC MONITORING APPLICATIONS](http://hdl.handle.net/11375/29905).
+
 <p align="center">
         <img src="./Docs/readme_images/fusion_demo.png" alt="drawing" width="1000"/>
 </p>
@@ -94,11 +96,12 @@ Tested on:
 ---
 # Running the code
 
-1. Download the ROS bags from: `TBD`.
+1. Download the example ROS bags from: https://drive.google.com/drive/folders/1rVnvbeyFYvG2HnFULadnT8nWH69EnOCm?usp=sharing.
+2. Update the folder path of the downloaded ROS bag [here](https://github.com/adrian-soch/cam_lidar_framework/blob/0f0b26503472e27e55a3fed84d4b8c8d708d0258/cam_lidar_bringup/launch/2d_fusion_demo.launch.py#L40) AND [here](https://github.com/adrian-soch/cam_lidar_framework/blob/0f0b26503472e27e55a3fed84d4b8c8d708d0258/cam_lidar_bringup/launch/3d_fusion_demo.launch.py#L14).
 
-2. Run the launch file in the terminal `ros2 launch cam_lidar_bringup fusion_demo.launch.py`. The primary launch file will start all the nodes including Rviz2 for visualization. The launch file has differnt bringup options for different demonstrations and output.
+3. Run the launch file in the terminal `ros2 launch cam_lidar_bringup 2d_fusion_demo.launch.py` OR `ros2 launch cam_lidar_bringup 3d_fusion_demo.launch.py`. The primary launch file will start all the nodes including Rviz2 for visualization. The launch file has differnt bringup options for different demonstrations and output.
 
-3. Tune parameters and re-run. inspect the launch file to see what nodes are being executed. Sometime the launch file calls other launch files. Each node may have different paramters that can be adjusted.
+4. Tune parameters and re-run. inspect the launch file to see what nodes are being executed. Sometime the launch file calls other launch files. Each node may have different paramters that can be adjusted.
 
 ---
 # Troubleshooting and Comments
@@ -106,7 +109,6 @@ Tested on:
 ## Colcon build fails?
 - Check that the libraries you import are in your `CMakeLists.txt` (C++) or `setup.py` (Python) files.
 - Certain warnings disappear if you build a 2nd time.
-- 
 ## Known issues
 
 - 
