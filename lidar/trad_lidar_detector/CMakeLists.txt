@@ -16,6 +16,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# To disable annoying PCL CMAKE policy warning
+cmake_policy(SET CMP0074 NEW)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -23,7 +26,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(vision_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(pcl_ros REQUIRED)
 find_package(pcl_conversions REQUIRED)
@@ -39,7 +41,7 @@ target_include_directories(perception_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(perception_node rclcpp tf2_ros tf2 tf2_eigen sensor_msgs visualization_msgs vision_msgs geometry_msgs pcl_ros pipeline_interfaces)
+ament_target_dependencies(perception_node rclcpp sensor_msgs visualization_msgs vision_msgs geometry_msgs pcl_ros pipeline_interfaces)
 
 add_executable(projection_node src/lidar2cam_proj.cpp)
 target_include_directories(projection_node PUBLIC
@@ -53,7 +55,7 @@ target_include_directories(transform_explorer_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(transform_explorer_node rclcpp tf2_ros tf2 tf2_eigen sensor_msgs pcl_ros)
+ament_target_dependencies(transform_explorer_node rclcpp tf2 tf2_eigen sensor_msgs pcl_ros)
 
 
 install(TARGETS
