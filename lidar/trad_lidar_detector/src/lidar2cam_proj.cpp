@@ -13,7 +13,6 @@
 
 #include <cv_bridge/cv_bridge.h>
 
-
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <vision_msgs/msg/detection2_d.hpp>
@@ -27,9 +26,9 @@
 #define DEBUG_MODE false
 
 #if DEBUG_MODE
-# include <message_filters/subscriber.h>
-# include <message_filters/sync_policies/approximate_time.h>
-# include <message_filters/synchronizer.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <message_filters/synchronizer.h>
 #endif
 
 using namespace message_filters;
@@ -51,20 +50,20 @@ public:
         this->get_parameter("cam_result_topic", cam_result_topic);
 
         // Get transforms
-        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.translation", { 0.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("lidar2cam_extrinsic.rotation", { 0.0, 1.0, 0.0,
-                                                                                        0.0, 0.0, -1.0,
-                                                                                        -1.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.translation", { 0.0, 0.0, 0.0 });
-        this->declare_parameter<std::vector<double> >("lidarData2lidarSensor_extrinsic.rotation", { -1.0, 0.0, 0.0,
-                                                                                                    0.0, -1.0, 0.0,
-                                                                                                    0.0, 0.0, 1.0 });
-        this->declare_parameter<std::vector<double> >("camera_matrix", { 0.0, 0.0, 0.0,
-                                                                         0.0, 0.0, 0.0,
-                                                                         0.0, 0.0, 0.0 });
+        this->declare_parameter<std::vector<double>>("lidar2cam_extrinsic.translation", {0.0, 0.0, 0.0});
+        this->declare_parameter<std::vector<double>>("lidar2cam_extrinsic.rotation", {0.0, 1.0, 0.0,
+                                                                                      0.0, 0.0, -1.0,
+                                                                                      -1.0, 0.0, 0.0});
+        this->declare_parameter<std::vector<double>>("lidarData2lidarSensor_extrinsic.translation", {0.0, 0.0, 0.0});
+        this->declare_parameter<std::vector<double>>("lidarData2lidarSensor_extrinsic.rotation", {-1.0, 0.0, 0.0,
+                                                                                                  0.0, -1.0, 0.0,
+                                                                                                  0.0, 0.0, 1.0});
+        this->declare_parameter<std::vector<double>>("camera_matrix", {0.0, 0.0, 0.0,
+                                                                       0.0, 0.0, 0.0,
+                                                                       0.0, 0.0, 0.0});
 
-        this->declare_parameter<std::vector<double> >("lidar2world_transform.translation", { 0.0 });
-        this->declare_parameter<std::vector<double> >("lidar2world_transform.quaternion", { 1.0, 0.0, 0.0, 0.0 });
+        this->declare_parameter<std::vector<double>>("lidar2world_transform.translation", {0.0});
+        this->declare_parameter<std::vector<double>>("lidar2world_transform.quaternion", {1.0, 0.0, 0.0, 0.0});
         this->get_parameter("lidar2world_transform.translation", lidar2world_translation);
         this->get_parameter("lidar2world_transform.quaternion", lidar2world_quat);
 
@@ -74,7 +73,6 @@ public:
         this->get_parameter("lidarData2lidarSensor_extrinsic.rotation", lidarData2lidarSensor_rotation);
         this->get_parameter("camera_matrix", camera_matrix_rotation);
 
-
         // Create subscriber
         det_sub_ = this->create_subscription<vision_msgs::msg::Detection3DArray>(
             lidar_track_topic, 1, std::bind(&Lidar2CameraProjector::callback, this, std::placeholders::_1));
@@ -82,15 +80,15 @@ public:
         // Create publisher
         proj_pub_ = this->create_publisher<vision_msgs::msg::Detection2DArray>("image_proc/lidar_track_2D", 1);
 
-        // Create synce sub with image to display points in debug mode
-        #if DEBUG_MODE
-        sub_detection_ = std::make_shared<Subscriber<vision_msgs::msg::Detection3DArray> >(this, lidar_track_topic);
-        sub_image_     = std::make_shared<Subscriber<sensor_msgs::msg::Image> >(this, cam_result_topic);
+// Create synce sub with image to display points in debug mode
+#if DEBUG_MODE
+        sub_detection_ = std::make_shared<Subscriber<vision_msgs::msg::Detection3DArray>>(this, lidar_track_topic);
+        sub_image_ = std::make_shared<Subscriber<sensor_msgs::msg::Image>>(this, cam_result_topic);
         pub_ = this->create_publisher<sensor_msgs::msg::Image>("image_proc/projected_dets", 1);
 
         // Create a sync policy using the approximate time synchronizer
         sync_ = std::make_shared<Synchronizer<sync_policies::ApproximateTime<sensor_msgs::msg::Image,
-            vision_msgs::msg::Detection3DArray> > >(4);
+                                                                             vision_msgs::msg::Detection3DArray>>>(4);
         sync_->connectInput(*sub_image_, *sub_detection_);
 
         std::chrono::milliseconds slop(60);
@@ -98,60 +96,62 @@ public:
 
         // Register a callback for the synchronized messages
         sync_->registerCallback(&Lidar2CameraProjector::callback, this);
-        #endif // if DEBUG_MODE
+#endif // if DEBUG_MODE
 
         lidar2cam = param2Transform(lidar2cam_rotation, lidar2cam_translation);
         lidarData2lidarSensor = param2Transform(lidarData2lidarSensor_rotation,
-            lidarData2lidarSensor_translation);
+                                                lidarData2lidarSensor_translation);
         cam_mat = param2Transform(camera_matrix_rotation, camera_matrix_translation);
 
         sensor2world = Eigen::Affine3f::Identity();
         sensor2world.translation() << lidar2world_translation[0], lidar2world_translation[1],
             lidar2world_translation[2];
         sensor2world.rotate(Eigen::Quaternionf(lidar2world_quat[0], lidar2world_quat[1], lidar2world_quat[2],
-          lidar2world_quat[3]));
+                                               lidar2world_quat[3]));
     }
 
 private:
     void callback(
-        #if DEBUG_MODE
-        const sensor_msgs::msg::Image::ConstSharedPtr            & image,
+#if DEBUG_MODE
+        const sensor_msgs::msg::Image::ConstSharedPtr &image,
         const vision_msgs::msg::Detection3DArray::ConstSharedPtr &lidar_track)
-        #else
+#else
         const vision_msgs::msg::Detection3DArray::ConstSharedPtr lidar_track)
-        #endif
+#endif
 
     {
         auto start = std::chrono::high_resolution_clock::now();
 
-        #if DEBUG_MODE
+#if DEBUG_MODE
         cv_bridge::CvImagePtr cv_ptr;
 
         try
         {
             cv_ptr = cv_bridge::toCvCopy(image);
         }
-        catch(cv_bridge::Exception& e)
+        catch (cv_bridge::Exception &e)
         {
             RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
             return;
         }
-        #endif // if DEBUG_MODE
+#endif // if DEBUG_MODE
 
         // Use the inverse of the of lidar2ground transformed used furher up the pipeline
         // If we dont do this the points dont align with the image.
         Eigen::Affine3f proj_matrix = cam_mat * lidar2cam * lidarData2lidarSensor * sensor2world.inverse();
 
         // Convert BBoxes into pointclouds
-        std::vector<pcl::PointCloud<pcl::PointXYZ> > clouds;
-        for(auto det: lidar_track->detections) {
+        std::vector<pcl::PointCloud<pcl::PointXYZ>> clouds;
+        for (auto det : lidar_track->detections)
+        {
             pcl::PointCloud<pcl::PointXYZ> cloud = center_size2points3D(det.bbox);
             clouds.push_back(cloud);
         }
 
         // Combine all pointclouds
         pcl::PointCloud<pcl::PointXYZ> final_cloud, proj_cloud;
-        for(auto c: clouds) {
+        for (auto c : clouds)
+        {
             final_cloud += c;
         }
         proj_cloud = final_cloud;
@@ -170,7 +170,8 @@ private:
         const uint8_t CUBE_ARRAY_SIZE{8};
         float x_points[CUBE_ARRAY_SIZE];
         float y_points[CUBE_ARRAY_SIZE];
-        for(size_t i = 0; i < proj_cloud.size(); i++) {
+        for (size_t i = 0; i < proj_cloud.size(); i++)
+        {
             pcl::PointXYZ p = proj_cloud.points[i];
 
             // Complete projection by dividing out z
@@ -184,7 +185,8 @@ private:
             y_points[counter] = y;
             counter++;
 
-            if(counter >= CUBE_ARRAY_SIZE) {
+            if (counter >= CUBE_ARRAY_SIZE)
+            {
                 // After we have a set of 8
                 std::string id = lidar_track->detections[output_counter].id;
                 output_counter++;
@@ -192,31 +194,30 @@ private:
                 proj_dets.detections.push_back(det);
                 counter = 0;
 
-                #if DEBUG_MODE
-                cv::Point2f top(det.bbox.center.x - det.bbox.size_x / 2.0,
-                  det.bbox.center.y - det.bbox.size_y / 2.0);
-                cv::Point2f bottom(det.bbox.center.x + det.bbox.size_x / 2.0,
-                  det.bbox.center.y + det.bbox.size_y / 2.0);
+#if DEBUG_MODE
+                cv::Point2f top(det.bbox.center.position.x - det.bbox.size_x / 2.0,
+                                det.bbox.center.position.y - det.bbox.size_y / 2.0);
+                cv::Point2f bottom(det.bbox.center.position.x + det.bbox.size_x / 2.0,
+                                   det.bbox.center.position.y + det.bbox.size_y / 2.0);
                 cv::rectangle(cv_ptr->image, top, bottom, CV_RGB(40, 40, 210), 4);
-                #endif
+#endif
             }
 
-            #if DEBUG_MODE
+#if DEBUG_MODE
             // Draw each point on image
             cv::Point2f p2d(x, y);
             cv::circle(cv_ptr->image, p2d, 6, CV_RGB(255, 0, 0), -1);
-            #endif
+#endif
         }
 
-
-        #if DEBUG_MODE
+#if DEBUG_MODE
         // Convert the OpenCV image to a ROS image message using cv_bridge
         sensor_msgs::msg::Image::SharedPtr processed_msg = cv_ptr->toImageMsg();
         processed_msg->header = image->header;
 
         // Publish the processed image
         pub_->publish(*processed_msg);
-        #endif
+#endif
 
         // Publish detection array
         proj_pub_->publish(proj_dets);
@@ -235,7 +236,7 @@ private:
 
         pcl::PointCloud<pcl::PointXYZ> cloud;
 
-        cloud.width  = 8;
+        cloud.width = 8;
         cloud.height = 1;
         cloud.points.push_back(pcl::PointXYZ(-x_len, -y_len, -z_len));
         cloud.points.push_back(pcl::PointXYZ(-x_len, -y_len, +z_len));
@@ -274,12 +275,12 @@ private:
         Eigen::Affine3f output = Eigen::Affine3f::Identity();
 
         output.rotate(Eigen::Quaternionf(pose.orientation.w, pose.orientation.x, pose.orientation.y,
-          pose.orientation.z));
+                                         pose.orientation.z));
         output.translation() << pose.position.x, pose.position.y, pose.position.z;
         return output;
     }
 
-    vision_msgs::msg::Detection2D points2Bbox2d(const float* x, const float* y, uint8_t size, std::string id)
+    vision_msgs::msg::Detection2D points2Bbox2d(const float *x, const float *y, uint8_t size, std::string id)
     {
         float x_max = *std::max_element(x, x + size);
         float x_min = *std::min_element(x, x + size);
@@ -291,10 +292,17 @@ private:
         float x_len = abs(x_max - x_min);
         float y_len = abs(y_max - y_min);
 
-        det.bbox.center.x = x_len / 2.0 + x_min;
-        det.bbox.center.y = y_len / 2.0 + y_min;
-        det.bbox.size_x   = x_len;
-        det.bbox.size_y   = y_len;
+        // This is for ROS2 Humble
+        det.bbox.center.position.x = x_len / 2.0 + x_min;
+        det.bbox.center.position.y = y_len / 2.0 + y_min;
+        det.bbox.size_x = x_len;
+        det.bbox.size_y = y_len;
+
+        // This is for ROS2 Galactic
+        // det.bbox.center.x = x_len / 2.0 + x_min;
+        // det.bbox.center.y = y_len / 2.0 + y_min;
+        // det.bbox.size_x   = x_len;
+        // det.bbox.size_y   = y_len;
 
         det.id = id;
 
@@ -314,25 +322,26 @@ private:
     std::vector<double> lidar2cam_rotation;
     std::vector<double> lidarData2lidarSensor_translation;
     std::vector<double> lidarData2lidarSensor_rotation;
-    std::vector<double> camera_matrix_translation { 0.0, 0.0, 0.0 };
+    std::vector<double> camera_matrix_translation{0.0, 0.0, 0.0};
     std::vector<double> camera_matrix_rotation;
     std::vector<double> lidar2world_translation;
     std::vector<double> lidar2world_quat;
 
-    #if DEBUG_MODE
-    std::shared_ptr<Subscriber<sensor_msgs::msg::Image> > sub_image_;
-    std::shared_ptr<Subscriber<vision_msgs::msg::Detection3DArray> > sub_detection_;
+#if DEBUG_MODE
+    std::shared_ptr<Subscriber<sensor_msgs::msg::Image>> sub_image_;
+    std::shared_ptr<Subscriber<vision_msgs::msg::Detection3DArray>> sub_detection_;
     std::shared_ptr<Synchronizer<sync_policies::ApproximateTime<sensor_msgs::msg::Image,
-      vision_msgs::msg::Detection3DArray> > > sync_;
+                                                                vision_msgs::msg::Detection3DArray>>>
+        sync_;
 
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_;
-    #endif
+#endif
 
     rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr proj_pub_;
     rclcpp::Subscription<vision_msgs::msg::Detection3DArray>::SharedPtr det_sub_;
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     auto node = std::make_shared<Lidar2CameraProjector>();
